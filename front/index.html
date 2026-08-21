@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ngram-press</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="entete">
+  <div class="marque">ngram-press</div>
+  <nav class="langues" aria-label="Langue">
+    <button id="btn-fr" class="langue" lang="fr">FR</button>
+    <button id="btn-en" class="langue" lang="en">EN</button>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <h1 data-i18n="tagline"></h1>
+    <p class="sous-titre" data-i18n="intro"></p>
+    <p class="chiffres" data-i18n="chiffres"></p>
+  </section>
+
+  <section class="demo" id="demo">
+    <h2 data-i18n="demo_titre"></h2>
+    <form id="formulaire" class="filtres">
+      <label class="champ champ-mot">
+        <span data-i18n="lbl_mots"></span>
+        <input id="mots" type="text" value="inflation" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="champ">
+        <span data-i18n="lbl_corpus"></span>
+        <select id="corpus"></select>
+      </label>
+      <label class="champ">
+        <span data-i18n="lbl_de"></span>
+        <input id="de" type="number" min="1990" max="2026" value="2015">
+      </label>
+      <label class="champ">
+        <span data-i18n="lbl_a"></span>
+        <input id="a" type="number" min="1990" max="2026" value="2026">
+      </label>
+      <label class="champ">
+        <span data-i18n="lbl_resolution"></span>
+        <select id="resolution">
+          <option value="mois" data-i18n="res_mois"></option>
+          <option value="annee" data-i18n="res_annee"></option>
+        </select>
+      </label>
+      <button type="submit" class="bouton" data-i18n="btn_tracer"></button>
+    </form>
+
+    <figure class="carte-graphe">
+      <figcaption id="titre-graphe" class="titre-graphe"></figcaption>
+      <div id="legende" class="legende"></div>
+      <div id="zone-graphe" class="zone-graphe">
+        <svg id="graphe" role="img"></svg>
+        <div id="infobulle" class="infobulle" hidden></div>
+        <p id="message" class="message" data-i18n="msg_depart"></p>
+      </div>
+      <details class="tableau-conteneur">
+        <summary data-i18n="voir_donnees"></summary>
+        <div class="defilement"><table id="tableau"></table></div>
+      </details>
+    </figure>
+  </section>
+
+  <section class="projet">
+    <h2 data-i18n="projet_titre"></h2>
+    <p data-i18n="projet_p1"></p>
+    <p data-i18n="projet_p2"></p>
+  </section>
+</main>
+
+<footer class="pied">
+  <span data-i18n="pied_texte"></span>
+  <a href="https://github.com/corto2corto/ngram-press">GitHub</a>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
