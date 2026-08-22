@@ -18,6 +18,17 @@
   --serie-2: #2a78d6;
   --serie-3: #1baf7a;
   --serie-4: #eda100;
+  --ombre: rgba(20, 18, 12, 0.10);
+  --anneau: rgba(184, 101, 63, 0.22);
+
+  /* mouvement : deux durées de réaction, une durée de tracé, trois courbes.
+     Tout le site s'y tient — voir le banc d'essai des animations. */
+  --duree-courte: 180ms;
+  --duree-survol: 220ms;
+  --duree-trace: 1100ms;
+  --sortie: cubic-bezier(0.16, 1, 0.3, 1);
+  --doux: cubic-bezier(0.22, 1, 0.36, 1);
+  --trace: cubic-bezier(0.37, 0.15, 0.28, 0.94);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,6 +47,8 @@
     --serie-2: #3987e5;
     --serie-3: #199e70;
     --serie-4: #c98500;
+    --ombre: rgba(0, 0, 0, 0.5);
+    --anneau: rgba(201, 122, 85, 0.28);
   }
 }
 
@@ -90,12 +103,86 @@ main > section,
 .marque {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  font-family: var(--police-serif), Georgia, serif;
-  font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  gap: 0.22em;
+  color: var(--accent);
+  font-family: var(--police-marque), var(--police-serif), Georgia, serif;
+  font-size: 3.15rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
   text-decoration: none;
+}
+
+/* La spirale reste calée sur la lettre : « cap » vaut la hauteur de capitale de
+   la police courante (0,692 em pour IM Fell) et la spirale n'occupe que 0,88 de
+   sa boîte SVG — le facteur serait 1,134 pour une égalité stricte. À 1,5 son
+   tracé dépasse le A d'un tiers : c'est le signe qui mène, le mot qui suit. Les
+   petites capitales s'ajustent d'elles-mêmes : 0,44 em contre 0,70 em pour le A. */
+.marque-signe svg {
+  width: auto;
+  height: 1.5cap;
+}
+
+@supports not (height: 1cap) {
+  .entete .marque-signe svg {
+    height: 52px;
+  }
+
+  .pied .marque-signe svg {
+    height: 36px;
+  }
+}
+
+/* signe et mot partagent la couleur d'accent : le logotype fait bloc */
+.marque-signe {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+/* A1 — le logo de l'en-tête se dessine au chargement : les traits de
+   construction se posent, la spirale suit d'un geste, puis le mot paraît.
+   Les durées sont celles du banc d'essai jouées à 0,75× (donc allongées d'un
+   tiers). Uniquement dans l'en-tête : le logo du pied de page reste fixe. */
+.entete .marque-signe line {
+  animation: trace 560ms ease-out both;
+}
+
+.entete .marque-signe line:nth-of-type(2) {
+  animation-delay: 95ms;
+}
+
+.entete .marque-signe line:nth-of-type(3) {
+  animation-delay: 190ms;
+}
+
+.entete .marque-signe path {
+  animation: trace 1330ms cubic-bezier(0.65, 0, 0.35, 1) 240ms both;
+}
+
+.entete .mot-marque {
+  animation: paraitre 800ms var(--sortie) 1010ms both;
+}
+
+/* Le pointillé ne vit que dans l'animation : hors animation (mouvement
+   réduit, moteur qui ne suit pas), le tracé reste plein et visible. */
+@keyframes trace {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes paraitre {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .menu {
@@ -154,8 +241,19 @@ main > section,
   cursor: pointer;
 }
 
+/* A11 */
+.bouton {
+  transition:
+    opacity var(--duree-courte) ease,
+    transform 140ms var(--doux);
+}
+
 .bouton:hover {
   opacity: 0.85;
+}
+
+.bouton:active {
+  transform: scale(0.97);
 }
 
 .bouton-petit {
@@ -182,8 +280,8 @@ main > section,
 
 .hero h1 {
   margin: 0;
-  max-width: 21ch;
-  font-size: clamp(2.5rem, 6vw, 4.1rem);
+  max-width: 24ch;
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -204,38 +302,15 @@ main > section,
   color: var(--encre-muette);
 }
 
-/* ---- bloc manifeste */
-
-.manifeste {
-  padding-block: clamp(2.5rem, 6vw, 4.5rem);
-  border-top: 1px solid var(--bord);
-}
-
-.manifeste h2 {
-  margin: 0;
-  max-width: 26ch;
-  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-
-.manifeste p {
-  max-width: 44rem;
-  margin: 1.2rem 0 1.4rem;
-  color: var(--encre-2);
-  font-size: 1.05rem;
-}
-
 /* ---- étiquettes de section */
 
 .etiquette {
   margin: 0 0 1.4rem;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
+  font-weight: 550;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--encre-muette);
+  color: var(--encre-2);
 }
 
 /* ---- cartes d'entrée (grille de trois) */
@@ -262,7 +337,7 @@ main > section,
 }
 
 .carte-entree .categorie {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
@@ -297,8 +372,28 @@ main > section,
   padding: 0.15rem 0.6rem;
 }
 
-a.carte-entree:hover {
+/* A5 — au survol, la carte se précise et se soulève de 2 px ; la flèche avance.
+   Vaut pour les trois cartes, y compris les « À venir » non cliquables. */
+.carte-entree {
+  transition:
+    border-color var(--duree-survol) ease,
+    box-shadow var(--duree-survol) ease,
+    transform var(--duree-survol) var(--doux);
+}
+
+.carte-entree:hover {
   border-color: var(--axe);
+  box-shadow: 0 6px 22px var(--ombre);
+  transform: translateY(-2px);
+}
+
+.carte-entree .fleche {
+  display: inline-block;
+  transition: transform var(--duree-survol) var(--doux);
+}
+
+.carte-entree:hover .fleche {
+  transform: translateX(4px);
 }
 
 /* ---- explorateur */
@@ -342,12 +437,23 @@ a.carte-entree:hover {
   border-radius: 11px;
   padding: 0.55rem 0.8rem;
   min-width: 0;
+  /* A11 */
+  transition:
+    border-color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
 }
 
+.champ input:hover,
+.champ select:hover {
+  border-color: var(--axe);
+}
+
+/* A11 — l'anneau d'accent remplace le contour : même rôle, plus doux. */
 .champ input:focus-visible,
 .champ select:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--anneau);
 }
 
 .champ input[type="number"] {
@@ -407,6 +513,58 @@ a.carte-entree:hover {
   width: 100%;
   height: 380px;
   touch-action: pan-y;
+}
+
+/* A6 — les courbes se tracent de gauche à droite, dans le sens du temps, puis
+   le point de dernière valeur éclôt. Chaque série part avec 120 ms de retard
+   sur la précédente. pathLength="1" normalise la longueur du chemin : la durée
+   ne dépend donc pas du nombre de points. Le tracé rejoue à chaque requête,
+   grâce à la clé de tirage posée sur les groupes de séries (Chart.tsx). */
+/* Le défilement automatique a sa propre vitesse de tracé, un peu plus lente :
+   on laisse à la courbe le temps de naître. Les tracés demandés à la main
+   gardent la durée commune. Le point de fin (A6) suit de lui-même, son délai
+   étant calculé sur --duree-trace. */
+.carte-graphe.trace-defile {
+  --duree-trace: 1700ms;
+}
+
+.serie {
+  --retard: 0ms;
+}
+
+.serie.s2 {
+  --retard: 120ms;
+}
+
+.serie.s3 {
+  --retard: 240ms;
+}
+
+.serie.s4 {
+  --retard: 360ms;
+}
+
+.serie .courbe {
+  animation: trace var(--duree-trace) var(--trace) var(--retard) both;
+}
+
+.serie .bout {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: eclore 420ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  animation-delay: calc(var(--retard) + var(--duree-trace) - 60ms);
+}
+
+@keyframes eclore {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .message {
@@ -497,33 +655,109 @@ a.carte-entree:hover {
   font-weight: 600;
 }
 
-/* ---- sous le capot */
-
-.capot {
-  padding-block: 1rem 3.5rem;
+/* A10 — à l'ouverture du bloc, les lignes se posent en cascade. Le décalage
+   est plafonné à la 8e ligne : au-delà, un tableau long attendrait pour rien. */
+details[open] .defilement tbody tr {
+  animation: monte-court 360ms var(--sortie) both;
 }
 
-.capot-grille {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 1.1rem;
+details[open] .defilement tbody tr:nth-child(1) {
+  animation-delay: 0ms;
 }
 
-.carte-capot {
-  border-top: 1px solid var(--axe);
-  padding-top: 0.9rem;
+details[open] .defilement tbody tr:nth-child(2) {
+  animation-delay: 35ms;
 }
 
-.carte-capot h3 {
-  margin: 0 0 0.35rem;
-  font-size: 0.98rem;
-  font-weight: 600;
+details[open] .defilement tbody tr:nth-child(3) {
+  animation-delay: 70ms;
 }
 
-.carte-capot p {
-  margin: 0;
-  font-size: 0.88rem;
+details[open] .defilement tbody tr:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+details[open] .defilement tbody tr:nth-child(5) {
+  animation-delay: 140ms;
+}
+
+details[open] .defilement tbody tr:nth-child(6) {
+  animation-delay: 175ms;
+}
+
+details[open] .defilement tbody tr:nth-child(7) {
+  animation-delay: 210ms;
+}
+
+details[open] .defilement tbody tr:nth-child(n + 8) {
+  animation-delay: 245ms;
+}
+
+@keyframes monte-court {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- fait avec */
+
+.fait-avec {
+  padding-block: 0 4.5rem;
+}
+
+.fait-avec-grille {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.6rem clamp(2rem, 6vw, 4.25rem);
+}
+
+.logo-tech {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
   color: var(--encre-2);
+  transition: color var(--duree-survol) ease;
+}
+
+.logo-tech:hover {
+  color: var(--accent);
+}
+
+.logo-tech .nom {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: var(--encre-muette);
+  transition: color var(--duree-survol) ease;
+}
+
+.logo-tech:hover .nom {
+  color: var(--encre-2);
+}
+
+/* A12 — à l'entrée de la section dans le viewport (FaitAvec.tsx pose la
+   classe « visible »), chaque pictogramme se dessine à son tour : le contour
+   se trace, puis les détails pleins (yeux, curseur, bulles) et le nom
+   paraissent. Même grammaire que le logo de l'en-tête (A1). Le décalage entre
+   logos vient de --retard-logo, posé en ligne par le composant. Sans la
+   classe, aucun état caché : les logos restent affichés (principe du
+   pointillé, cf. A1). */
+.fait-avec.visible .motif {
+  animation: trace 750ms var(--trace) var(--retard-logo, 0ms) both;
+}
+
+.fait-avec.visible .oeil {
+  animation: paraitre 300ms ease calc(var(--retard-logo, 0ms) + 680ms) both;
+}
+
+.fait-avec.visible .logo-tech .nom {
+  animation: paraitre 700ms var(--sortie) calc(var(--retard-logo, 0ms) + 480ms) both;
 }
 
 /* ---- le projet */
@@ -531,17 +765,15 @@ a.carte-entree:hover {
 .projet {
   padding-block: clamp(2.5rem, 6vw, 4rem);
   border-top: 1px solid var(--bord);
-  display: flex;
-  gap: 4.5rem;
   scroll-margin-top: 2rem;
 }
 
 .projet h2 {
-  margin: 0;
-  width: 13rem;
-  flex-shrink: 0;
-  font-size: 1.9rem;
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
   font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
 .projet-corps {
@@ -627,16 +859,16 @@ a.carte-entree:hover {
 }
 
 .pied-marque .marque {
-  font-size: 1.05rem;
+  font-size: 2.16rem;
 }
 
 .pied h3 {
   margin: 0 0 0.7rem;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 600;
-  color: var(--encre-muette);
+  color: var(--encre-2);
 }
 
 .pied ul {
@@ -668,20 +900,33 @@ a.carte-entree:hover {
     display: none;
   }
 
+
   .entrees-grille {
     grid-template-columns: 1fr;
   }
 
-  .capot-grille {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .projet {
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
   .pied-colonnes {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---- mouvement réduit
+
+   Aucune information du site n'est portée par le mouvement seul : tout couper
+   ne retire rien. Les tracés s'affichent d'emblée (les animations sont en
+   mode « both », leur état final s'applique donc immédiatement). */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 }

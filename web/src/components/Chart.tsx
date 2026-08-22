@@ -2,14 +2,36 @@
 
 // Graphe SVG maison (grille, courbes, réticule, infobulle) : porte le rendu du
 // front statique en React. La largeur suit le conteneur (ResizeObserver), les
-// couleurs de séries viennent des jetons CSS --serie-1..4.
+// couleurs de séries viennent des jetons CSS --serie-1..4. Les courbes et
+// l'infobulle suivent une valeur lissée ; le tableau garde les valeurs brutes.
 
 import { useEffect, useRef, useState } from "react";
-import type { Serie } from "@/lib/api";
+import type { Point, Serie } from "@/lib/api";
+import { formaterValeur, valeurPoint, type Metrique } from "@/lib/mesures";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 
 const MARGE = { haut: 24, droite: 16, bas: 30, gauche: 52 };
 const HAUTEUR = 380;
+
+// lissage « appuyé » : moyenne mobile centrée à noyau triangulaire,
+// renormalisée aux bords pour que les extrémités ne s'affaissent pas
+const NOYAU = [1, 2, 3, 2, 1];
+
+function lisser(valeurs: number[]): number[] {
+  const demi = (NOYAU.length - 1) / 2;
+  return valeurs.map((_, i) => {
+    let somme = 0;
+    let poids = 0;
+    NOYAU.forEach((w, k) => {
+      const j = i + k - demi;
+      if (j >= 0 && j < valeurs.length) {
+        somme += w * valeurs[j];
+        poids += w;
+      }
+    });
+    return somme / poids;
+  });
+}
 
 function pasArrondi(brut: number): number {
   const puissance = 10 ** Math.floor(Math.log10(brut));
@@ -21,14 +43,21 @@ export default function Chart({
   series,
   corpus,
   lang,
+  metrique,
   chargement,
   message,
+  tirage,
 }: {
   series: Serie[];
   corpus: string;
   lang: Lang;
+  metrique: Metrique;
   chargement: boolean;
   message: string | null;
+  // numéro de la requête : sert de clé aux groupes de séries pour que React
+  // remonte les <path> et que l'animation de tracé (globals.css, A6) rejoue,
+  // même si l'on redemande exactement le même mot.
+  tirage: number;
 }) {
   const t = textes[lang];
   const locale = localeDe(lang);
@@ -46,25 +75,38 @@ export default function Chart({
   }, []);
 
   const nomCorpus = corpusNoms[corpus] ?? corpus;
+  const mesure = t[`axe_${metrique}`];
   const titre =
     series.length === 1
-      ? t.titre_graphe_mot(series[0].gram, nomCorpus)
-      : t.titre_graphe(nomCorpus);
+      ? t.titre_graphe_mot(series[0].gram, nomCorpus, mesure)
+      : t.titre_graphe(nomCorpus, mesure);
+
+  // valeur et format d'un point selon la métrique retenue
+  const valeur = (p: Point) => valeurPoint(p, metrique);
+  const formater = (v: number) => formaterValeur(v, metrique, locale);
+  const valsSeries = series.map((s) => lisser(s.points.map(valeur)));
 
   // échelles (uniquement si l'on a des séries et une largeur mesurée)
   const pret = largeur > 0 && series.length > 0;
   const xs = series.flatMap((s) => s.points.map((p) => p.x));
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
-  const yMax = Math.max(...series.flatMap((s) => s.points.map((p) => p.freq)), 1e-6);
+  const yMax = Math.max(...valsSeries.flat(), 1e-6);
   const pas = pasArrondi(yMax / 4);
   const yHaut = pas * Math.ceil(yMax / pas);
-  const px = (x: number) =>
-    MARGE.gauche + ((x - xMin) / (xMax - xMin || 1)) * (largeur - MARGE.gauche - MARGE.droite);
-  const py = (y: number) => HAUTEUR - MARGE.bas - (y / yHaut) * (HAUTEUR - MARGE.haut - MARGE.bas);
 
   const graduationsY: number[] = [];
   if (pret) for (let v = 0; v <= yHaut + 1e-9; v += pas) graduationsY.push(v);
+
+  // marge gauche adaptée à la plus large étiquette (« 120 000 », « 0,012 % »…)
+  const margeGauche = Math.max(
+    MARGE.gauche,
+    14 + 6.5 * Math.max(0, ...graduationsY.map((v) => formater(v).length)),
+  );
+  const px = (x: number) =>
+    margeGauche + ((x - xMin) / (xMax - xMin || 1)) * (largeur - margeGauche - MARGE.droite);
+  const py = (y: number) => HAUTEUR - MARGE.bas - (y / yHaut) * (HAUTEUR - MARGE.haut - MARGE.bas);
+
   const graduationsX: number[] = [];
   if (pret) {
     const saut = Math.max(1, Math.ceil((xMax - xMin) / 6));
@@ -118,7 +160,7 @@ export default function Chart({
               {graduationsY.map((v) => (
                 <g key={v}>
                   <line
-                    x1={MARGE.gauche}
+                    x1={margeGauche}
                     x2={largeur - MARGE.droite}
                     y1={py(v)}
                     y2={py(v)}
@@ -126,13 +168,13 @@ export default function Chart({
                     strokeWidth={1}
                   />
                   <text
-                    x={MARGE.gauche - 8}
+                    x={margeGauche - 8}
                     y={py(v) + 4}
                     textAnchor="end"
                     fontSize={11}
                     fill="var(--encre-muette)"
                   >
-                    {Number(v.toFixed(4)).toLocaleString(locale)}
+                    {formater(v)}
                   </text>
                 </g>
               ))}
@@ -148,8 +190,8 @@ export default function Chart({
                   {an}
                 </text>
               ))}
-              <text x={MARGE.gauche - 40} y={12} fontSize={11} fill="var(--encre-muette)">
-                {t.axe_y}
+              <text x={margeGauche - 40} y={12} fontSize={11} fill="var(--encre-muette)">
+                {mesure}
               </text>
 
               {xSurvol !== null && (
@@ -166,10 +208,13 @@ export default function Chart({
               {series.map((s, i) => {
                 const fin = s.points[s.points.length - 1];
                 return (
-                  <g key={s.gram}>
+                  // la métrique dans la clé : changer de mesure rejoue le tracé
+                  <g className={`serie s${i + 1}`} key={`${tirage}-${metrique}-${s.gram}`}>
                     <path
+                      className="courbe"
+                      pathLength={1}
                       d={s.points
-                        .map((p, j) => `${j ? "L" : "M"}${px(p.x)},${py(p.freq)}`)
+                        .map((p, j) => `${j ? "L" : "M"}${px(p.x)},${py(valsSeries[i][j])}`)
                         .join("")}
                       fill="none"
                       stroke={`var(--serie-${i + 1})`}
@@ -178,8 +223,9 @@ export default function Chart({
                       strokeLinecap="round"
                     />
                     <circle
+                      className="bout"
                       cx={px(fin.x)}
-                      cy={py(fin.freq)}
+                      cy={py(valsSeries[i][s.points.length - 1])}
                       r={4}
                       fill={`var(--serie-${i + 1})`}
                       stroke="var(--surface)"
@@ -209,9 +255,7 @@ export default function Chart({
                 <div className="ligne" key={s.gram}>
                   <span className="trait" style={{ borderTopColor: `var(--serie-${i + 1})` }} />
                   <span>{s.gram}</span>
-                  <span className="valeur">
-                    {p.freq.toLocaleString(locale, { maximumSignificantDigits: 3 })}
-                  </span>
+                  <span className="valeur">{formater(valsSeries[i][indice])}</span>
                 </div>
               );
             })}

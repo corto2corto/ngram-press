@@ -3,9 +3,18 @@
 // Vue tableau : les mêmes valeurs que le graphe, accessibles sans survol.
 
 import type { Serie } from "@/lib/api";
+import { formaterValeur, valeurPoint, type Metrique } from "@/lib/mesures";
 import { localeDe, textes, type Lang } from "@/lib/i18n";
 
-export default function DataTable({ series, lang }: { series: Serie[]; lang: Lang }) {
+export default function DataTable({
+  series,
+  lang,
+  metrique,
+}: {
+  series: Serie[];
+  lang: Lang;
+  metrique: Metrique;
+}) {
   const t = textes[lang];
   const locale = localeDe(lang);
 
@@ -30,7 +39,7 @@ export default function DataTable({ series, lang }: { series: Serie[]; lang: Lan
                 const q = s.points[i];
                 return (
                   <td key={s.gram}>
-                    {q ? q.freq.toLocaleString(locale, { maximumSignificantDigits: 3 }) : ""}
+                    {q ? formaterValeur(valeurPoint(q, metrique), metrique, locale) : ""}
                   </td>
                 );
               })}

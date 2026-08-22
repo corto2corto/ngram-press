@@ -9,11 +9,44 @@ export const hasLang = (lang: string): lang is Lang =>
 
 export const localeDe = (lang: Lang) => (lang === "fr" ? "fr-FR" : "en-GB");
 
-// noms d'affichage des corpus (l'API parle en identifiants : lemonde, lefigaro…)
+// noms d'affichage des corpus (l'API parle en identifiants : le_monde, mediapart…)
 export const corpusNoms: Record<string, string> = {
-  lemonde: "Le Monde",
-  lefigaro: "Le Figaro",
-  lesechos: "Les Échos",
+  "20minutes": "20 Minutes",
+  atlantico: "Atlantico",
+  bfmtv: "BFM TV",
+  challenges: "Challenges",
+  cnews: "CNews",
+  francesoir: "France-Soir",
+  gala: "Gala",
+  l_opinion: "L'Opinion",
+  la_croix: "La Croix",
+  la_depeche: "La Dépêche",
+  laprovence: "La Provence",
+  latribune: "La Tribune",
+  le_capital: "Capital",
+  le_courrier_de_l_ouest: "Le Courrier de l'Ouest",
+  le_figaro: "Le Figaro",
+  le_journal_du_dimanche: "Le Journal du Dimanche",
+  le_maine_libre: "Le Maine Libre",
+  le_marin: "Le Marin",
+  le_monde: "Le Monde",
+  le_nouvel_observateur: "Le Nouvel Obs",
+  le_telegramme: "Le Télégramme",
+  leparisien: "Le Parisien",
+  les_echos: "Les Échos",
+  marianne: "Marianne",
+  mediapart: "Mediapart",
+  midilibre: "Midi Libre",
+  nice_matin: "Nice-Matin",
+  ouest_france2: "Ouest-France",
+  paris_match: "Paris Match",
+  paris_normandie: "Paris-Normandie",
+  presse_ocean: "Presse Océan",
+  sud_ouest: "Sud Ouest",
+  telerama: "Télérama",
+  valeurs_actuelles: "Valeurs actuelles",
+  voici: "Voici",
+  voiles_et_voiliers: "Voiles et Voiliers",
 };
 
 export const MAX_SERIES = 4;
@@ -27,21 +60,15 @@ export const textes = {
     cta_header: "Explorer les courbes",
 
     // hero
-    tagline: "La fréquence des mots dans la presse française, jour par jour.",
+    tagline: "Les tendances de la presse française, jour par jour.",
     intro:
-      "ngram-press mesure l'évolution du vocabulaire de la presse française à partir "
-      + "d'articles collectés quotidiennement. Tapez un ou plusieurs mots, comparez les courbes, "
-      + "repérez les émergences et les disparitions.",
-    chiffres: "31 journaux · granularité quotidienne · mise à jour continue",
+      "Agora est un outil qui permet de mesurer l'évolution du vocabulaire de la presse "
+      + "française à partir d'un grand corpus d'articles collectés quotidiennement. Tapez un ou "
+      + "plusieurs mots, comparez les courbes, repérez les émergences et les disparitions.",
+    chiffres: "36 médias · granularité quotidienne · mise à jour continue",
     hero_cta: "Explorer les courbes",
 
-    // bloc manifeste
-    mission_titre: "Les rachats de journaux changent-ils ce qui s'écrit ?",
-    mission_p:
-      "Ce site accompagne un mémoire de master construit sur cette question. Pour y répondre, "
-      + "il faut d'abord mesurer : des articles de presse collectés chaque jour, découpés en mots, "
-      + "agrégés en séries temporelles — la démarche de Gallicagram, appliquée à la presse en ligne "
-      + "contemporaine.",
+    // lien vers le bloc « Le projet », utilisé dans le pied de page
     mission_lien: "Lire la méthodologie",
 
     // cartes d'entrée
@@ -59,7 +86,7 @@ export const textes = {
     avenir: "À venir",
 
     // explorateur
-    demo_titre: "Explorer",
+    demo_titre: "L'explorateur",
     lbl_mots: "Mots (séparés par des virgules)",
     lbl_corpus: "Journal",
     lbl_de: "De",
@@ -67,50 +94,49 @@ export const textes = {
     lbl_resolution: "Résolution",
     res_mois: "Mois",
     res_annee: "Année",
+    lbl_mesure: "Mesure",
+    mes_pour100k: "Pour 100 000 mots",
+    mes_freq: "Fréquence (%)",
+    mes_brut: "Occurrences brutes",
     btn_tracer: "Tracer",
     msg_depart: "Tapez un mot puis « Tracer » pour afficher sa courbe.",
     msg_chargement: "Chargement…",
     msg_erreur: "L'API est injoignable pour le moment. Réessayez plus tard.",
     msg_trop: `Au plus ${MAX_SERIES} mots à la fois.`,
     msg_vide: "Aucune donnée sur cette période.",
-    axe_y: "occurrences pour 100 000 mots",
-    titre_graphe: (corpus: string) => `Fréquence dans ${corpus}, pour 100 000 mots`,
-    titre_graphe_mot: (mot: string, corpus: string) =>
-      `« ${mot} » dans ${corpus}, pour 100 000 mots`,
+    // descripteur de la métrique, repris par l'axe Y et le titre du graphe
+    axe_pour100k: "occurrences pour 100 000 mots",
+    axe_freq: "part des mots (%)",
+    axe_brut: "occurrences brutes",
+    titre_graphe: (corpus: string, mesure: string) => `${corpus} — ${mesure}`,
+    titre_graphe_mot: (mot: string, corpus: string, mesure: string) =>
+      `« ${mot} » dans ${corpus} — ${mesure}`,
     col_periode: "Période",
     voir_donnees: "Voir les données",
 
-    // sous le capot
-    capot_etiquette: "Sous le capot",
-    capot: [
-      ["Collecte quotidienne", "Des articles de 31 journaux récoltés chaque jour (Python, Selenium)."],
-      ["Bases au jour près", "Des occurrences datées au jour, stockées en SQLite."],
-      ["API ouverte", "Une API Flask : séries, palmarès, évolutions, fiches statistiques."],
-      ["Modèles de pics", "Poisson, binomiale négative et mélange pour détecter les ruptures."],
-      ["Tokenisation stable", "Les requêtes découpent les mots exactement comme les bases."],
-    ] as const,
+    // fait avec — la pile technique en pictogrammes (FaitAvec.tsx)
+    fait_etiquette: "Fait avec",
 
     // le projet (méthodologie)
     projet_titre: "Le projet",
     projet_p1:
-      "Ce site accompagne un mémoire de master : les rachats de journaux français "
-      + "modifient-ils la couverture thématique ? Pour le mesurer, des articles de presse sont "
-      + "collectés chaque jour, découpés en mots, et agrégés en séries temporelles — la même "
-      + "démarche que Gallicagram, appliquée à la presse en ligne contemporaine.",
+      "Un changement d'actionnaire laisse peu de traces visibles dans un journal : la maquette "
+      + "ne bouge pas, les signatures restent. Ce qui se déplace, c'est la part accordée à chaque "
+      + "sujet — un glissement qui n'apparaît qu'à l'échelle de milliers d'articles.",
     projet_p2:
-      "Sous le capot : un pipeline de collecte (Python/Selenium), des bases SQLite "
-      + "d'occurrences datées au jour, une API Flask, et des modèles statistiques de détection "
-      + "de ruptures (Poisson, binomiale négative).",
+      "Agora rend cette échelle lisible : la fréquence d'un mot, mois après mois, avant et après "
+      + "les rachats. Une courbe ne démontre rien à elle seule ; elle indique où regarder, et "
+      + "laisse à la lecture le soin d'expliquer.",
 
     // contact
+    contact_etiquette: "À propos de l'auteur",
     contact_nom: "Corto",
     contact_p: "Mémoire de master, 2026. Données, langage, presse — parlons-en.",
     contact_cv: "Télécharger le CV",
     contact_ecrire: "M'écrire",
 
     // pied de page
-    pied_texte: "ngram-press — mémoire de master, 2026",
-    pied_corpus: "Le Monde · Le Figaro · Les Échos",
+    pied_texte: "Agora — mémoire de master, 2026",
   },
   en: {
     nav_explorer: "Explore",
@@ -118,18 +144,14 @@ export const textes = {
     nav_contact: "Contact",
     cta_header: "Explore the curves",
 
-    tagline: "Word frequencies in the French press, day by day.",
+    tagline: "Trends in the French press, day by day.",
     intro:
-      "ngram-press tracks the vocabulary of the French press through articles collected "
-      + "daily. Type one or more words, compare their curves, spot what emerges and what fades.",
-    chiffres: "31 newspapers · daily granularity · continuously updated",
+      "Agora is a tool for measuring how the vocabulary of the French press evolves, drawn "
+      + "from a large corpus of articles collected daily. Type one or more words, compare their "
+      + "curves, spot what emerges and what fades.",
+    chiffres: "36 news outlets · daily granularity · continuously updated",
     hero_cta: "Explore the curves",
 
-    mission_titre: "Do newspaper takeovers change what gets written?",
-    mission_p:
-      "This site accompanies a master's thesis built on that question. Answering it starts with "
-      + "measurement: press articles collected every day, split into words, aggregated into time "
-      + "series — the Gallicagram approach, applied to today's online press.",
     mission_lien: "Read the methodology",
 
     entrees_etiquette: "Explore the corpus",
@@ -145,7 +167,7 @@ export const textes = {
     e3_p: "Frequency gains and losses between two periods.",
     avenir: "Coming soon",
 
-    demo_titre: "Explore",
+    demo_titre: "The explorer",
     lbl_mots: "Words (comma-separated)",
     lbl_corpus: "Newspaper",
     lbl_de: "From",
@@ -153,46 +175,44 @@ export const textes = {
     lbl_resolution: "Resolution",
     res_mois: "Month",
     res_annee: "Year",
+    lbl_mesure: "Measure",
+    mes_pour100k: "Per 100,000 words",
+    mes_freq: "Frequency (%)",
+    mes_brut: "Raw counts",
     btn_tracer: "Plot",
     msg_depart: "Type a word then “Plot” to draw its curve.",
     msg_chargement: "Loading…",
     msg_erreur: "The API is unreachable right now. Please try again later.",
     msg_trop: `At most ${MAX_SERIES} words at a time.`,
     msg_vide: "No data over this period.",
-    axe_y: "occurrences per 100,000 words",
-    titre_graphe: (corpus: string) => `Frequency in ${corpus}, per 100,000 words`,
-    titre_graphe_mot: (mot: string, corpus: string) =>
-      `“${mot}” in ${corpus}, per 100,000 words`,
+    axe_pour100k: "occurrences per 100,000 words",
+    axe_freq: "share of words (%)",
+    axe_brut: "raw occurrences",
+    titre_graphe: (corpus: string, mesure: string) => `${corpus} — ${mesure}`,
+    titre_graphe_mot: (mot: string, corpus: string, mesure: string) =>
+      `“${mot}” in ${corpus} — ${mesure}`,
     col_periode: "Period",
     voir_donnees: "View the data",
 
-    capot_etiquette: "Under the hood",
-    capot: [
-      ["Daily collection", "Articles from 31 newspapers gathered every day (Python, Selenium)."],
-      ["Day-level databases", "Day-stamped word counts, stored in SQLite."],
-      ["Open API", "A Flask API: time series, rankings, trends, statistical reports."],
-      ["Spike models", "Poisson, negative binomial and mixture models to detect breaks."],
-      ["Stable tokenisation", "Queries split words exactly as the databases were built."],
-    ] as const,
+    fait_etiquette: "Made with",
 
     projet_titre: "The project",
     projet_p1:
-      "This site accompanies a master's thesis: do French newspaper takeovers change "
-      + "editorial coverage? To measure it, press articles are collected every day, split into "
-      + "words, and aggregated into time series — the Gallicagram approach, applied to today's "
-      + "online press.",
+      "A change of ownership leaves few visible traces in a newspaper: the layout holds, the "
+      + "bylines stay. What shifts is the share given to each subject — a drift that only "
+      + "surfaces across thousands of articles.",
     projet_p2:
-      "Under the hood: a collection pipeline (Python/Selenium), SQLite databases of "
-      + "day-stamped word counts, a Flask API, and statistical break-detection models "
-      + "(Poisson, negative binomial).",
+      "Agora makes that scale readable: the frequency of a word, month after month, before and "
+      + "after the takeovers. A curve proves nothing on its own; it points to where to look, and "
+      + "leaves the explaining to close reading.",
 
+    contact_etiquette: "About the author",
     contact_nom: "Corto",
     contact_p: "Master's thesis, 2026. Data, language, the press — let's talk.",
     contact_cv: "Download the CV",
     contact_ecrire: "Write to me",
 
-    pied_texte: "ngram-press — master's thesis, 2026",
-    pied_corpus: "Le Monde · Le Figaro · Les Échos",
+    pied_texte: "Agora — master's thesis, 2026",
   },
 } satisfies Record<Lang, unknown>;
 

@@ -1,13 +1,15 @@
-// Client de l'API Flask (routes /query, /corpus). L'adresse est surchargeable
-// via NEXT_PUBLIC_NGRAM_API (Vercel) ; en dev : API locale sur 8501.
+// Client de l'API Flask (routes /query, /corpus). Par défaut le front passe par
+// le rewrite /api/ngram (next.config.ts) qui relaie vers l'API du serveur ENS ;
+// NEXT_PUBLIC_NGRAM_API permet encore de viser une API directement (ex. 8501).
 
-export const API = process.env.NEXT_PUBLIC_NGRAM_API ?? "http://localhost:8501";
+export const API = process.env.NEXT_PUBLIC_NGRAM_API ?? "/api/ngram";
 
 export type Point = {
   x: number; // position continue (année décimale) pour l'axe X
   etiquette: string; // "2023" ou "2023-04"
   freq: number; // occurrences pour 100 000 mots
   n: number; // occurrences brutes
+  total: number; // mots de la période (dénominateur des métriques relatives)
 };
 
 export type Serie = { gram: string; points: Point[] };
@@ -26,8 +28,12 @@ export async function chargerCorpus(): Promise<string[]> {
   } catch {
     /* API absente : repli */
   }
-  return ["lemonde", "lefigaro", "lesechos"];
+  return ["leparisien", "mediapart", "le_figaro", "les_echos"];
 }
+
+// mémoire de session : une requête déjà servie ne repart pas vers l'API — le
+// défilement automatique de l'explorateur reboucle ainsi sans coût serveur
+const dejaServies = new Map<string, Serie[]>();
 
 export async function requeteSeries(options: {
   mots: string[];
@@ -43,7 +49,10 @@ export async function requeteSeries(options: {
     from: options.de,
     to: options.a,
   });
-  const reponse = await fetch(`${API}/query?${params}`);
+  const cle = params.toString();
+  const connues = dejaServies.get(cle);
+  if (connues) return connues;
+  const reponse = await fetch(`${API}/query?${cle}`);
   if (!reponse.ok) throw new Error(await reponse.text());
   const lignes = analyserCSV(await reponse.text());
 
@@ -61,9 +70,12 @@ export async function requeteSeries(options: {
           : String(annee),
       freq: total ? (Number(l.n) / total) * 1e5 : 0,
       n: Number(l.n),
+      total,
     });
   }
-  return [...parMot.entries()]
+  const series = [...parMot.entries()]
     .map(([gram, points]) => ({ gram, points: points.sort((a, b) => a.x - b.x) }))
     .filter((s) => s.points.length > 0);
+  dejaServies.set(cle, series);
+  return series;
 }

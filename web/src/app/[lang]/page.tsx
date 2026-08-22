@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Explorer from "@/components/Explorer";
+import FaitAvec from "@/components/FaitAvec";
 import { hasLang, textes } from "@/lib/i18n";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
@@ -18,12 +19,12 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         </a>
       </section>
 
-      <section className="manifeste">
-        <h2>{t.mission_titre}</h2>
-        <p>{t.mission_p}</p>
-        <a className="lien-accent" href="#projet">
-          {t.mission_lien}
-        </a>
+      <section className="projet" id="projet">
+        <h2>{t.projet_titre}</h2>
+        <div className="projet-corps">
+          <p>{t.projet_p1}</p>
+          <p>{t.projet_p2}</p>
+        </div>
       </section>
 
       <section className="entrees">
@@ -33,7 +34,9 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             <span className="categorie">{t.e1_cat}</span>
             <h3>{t.e1_titre}</h3>
             <p>{t.e1_p}</p>
-            <span className="pied-carte lien-accent">{t.e1_lien}</span>
+            <span className="pied-carte lien-accent">
+              {t.e1_lien} <span className="fleche">→</span>
+            </span>
           </a>
           <div className="carte-entree">
             <span className="categorie">{t.e2_cat}</span>
@@ -59,27 +62,8 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <Explorer lang={lang} />
       </section>
 
-      <section className="capot">
-        <p className="etiquette">{t.capot_etiquette}</p>
-        <div className="capot-grille">
-          {t.capot.map(([titre, corps]) => (
-            <div className="carte-capot" key={titre}>
-              <h3>{titre}</h3>
-              <p>{corps}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="projet" id="projet">
-        <h2>{t.projet_titre}</h2>
-        <div className="projet-corps">
-          <p>{t.projet_p1}</p>
-          <p>{t.projet_p2}</p>
-        </div>
-      </section>
-
       <section className="contact" id="contact">
+        <p className="etiquette">{t.contact_etiquette}</p>
         <div className="bandeau-contact">
           <div>
             <h2>{t.contact_nom}</h2>
@@ -95,6 +79,8 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
           </a>
         </div>
       </section>
+
+      <FaitAvec etiquette={t.fait_etiquette} />
     </>
   );
 }

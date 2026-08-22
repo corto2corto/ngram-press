@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EB_Garamond } from "next/font/google";
+import { EB_Garamond, IM_Fell_English_SC } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Spirale from "@/components/Spirale";
@@ -10,6 +10,14 @@ const garamond = EB_Garamond({
   subsets: ["latin"],
   style: ["normal", "italic"],
   variable: "--police-serif",
+});
+
+// Police du seul logotype : petites capitales gravées d'après un caractère
+// d'Oxford du XVIIe. Une seule graisse (400), d'où le font-weight fixe côté CSS.
+const fell = IM_Fell_English_SC({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--police-marque",
 });
 
 export const dynamicParams = false;
@@ -25,7 +33,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await params;
   const t = textes[hasLang(lang) ? lang : "fr"];
-  return { title: "ngram-press", description: t.tagline };
+  return { title: "Agora", description: t.tagline };
 }
 
 export default async function RootLayout({ children, params }: LayoutProps<"/[lang]">) {
@@ -34,12 +42,14 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   const t = textes[lang];
 
   return (
-    <html lang={lang} className={garamond.variable}>
+    <html lang={lang} className={`${garamond.variable} ${fell.variable}`}>
       <body>
         <header className="entete">
           <Link className="marque" href={`/${lang}`}>
-            <Spirale />
-            ngram-press
+            <span className="marque-signe">
+              <Spirale taille={50} trait={8} />
+            </span>
+            <span className="mot-marque">Agora</span>
           </Link>
           <nav className="menu">
             <a href="#explorer">{t.nav_explorer}</a>
@@ -71,11 +81,12 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           <div className="pied-colonnes">
             <div className="pied-marque">
               <span className="marque">
-                <Spirale taille={24} />
-                ngram-press
+                <span className="marque-signe">
+                  <Spirale taille={34} trait={9} />
+                </span>
+                Agora
               </span>
               <span>{t.pied_texte}</span>
-              <span>{t.pied_corpus}</span>
             </div>
             <div>
               <h3>{t.nav_explorer}</h3>
