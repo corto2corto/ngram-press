@@ -129,7 +129,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
               height={146}
             />
             <p className="contact-p">{t.contact_p1}</p>
-            <p className="contact-p contact-p-loisirs">{t.contact_p2}</p>
             <div className="contact-liens">
               <a className="pilule" href="mailto:kalice.ecr@gmail.com">
                 <svg

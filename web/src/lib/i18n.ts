@@ -194,10 +194,8 @@ export const textes = {
     contact_portrait_alt: "Portrait dessiné de Corto",
     contact_p1:
       "Étudiant en double master de mathématiques et d'informatique, je me suis découvert un "
-      + "réel intérêt pour le monde des médias en cours de route : je m'intéresse en particulier "
-      + "à qui possède les journaux qu'on lit, et aux conséquences pour notre société. Agora est "
-      + "né de cette réflexion.",
-    contact_p2: "Le reste de mon temps libre se partage entre la sociologie et les échecs.",
+      + "réel intérêt pour le monde des médias : je m'intéresse aux entités qui possèdent les "
+      + "médias, et aux conséquences pour notre société. Agora est né de cette réflexion.",
     contact_cv: "Voir le CV",
     contact_ecrire: "M'écrire",
 
@@ -309,10 +307,8 @@ export const textes = {
     contact_portrait_alt: "Hand-drawn portrait of Corto",
     contact_p1:
       "A student in a dual master's programme in mathematics and computer science, I discovered "
-      + "a real interest in the media world along the way: I look in particular at who owns the "
-      + "newspapers we read, and at what that means for our society. Agora was born of that "
-      + "reflection.",
-    contact_p2: "The rest of my free time is split between sociology and chess.",
+      + "a real interest in the media world: I look at the entities that own the media, and at "
+      + "what that means for our society. Agora was born of that reflection.",
     contact_cv: "View the CV",
     contact_ecrire: "Write to me",
 
