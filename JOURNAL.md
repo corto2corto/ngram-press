@@ -1,5 +1,43 @@
 # Journal du projet
 
+## 23/08/2026 — Le Monde, Le Figaro et Les Échos complets sur l'ENS
+- Problème détecté la veille : les bases de ces 3 médias étaient construites sur
+  des CSV incomplets (articles récents seuls) — Le Monde n'avait que 621 jours.
+  Mediapart, vérifié, était déjà complet.
+- Les CSV fusionnés (archives + articles récents, régénérés sur gallica le 22/08)
+  ont été transférés via le Mac (20 Go, tailles vérifiées à chaque étage), puis
+  les 6 bases régénérées dans la nuit sur l'ENS (1gram puis 2gram par média,
+  `ngram_1gram.py` porté en stdlib pour l'occasion).
+- Résultat : Le Monde **27 147 jours (1944→2026), 1,67 Md de mots, 880 M de
+  lignes bigram** ; Le Figaro 7 564 jours (2004→2026) ; Les Échos 11 051 jours
+  (1991→2026). Les trois dépassent les anciennes bases de gallica.
+- Vocabulaire partagé : 8,55 M de mots (+1,3 M venus des archives). Parc final :
+  36 médias × (1gram + 2gram), 158 Go de données sur l'ENS.
+- Ménage : CSV supprimés du Mac ; sauvegardes locales rafraîchies (3 bases
+  1gram + vocabulaire). Gallica intact (serveur de stockage, lecture seule).
+
+## 23/08/2026 — palmarès : les tops par fréquence ne suffisent pas, cap sur les tendances
+- Précalcul des palmarès écrit (`scripts/top_ngram.py`) et exécuté sur le Mac :
+  **36 bases `*_top.db` 1gram en 8 min 30** (K=1000, année+mois+jour, 196 M de
+  lignes, 3,6 Go), drapeau `stop` sur la table `gram`, comptage `global` par mot.
+  Vérifications OK (aucun jour perdu vs source). Rien n'est encore remonté sur l'ENS.
+- Constat (loi de Zipf) : un top par fréquence est le même chaque année — dans
+  Ouest-France 2023, *retraites* (1044ᵉ), *ukraine*, *gaza*, *nahel* sont tous
+  hors du top 1000, coiffés par *maire*, *coupe*, *large*. Élargir K coûte cher
+  (top 10 000/jour = 38 % de la source) sans régler le fond.
+- Prototype de détection de tendance concluant : score G² (log-vraisemblance de
+  Dunning, « keyness ») période vs référence. Année 2023 vs corpus → *retraites,
+  ciaran, réforme, hamas, nahel* ; jour vs 90 jours glissants → 02/11/23 :
+  *tempête, ciaran, dégâts, rafales* ; 28/06/23 : *nahel, nanterre, d'obtempérer*.
+  Les mots outils s'éliminent d'eux-mêmes (fréquence stable ⇒ pas de tendance).
+- Décision : stocker par période **deux classements** (fréquence + tendance,
+  K=1000 chacun, ~7 Go), calculés sur le Mac où la source est déjà là. Références :
+  année/mois vs reste du corpus, jour vs fenêtre glissante. Bruit résiduel assumé :
+  vocabulaire commercial (*cdiscount, soldes*) — liste d'exclusion à trancher.
+- Piste à explorer : ces algorithmes (G², rafales de Kleinberg) comme détecteurs
+  de pics, en alternative ou complément aux ajustements Poisson/NB/BNB de
+  `rupture/pics.py` — comparer sur les mots-témoins avant de choisir.
+
 ## 22/08/2026 — les 36 bases 2gram construites sur l'ENS
 - Toute la chaîne a tourné en ~24 h : rapatriement des 36 bases 1gram (16 Go) et
   des 36 CSV sources (~70 Go) via le Mac (SSH direct gallica↔ENS bloqué), puis
