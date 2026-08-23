@@ -295,17 +295,18 @@ main > section,
 }
 
 .sous-titre {
-  max-width: 42rem;
+  max-width: 47rem;
   margin: 1.6rem 0 0;
   font-size: 1.15rem;
   color: var(--encre-2);
 }
 
-.chiffres {
-  margin: 1.4rem 0 1.8rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.02em;
-  color: var(--encre-muette);
+/* le lien d'appel suit directement le sous-titre : il porte lui-même son
+   espacement (inline-block, une marge ne prendrait pas sur un lien en ligne) */
+
+.hero .lien-accent {
+  display: inline-block;
+  margin-top: 1.8rem;
 }
 
 /* ---- étiquettes de section */
@@ -935,7 +936,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
-  max-width: 42rem;
+  max-width: 47rem;
   color: var(--encre-2);
   /* même corps de texte que le sous-titre du hero */
   font-size: 1.15rem;
@@ -946,7 +947,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   margin: 0;
 }
 
-/* noms des encadrants : liens vers leurs pages personnelles */
+/* noms cités dans le paragraphe : encadrants et Gallicagram, liens sortants */
 
 .lien-encadrant {
   color: var(--lien);
@@ -965,7 +966,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-width: 42rem;
+  max-width: 47rem;
   margin-top: 1.9rem;
   padding: 1.25rem 1.5rem;
   background: var(--surface);

@@ -69,6 +69,10 @@ export const ENCADRANTS = [
   { nom: "Benoît de Courson", url: "https://regicid.github.io/" },
 ] as const;
 
+/* Gallicagram, dont Agora est la petite sœur : le paragraphe est de nouveau
+   découpé (projet_p2_apres / _fin) pour que le nom soit un lien. */
+export const GALLICAGRAM = "https://www.gallicagram.com/";
+
 export const textes = {
   fr: {
     // navigation et en-tête
@@ -83,7 +87,6 @@ export const textes = {
       "Agora est un outil qui permet de mesurer l'évolution du vocabulaire de la presse "
       + "française à partir d'un grand corpus d'articles collectés quotidiennement. Tapez un ou "
       + "plusieurs mots, comparez les courbes, repérez les émergences et les disparitions.",
-    chiffres: "36 médias · granularité quotidienne · mise à jour continue",
     hero_cta: "Explorer les courbes",
 
     // lien vers le bloc « Le projet », utilisé dans le pied de page
@@ -176,8 +179,11 @@ export const textes = {
     projet_p2_apres:
       ", le mémoire se divise en deux branches. Un article de recherche qui détecte "
       + "statistiquement les pics d'activité d'un mot et en classe les formes. Et Agora, petite "
-      + "sœur de Gallicagram, qui rend le corpus des 36 titres de presse (et bientôt davantage) "
-      + "explorable par le grand public.",
+      + "sœur de ",
+    projet_p2_gallicagram: "Gallicagram",
+    projet_p2_fin:
+      ", qui rend le corpus des 36 titres de presse (et bientôt davantage) explorable par le "
+      + "grand public.",
     // la fiche de l'article, sous les deux paragraphes
     papier_etiquette: "L'article de recherche",
     papier_lire: "Lire l'article",
@@ -209,7 +215,6 @@ export const textes = {
       "Agora is a tool for measuring how the vocabulary of the French press evolves, drawn "
       + "from a large corpus of articles collected daily. Type one or more words, compare their "
       + "curves, spot what emerges and what fades.",
-    chiffres: "36 news outlets · daily granularity · continuously updated",
     hero_cta: "Explore the curves",
 
     mission_lien: "Read the methodology",
@@ -292,9 +297,10 @@ export const textes = {
     projet_p2_et: " and ",
     projet_p2_apres:
       ", it splits into two branches. A research paper that statistically detects the activity "
-      + "spikes of a word and classifies their shapes. And Agora, the little sister of "
-      + "Gallicagram, which opens the corpus of 36 news outlets (more to come) to a wider "
-      + "audience.",
+      + "spikes of a word and classifies their shapes. And Agora, the little sister of ",
+    projet_p2_gallicagram: "Gallicagram",
+    projet_p2_fin:
+      ", which opens the corpus of 36 news outlets (more to come) to a wider audience.",
     papier_etiquette: "The research paper",
     papier_lire: "Read the paper",
 

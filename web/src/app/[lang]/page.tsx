@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Explorer from "@/components/Explorer";
 import FaitAvec from "@/components/FaitAvec";
-import { ENCADRANTS, hasLang, papier, textes } from "@/lib/i18n";
+import { ENCADRANTS, GALLICAGRAM, hasLang, papier, textes } from "@/lib/i18n";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -13,7 +13,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
       <section className="hero">
         <h1>{t.tagline}</h1>
         <p className="sous-titre">{t.intro}</p>
-        <p className="chiffres">{t.chiffres}</p>
         <a className="lien-accent" href="#explorer">
           {t.hero_cta} ↓
         </a>
@@ -23,8 +22,9 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <h2>{t.projet_titre}</h2>
         <div className="projet-corps">
           <p>{t.projet_p1}</p>
-          {/* Les deux encadrants sont des liens : le paragraphe est découpé
-              autour de leurs noms (voir ENCADRANTS dans i18n.ts). */}
+          {/* Les deux encadrants et Gallicagram sont des liens : le paragraphe
+              est découpé autour de ces noms (voir ENCADRANTS et GALLICAGRAM
+              dans i18n.ts). */}
           <p>
             {t.projet_p2_avant}
             {ENCADRANTS.map((e, i) => (
@@ -41,6 +41,15 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
               </span>
             ))}
             {t.projet_p2_apres}
+            <a
+              className="lien-encadrant"
+              href={GALLICAGRAM}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.projet_p2_gallicagram}
+            </a>
+            {t.projet_p2_fin}
           </p>
         </div>
         {/* La fiche de l'article : une référence bibliographique posée sous le
