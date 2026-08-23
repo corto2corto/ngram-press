@@ -31,11 +31,13 @@ export async function chargerCorpus(): Promise<string[]> {
   return ["leparisien", "mediapart", "le_figaro", "les_echos"];
 }
 
-// mémoire de session : une requête déjà servie ne repart pas vers l'API — le
-// défilement automatique de l'explorateur reboucle ainsi sans coût serveur
-const dejaServies = new Map<string, Serie[]>();
+// mémoire de session : une même requête (clé = paramètres) n'est lancée qu'une
+// fois — le défilement précharge pendant la frappe puis reboucle sans coût
+// serveur. La promesse est partagée, donc préchargement et tracé n'ouvrent
+// qu'un seul appel ; en cas d'échec l'entrée s'efface pour pouvoir réessayer.
+const dejaServies = new Map<string, Promise<Serie[]>>();
 
-export async function requeteSeries(options: {
+export function requeteSeries(options: {
   mots: string[];
   corpus: string;
   resolution: "mois" | "annee";
@@ -50,8 +52,18 @@ export async function requeteSeries(options: {
     to: options.a,
   });
   const cle = params.toString();
-  const connues = dejaServies.get(cle);
-  if (connues) return connues;
+  const connue = dejaServies.get(cle);
+  if (connue) return connue;
+  const promesse = chercherSeries(cle, options);
+  dejaServies.set(cle, promesse);
+  promesse.catch(() => dejaServies.delete(cle));
+  return promesse;
+}
+
+async function chercherSeries(
+  cle: string,
+  options: { mots: string[]; resolution: "mois" | "annee" },
+): Promise<Serie[]> {
   const reponse = await fetch(`${API}/query?${cle}`);
   if (!reponse.ok) throw new Error(await reponse.text());
   const lignes = analyserCSV(await reponse.text());
@@ -73,9 +85,7 @@ export async function requeteSeries(options: {
       total,
     });
   }
-  const series = [...parMot.entries()]
+  return [...parMot.entries()]
     .map(([gram, points]) => ({ gram, points: points.sort((a, b) => a.x - b.x) }))
     .filter((s) => s.points.length > 0);
-  dejaServies.set(cle, series);
-  return series;
 }

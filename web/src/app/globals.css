@@ -474,6 +474,9 @@ main > section,
   font-family: var(--police-serif), Georgia, serif;
   font-size: 1.05rem;
   color: var(--encre);
+  /* le titre se pose en fondu au départ de chaque tracé, au tempo du tracé
+     lui-même : plus lent pendant le défilement, comme les courbes (A6bis) */
+  animation: paraitre calc(var(--duree-trace) / 2) var(--sortie) both;
 }
 
 .legende {
@@ -503,9 +506,12 @@ main > section,
   margin-top: 0.75rem;
 }
 
+/* l'estompage de chargement ne part qu'après 350 ms : les réponses vives
+   (préchargées ou en cache) ne font plus ciller le graphe, et le retour à la
+   pleine opacité est toujours fondu, lui */
 .zone-graphe.charge svg {
   opacity: 0.45;
-  transition: opacity 0.2s;
+  transition-delay: 350ms;
 }
 
 .zone-graphe svg {
@@ -513,6 +519,7 @@ main > section,
   width: 100%;
   height: 380px;
   touch-action: pan-y;
+  transition: opacity 0.25s ease;
 }
 
 /* A6 — les courbes se tracent de gauche à droite, dans le sens du temps, puis
@@ -520,6 +527,26 @@ main > section,
    sur la précédente. pathLength="1" normalise la longueur du chemin : la durée
    ne dépend donc pas du nombre de points. Le tracé rejoue à chaque requête,
    grâce à la clé de tirage posée sur les groupes de séries (Chart.tsx). */
+/* A6bis — la nouvelle courbe balaie l'ancienne : la copie figée (Chart.tsx,
+   couche sortante) se rogne de gauche à droite sur la durée et la courbe de
+   temps du tracé lui-même — l'ancienne s'efface là où la nouvelle se dessine —
+   pendant qu'un fondu doux éteint ce qui reste à droite. inset() se mesure sur
+   la fill-box du groupe SVG, c'est-à-dire la boîte de la courbe elle-même. */
+.serie-sortante {
+  animation: balayer var(--duree-trace) var(--trace) both;
+}
+
+@keyframes balayer {
+  from {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 0 100%);
+    opacity: 0;
+  }
+}
+
 /* Le défilement automatique a sa propre vitesse de tracé, un peu plus lente :
    on laisse à la courbe le temps de naître. Les tracés demandés à la main
    gardent la durée commune. Le point de fin (A6) suit de lui-même, son délai
@@ -717,12 +744,16 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   gap: 1.6rem clamp(2rem, 6vw, 4.25rem);
 }
 
+/* Les pictogrammes portent une encre à eux, un cran plus dense que
+   --encre-2 : à ce niveau de détail, le trait fin des logos demandait un peu
+   plus de corps pour tenir la page. En mode sombre, même intention lue à
+   l'envers — un cran plus clair que --encre-2. */
 .logo-tech {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
-  color: var(--encre-2);
+  color: var(--encre-logo, #47453f);
   transition: color var(--duree-survol) ease;
 }
 
@@ -797,44 +828,89 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   scroll-margin-top: 2rem;
 }
 
-.bandeau-contact {
-  background: var(--surface);
-  border: 1px solid var(--bord);
-  border-radius: 20px;
+/* La feuille de contact est un objet en papier : son blanc et son encre ne
+   suivent pas le thème — en sombre, elle reste une feuille blanche dans le
+   noir. D'où les couleurs en dur plutôt qu'en jetons. */
+
+.feuille-contact {
+  background: #ffffff;
+  color: #26251f;
+  border: 1px solid rgba(25, 25, 23, 0.08);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px var(--ombre), 0 18px 44px var(--ombre);
   padding: clamp(2rem, 5vw, 3.4rem);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 2rem;
+  align-items: flex-start;
+  gap: clamp(1.4rem, 3.5vw, 2.6rem);
   flex-wrap: wrap;
 }
 
-.bandeau-contact h2 {
-  margin: 0;
-  font-size: 1.9rem;
-  font-weight: 500;
+.portrait-auteur {
+  width: clamp(150px, 21vw, 200px);
+  height: auto;
 }
 
-.bandeau-contact .contact-p {
-  margin: 0.5rem 0 0.9rem;
-  color: var(--encre-2);
-  max-width: 32rem;
+.contact-texte {
+  flex: 1 1 24rem;
+}
+
+.nom-auteur {
+  display: block;
+  width: clamp(150px, 23vw, 200px);
+  height: auto;
+  margin-top: 0.2rem;
+}
+
+.feuille-contact .contact-p {
+  margin: 0.9rem 0 0;
+  color: #6b675c;
+  max-width: 34rem;
+}
+
+.feuille-contact .contact-p-loisirs {
+  margin-top: 0.4rem;
+  color: #93908a;
 }
 
 .contact-liens {
   display: flex;
-  gap: 1.3rem;
-  font-size: 0.95rem;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 1.05rem;
+  font-size: 0.98rem;
 }
 
-.contact-liens a {
-  color: var(--accent);
+.pilule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+  color: #26251f;
   text-decoration: none;
+  border: 1px solid rgba(38, 37, 31, 0.22);
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  transition:
+    border-color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
 }
 
-.contact-liens a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.pilule svg {
+  flex: none;
+  color: #a45836;
+}
+
+.pilule:hover {
+  border-color: #a45836;
+  box-shadow: 0 0 0 3px rgba(164, 88, 54, 0.18);
+}
+
+/* Le bouton CV vit sur le papier : encre fixe, quel que soit le thème. */
+.bouton-cv {
+  background: #26251f;
+  color: #ffffff;
+  align-self: center;
+  margin-left: auto;
 }
 
 /* ---- pied de page en colonnes */

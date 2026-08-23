@@ -135,10 +135,22 @@ export default function Explorer({ lang }: { lang: Lang }) {
     d.etape = () => {
       d.position = (d.position + 1) % DEFILE.length;
       const config = DEFILE[d.position];
+      // la requête part dès le début de la frappe : le mot posé, la courbe est
+      // prête (ou presque) — le cache de lib/api.ts partage la promesse
+      requeteSeries({
+        mots: config.mots.split(",").map((m) => m.trim()),
+        corpus: config.corpus,
+        resolution: config.resolution,
+        de: config.de,
+        a: config.a,
+      }).catch(() => {});
       // le reste du formulaire bascule d'un coup à la fin de la frappe, pour ne
       // déclencher qu'une seule requête
       const poser = () => {
         setEnDefile(true);
+        // les bornes posées ici sont déjà « vues » : pas du clavier, donc pas
+        // du délai laissé aux années tapées chiffre par chiffre
+        bornesPrecedentes.current = { de: config.de, a: config.a };
         setCorpus(config.corpus);
         setDe(config.de);
         setA(config.a);
@@ -266,7 +278,13 @@ export default function Explorer({ lang }: { lang: Lang }) {
           lang={lang}
           metrique={metrique}
           chargement={chargement}
-          message={message ? t[`msg_${message}`] : null}
+          // « Chargement… » ne s'écrit que sans courbe à l'écran : quand une
+          // courbe est déjà là, son estompage suffit à dire l'attente
+          message={
+            message && (message !== "chargement" || !resultat)
+              ? t[`msg_${message}`]
+              : null
+          }
           tirage={resultat?.tirage ?? 0}
         />
         {resultat && (

@@ -13,6 +13,9 @@ import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 const MARGE = { haut: 24, droite: 16, bas: 30, gauche: 52 };
 const HAUTEUR = 380;
 
+// un chemin prêt à peindre : la couche sortante en garde une copie figée
+type Chemin = { d: string; bout: { x: number; y: number }; couleur: string };
+
 // lissage « appuyé » : moyenne mobile centrée à noyau triangulaire,
 // renormalisée aux bords pour que les extrémités ne s'affaissent pas
 const NOYAU = [1, 2, 3, 2, 1];
@@ -64,6 +67,10 @@ export default function Chart({
   const zone = useRef<HTMLDivElement>(null);
   const [largeur, setLargeur] = useState(0);
   const [indice, setIndice] = useState<number | null>(null);
+  // A6bis — la couche sortante : les chemins du tracé précédent, qui s'effacent
+  // en fondu pendant que les nouveaux se dessinent
+  const [sortants, setSortants] = useState<{ cle: string; chemins: Chemin[] } | null>(null);
+  const dernierRendu = useRef<{ cle: string; chemins: Chemin[] } | null>(null);
 
   useEffect(() => {
     const el = zone.current;
@@ -134,9 +141,45 @@ export default function Chart({
   const xSurvol = indice !== null && positions[indice] !== undefined ? positions[indice] : null;
   const aDroite = xSurvol !== null && px(xSurvol) < largeur / 2;
 
+  // chemins du rendu courant : peints ci-dessous, et gardés en mémoire pour
+  // devenir la couche sortante du tracé suivant
+  const cleRendu = `${tirage}-${metrique}`;
+  const chemins: Chemin[] = !pret
+    ? []
+    : series.map((s, i) => ({
+        d: s.points
+          .map((p, j) => `${j ? "L" : "M"}${px(p.x)},${py(valsSeries[i][j])}`)
+          .join(""),
+        bout: {
+          x: px(s.points[s.points.length - 1].x),
+          y: py(valsSeries[i][s.points.length - 1]),
+        },
+        couleur: `var(--serie-${i + 1})`,
+      }));
+
+  // au changement de tracé, le rendu précédent devient la couche sortante ;
+  // son retrait suit la fin du balayage (onAnimationEnd sur le groupe), le
+  // minuteur n'est qu'un filet au cas où l'événement ne viendrait pas
+  useEffect(() => {
+    const precedent = dernierRendu.current;
+    if (precedent && precedent.cle !== cleRendu && precedent.chemins.length) {
+      setSortants(precedent);
+      const minuteur = setTimeout(() => setSortants(null), 2500);
+      return () => clearTimeout(minuteur);
+    }
+  }, [cleRendu]);
+
+  // photographie du rendu courant, après chaque peinture
+  useEffect(() => {
+    if (pret) dernierRendu.current = { cle: cleRendu, chemins };
+  });
+
   return (
     <>
-      <figcaption className="titre-graphe">{titre}</figcaption>
+      {/* la clé rejoue le fondu du titre à chaque nouveau tracé */}
+      <figcaption className="titre-graphe" key={titre}>
+        {titre}
+      </figcaption>
       {series.length > 1 && (
         <div className="legende">
           {series.map((s, i) => (
@@ -205,35 +248,55 @@ export default function Chart({
                 />
               )}
 
-              {series.map((s, i) => {
-                const fin = s.points[s.points.length - 1];
-                return (
-                  // la métrique dans la clé : changer de mesure rejoue le tracé
-                  <g className={`serie s${i + 1}`} key={`${tirage}-${metrique}-${s.gram}`}>
-                    <path
-                      className="courbe"
-                      pathLength={1}
-                      d={s.points
-                        .map((p, j) => `${j ? "L" : "M"}${px(p.x)},${py(valsSeries[i][j])}`)
-                        .join("")}
-                      fill="none"
-                      stroke={`var(--serie-${i + 1})`}
-                      strokeWidth={2}
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                    />
-                    <circle
-                      className="bout"
-                      cx={px(fin.x)}
-                      cy={py(valsSeries[i][s.points.length - 1])}
-                      r={4}
-                      fill={`var(--serie-${i + 1})`}
-                      stroke="var(--surface)"
-                      strokeWidth={2}
-                    />
-                  </g>
-                );
-              })}
+              {sortants?.chemins.map((c, i) => (
+                <g
+                  className="serie-sortante"
+                  key={`${sortants.cle}-${i}`}
+                  onAnimationEnd={() => setSortants(null)}
+                >
+                  <path
+                    d={c.d}
+                    fill="none"
+                    stroke={c.couleur}
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                  />
+                  <circle
+                    cx={c.bout.x}
+                    cy={c.bout.y}
+                    r={4}
+                    fill={c.couleur}
+                    stroke="var(--surface)"
+                    strokeWidth={2}
+                  />
+                </g>
+              ))}
+
+              {series.map((s, i) => (
+                // la métrique dans la clé : changer de mesure rejoue le tracé
+                <g className={`serie s${i + 1}`} key={`${tirage}-${metrique}-${s.gram}`}>
+                  <path
+                    className="courbe"
+                    pathLength={1}
+                    d={chemins[i].d}
+                    fill="none"
+                    stroke={chemins[i].couleur}
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                  />
+                  <circle
+                    className="bout"
+                    cx={chemins[i].bout.x}
+                    cy={chemins[i].bout.y}
+                    r={4}
+                    fill={chemins[i].couleur}
+                    stroke="var(--surface)"
+                    strokeWidth={2}
+                  />
+                </g>
+              ))}
             </>
           )}
         </svg>
