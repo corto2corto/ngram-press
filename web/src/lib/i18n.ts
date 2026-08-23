@@ -49,7 +49,25 @@ export const corpusNoms: Record<string, string> = {
   voiles_et_voiliers: "Voiles et Voiliers",
 };
 
+// L'article de recherche cité dans « Le projet ». Titre et auteurs restent en
+// anglais dans les deux langues : c'est la langue du papier.
+export const papier = {
+  titre:
+    "The shape of attention: detecting and classifying anomalous lexical "
+    + "activity in eighty years of the daily press",
+  auteurs: "Elias Echikr · Benoît de Courson · Simon Coste",
+  pdf: "/article-shape-of-attention.pdf",
+};
+
 export const MAX_SERIES = 4;
+
+/* Les deux encadrants du mémoire, cités dans « Le projet ». Le paragraphe est
+   découpé autour d'eux (projet_p2_avant / _et / _apres) pour que leurs noms
+   soient des liens vers leurs pages personnelles. */
+export const ENCADRANTS = [
+  { nom: "Simon Coste", url: "https://scoste.fr/" },
+  { nom: "Benoît de Courson", url: "https://regicid.github.io/" },
+] as const;
 
 export const textes = {
   fr: {
@@ -85,8 +103,38 @@ export const textes = {
     e3_p: "Les hausses et les baisses de fréquence entre deux périodes.",
     avenir: "À venir",
 
-    // explorateur
+    // explorateur — onglets (maquette bêta v3 : soulignés, pictogrammes,
+    // mention d'usage sous la rangée)
     demo_titre: "L'explorateur",
+    ong_aria: "Modes de l'explorateur",
+    ong_courbes: "Courbes",
+    ong_palmares: "Palmarès",
+    ong_evolutions: "Évolutions",
+    ong_tests: "Tests statistiques",
+    ong_desc_courbes: "Permet de suivre des mots dans le temps.",
+    ong_desc_palmares: "Permet de classer les mots les plus fréquents d'une période.",
+    ong_desc_evolutions: "Permet de repérer ce qui monte et ce qui descend entre deux périodes.",
+    ong_desc_tests:
+      "Permet de tester une hypothèse : corrélation, rupture ou tendance, avec sa p-value.",
+
+    // formulaires des modes pas encore branchés sur l'API
+    lbl_periode: "Période",
+    lbl_longueur: "Longueur",
+    lbl_nombre: "Nombre",
+    lbl_comparer: "Comparer",
+    lbl_seuil: "Seuil",
+    lbl_mot_a: "Mot A",
+    lbl_mot_b: "Mot B",
+    lbl_test: "Test",
+    test_spearman: "Corrélation (Spearman)",
+    test_pettitt: "Rupture de tendance (Pettitt)",
+    test_mk: "Tendance monotone (Mann-Kendall)",
+    test_croisee: "Décalage temporel (corrélation croisée)",
+    btn_classer: "Classer",
+    btn_comparer: "Comparer",
+    btn_tester: "Tester",
+    avenir_note: "Cette vue arrive bientôt : le formulaire est posé, la méthode suit.",
+
     lbl_mots: "Mots (séparés par des virgules)",
     lbl_corpus: "Journal",
     lbl_de: "De",
@@ -120,13 +168,19 @@ export const textes = {
     // le projet (méthodologie)
     projet_titre: "Le projet",
     projet_p1:
-      "Un changement d'actionnaire laisse peu de traces visibles dans un journal : la maquette "
-      + "ne bouge pas, les signatures restent. Ce qui se déplace, c'est la part accordée à chaque "
-      + "sujet — un glissement qui n'apparaît qu'à l'échelle de milliers d'articles.",
-    projet_p2:
-      "Agora rend cette échelle lisible : la fréquence d'un mot, mois après mois, avant et après "
-      + "les rachats. Une courbe ne démontre rien à elle seule ; elle indique où regarder, et "
-      + "laisse à la lecture le soin d'expliquer.",
+      "Certains mots explosent dans la presse en quelques jours puis retombent, d'autres "
+      + "s'installent lentement. Ce mémoire cherche à mesurer ces mouvements d'attention et à "
+      + "comprendre ce qui les déclenche.",
+    projet_p2_avant: "Encadré par ",
+    projet_p2_et: " et ",
+    projet_p2_apres:
+      ", le mémoire se divise en deux branches. Un article de recherche qui détecte "
+      + "statistiquement les pics d'activité d'un mot et en classe les formes. Et Agora, petite "
+      + "sœur de Gallicagram, qui rend le corpus des 36 titres de presse (et bientôt davantage) "
+      + "explorable par le grand public.",
+    // la fiche de l'article, sous les deux paragraphes
+    papier_etiquette: "L'article de recherche",
+    papier_lire: "Lire l'article",
 
     // contact
     contact_etiquette: "À propos de l'auteur",
@@ -138,7 +192,7 @@ export const textes = {
       + "à qui possède les journaux qu'on lit, et aux conséquences pour notre société. Agora est "
       + "né de cette réflexion.",
     contact_p2: "Le reste de mon temps libre se partage entre la sociologie et les échecs.",
-    contact_cv: "Télécharger le CV",
+    contact_cv: "Voir le CV",
     contact_ecrire: "M'écrire",
 
     // pied de page
@@ -174,6 +228,33 @@ export const textes = {
     avenir: "Coming soon",
 
     demo_titre: "The explorer",
+    ong_aria: "Explorer modes",
+    ong_courbes: "Curves",
+    ong_palmares: "Rankings",
+    ong_evolutions: "Trends",
+    ong_tests: "Statistical tests",
+    ong_desc_courbes: "Follow words through time.",
+    ong_desc_palmares: "Rank the most frequent words of a period.",
+    ong_desc_evolutions: "Spot what rises and what falls between two periods.",
+    ong_desc_tests: "Test a hypothesis: correlation, break or trend, with its p-value.",
+
+    lbl_periode: "Period",
+    lbl_longueur: "Length",
+    lbl_nombre: "Count",
+    lbl_comparer: "Compare",
+    lbl_seuil: "Threshold",
+    lbl_mot_a: "Word A",
+    lbl_mot_b: "Word B",
+    lbl_test: "Test",
+    test_spearman: "Correlation (Spearman)",
+    test_pettitt: "Trend break (Pettitt)",
+    test_mk: "Monotonic trend (Mann-Kendall)",
+    test_croisee: "Time lag (cross-correlation)",
+    btn_classer: "Rank",
+    btn_comparer: "Compare",
+    btn_tester: "Test",
+    avenir_note: "This view is coming soon: the form is in place, the method follows.",
+
     lbl_mots: "Words (comma-separated)",
     lbl_corpus: "Newspaper",
     lbl_de: "From",
@@ -204,13 +285,18 @@ export const textes = {
 
     projet_titre: "The project",
     projet_p1:
-      "A change of ownership leaves few visible traces in a newspaper: the layout holds, the "
-      + "bylines stay. What shifts is the share given to each subject — a drift that only "
-      + "surfaces across thousands of articles.",
-    projet_p2:
-      "Agora makes that scale readable: the frequency of a word, month after month, before and "
-      + "after the takeovers. A curve proves nothing on its own; it points to where to look, and "
-      + "leaves the explaining to close reading.",
+      "Some words explode in the press within a few days, then fade; others settle in slowly. "
+      + "This master's thesis sets out to measure those movements of attention and to understand "
+      + "what sets them off.",
+    projet_p2_avant: "Supervised by ",
+    projet_p2_et: " and ",
+    projet_p2_apres:
+      ", it splits into two branches. A research paper that statistically detects the activity "
+      + "spikes of a word and classifies their shapes. And Agora, the little sister of "
+      + "Gallicagram, which opens the corpus of 36 news outlets (more to come) to a wider "
+      + "audience.",
+    papier_etiquette: "The research paper",
+    papier_lire: "Read the paper",
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",
@@ -221,7 +307,7 @@ export const textes = {
       + "newspapers we read, and at what that means for our society. Agora was born of that "
       + "reflection.",
     contact_p2: "The rest of my free time is split between sociology and chess.",
-    contact_cv: "Download the CV",
+    contact_cv: "View the CV",
     contact_ecrire: "Write to me",
 
     pied_texte: "Agora — master's thesis, 2026",

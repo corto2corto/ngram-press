@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Explorer from "@/components/Explorer";
 import FaitAvec from "@/components/FaitAvec";
-import { hasLang, textes } from "@/lib/i18n";
+import { ENCADRANTS, hasLang, papier, textes } from "@/lib/i18n";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -23,8 +23,44 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <h2>{t.projet_titre}</h2>
         <div className="projet-corps">
           <p>{t.projet_p1}</p>
-          <p>{t.projet_p2}</p>
+          {/* Les deux encadrants sont des liens : le paragraphe est découpé
+              autour de leurs noms (voir ENCADRANTS dans i18n.ts). */}
+          <p>
+            {t.projet_p2_avant}
+            {ENCADRANTS.map((e, i) => (
+              <span key={e.url}>
+                {i > 0 && t.projet_p2_et}
+                <a
+                  className="lien-encadrant"
+                  href={e.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {e.nom}
+                </a>
+              </span>
+            ))}
+            {t.projet_p2_apres}
+          </p>
         </div>
+        {/* La fiche de l'article : une référence bibliographique posée sous le
+            texte. Titre, auteurs et chemin du PDF viennent de `papier`
+            (i18n.ts). */}
+        <aside className="papier-ref" aria-label={t.papier_etiquette}>
+          <p className="papier-etiquette">{t.papier_etiquette}</p>
+          <p className="papier-titre">
+            <cite>{papier.titre}</cite>
+          </p>
+          <p className="papier-auteurs">{papier.auteurs}</p>
+          <a
+            className="bouton bouton-petit bouton-papier"
+            href={papier.pdf}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.papier_lire}
+          </a>
+        </aside>
       </section>
 
       <section className="entrees">
@@ -78,10 +114,10 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
           <div className="contact-texte">
             <img
               className="nom-auteur"
-              src="/corto-calligraphie.png"
+              src="/prenom-corto.png"
               alt={t.contact_nom}
-              width={1726}
-              height={710}
+              width={400}
+              height={146}
             />
             <p className="contact-p">{t.contact_p1}</p>
             <p className="contact-p contact-p-loisirs">{t.contact_p2}</p>
@@ -111,8 +147,12 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
               </a>
             </div>
           </div>
-          {/* CV : remplacer le href par le vrai fichier PDF quand il sera fourni */}
-          <a className="bouton bouton-cv" href="#">
+          <a
+            className="bouton bouton-cv"
+            href="/CV-Corto-Echikr.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {t.contact_cv}
           </a>
         </div>

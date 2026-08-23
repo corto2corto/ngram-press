@@ -9,7 +9,7 @@
 // la courbe se trace. Toucher au formulaire le suspend ; il se relance de
 // lui-même après une minute sans interaction. Le survol du graphe est sans effet.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { chargerCorpus, requeteSeries, type Serie } from "@/lib/api";
 import { DEFILE, DUREE_ETAPE, REPRISE_APRES } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
@@ -20,8 +20,41 @@ import DataTable from "@/components/DataTable";
 type Resolution = "mois" | "annee";
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
+// les quatre modes de l'explorateur ; seules les Courbes sont branchées sur
+// l'API, les autres posent leur formulaire et annoncent la suite
+type Mode = "courbes" | "palmares" | "evolutions" | "tests";
+const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
+
+// pictogrammes des onglets (traits 1.8, 16 px)
+const ICONES: Record<Mode, ReactElement> = {
+  courbes: (
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 13.5 6.5 8l3 3L16 4.5" />
+    </svg>
+  ),
+  palmares: (
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <path d="M2.5 4.5h13M2.5 9h9M2.5 13.5h5.5" />
+    </svg>
+  ),
+  evolutions: (
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 7.5 7 3.5l4 4M7 3.5V15M15 10.5l-4 4" />
+    </svg>
+  ),
+  tests: (
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12.5 3.5h-7l4.5 5.5-4.5 5.5h7" />
+    </svg>
+  ),
+};
+
 export default function Explorer({ lang }: { lang: Lang }) {
   const t = textes[lang];
+
+  // onglet actif ; les Courbes gardent leur état (elles sont masquées, pas
+  // démontées) quand un autre mode est ouvert
+  const [mode, setMode] = useState<Mode>("courbes");
 
   // l'état de départ est la première configuration du défilement ; le champ des
   // mots part vide, la frappe automatique l'écrira.
@@ -196,104 +229,263 @@ export default function Explorer({ lang }: { lang: Lang }) {
     d.reprise = window.setTimeout(() => d.etape(), REPRISE_APRES);
   }, []);
 
+  // changer d'onglet : hors des Courbes le défilement s'arrête tout à fait
+  // (pas de reprise qui taperait dans un formulaire masqué) ; au retour sur
+  // les Courbes il redémarre après le délai habituel d'inactivité
+  const choisirMode = useCallback(
+    (m: Mode) => {
+      setMode(m);
+      if (m === "courbes") {
+        suspendreDefile();
+      } else {
+        setEnDefile(false);
+        const d = defile.current;
+        window.clearTimeout(d.minuteur);
+        window.clearInterval(d.frappeur);
+        window.clearTimeout(d.reprise);
+      }
+    },
+    [suspendreDefile],
+  );
+
+  // options de journal, partagées par tous les formulaires
+  const optionsCorpus = corpusListe.map((nom) => (
+    <option key={nom} value={nom}>
+      {corpusNoms[nom] ?? nom}
+    </option>
+  ));
+
   return (
     <>
-      <form
-        className="filtres"
-        onPointerDownCapture={suspendreDefile}
-        onKeyDownCapture={suspendreDefile}
-        onSubmit={(ev) => {
-          ev.preventDefault();
-          setMotsTraces(mots);
-          setDemande((n) => n + 1);
-        }}
-      >
-        <label className="champ champ-mot">
-          <span>{t.lbl_mots}</span>
-          <input
-            type="text"
-            value={mots}
-            onChange={(ev) => setMots(ev.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </label>
-        <label className="champ">
-          <span>{t.lbl_corpus}</span>
-          <select value={corpus} onChange={(ev) => setCorpus(ev.target.value)}>
-            {corpusListe.map((nom) => (
-              <option key={nom} value={nom}>
-                {corpusNoms[nom] ?? nom}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="champ">
-          <span>{t.lbl_de}</span>
-          <input
-            type="number"
-            min={1990}
-            max={2026}
-            value={de}
-            onChange={(ev) => setDe(ev.target.value)}
-          />
-        </label>
-        <label className="champ">
-          <span>{t.lbl_a}</span>
-          <input
-            type="number"
-            min={1990}
-            max={2026}
-            value={a}
-            onChange={(ev) => setA(ev.target.value)}
-          />
-        </label>
-        <label className="champ">
-          <span>{t.lbl_resolution}</span>
-          <select
-            value={resolution}
-            onChange={(ev) => setResolution(ev.target.value as Resolution)}
+      <nav className="rang-onglets" aria-label={t.ong_aria}>
+        {MODES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            className={mode === m ? "actif" : undefined}
+            aria-pressed={mode === m}
+            onClick={() => choisirMode(m)}
           >
-            <option value="mois">{t.res_mois}</option>
-            <option value="annee">{t.res_annee}</option>
-          </select>
-        </label>
-        <label className="champ">
-          <span>{t.lbl_mesure}</span>
-          <select value={metrique} onChange={(ev) => setMetrique(ev.target.value as Metrique)}>
-            <option value="pour100k">{t.mes_pour100k}</option>
-            <option value="freq">{t.mes_freq}</option>
-            <option value="brut">{t.mes_brut}</option>
-          </select>
-        </label>
-        <button type="submit" className="bouton">
-          {t.btn_tracer}
-        </button>
-      </form>
+            {ICONES[m]}
+            <span>{t[`ong_${m}`]}</span>
+          </button>
+        ))}
+      </nav>
+      {/* la clé rejoue l'animation de la mention à chaque bascule */}
+      <p className="desc-mode" key={mode}>
+        {t[`ong_desc_${mode}`]}
+      </p>
 
-      <figure className={`carte-graphe${enDefile ? " trace-defile" : ""}`}>
-        <Chart
-          series={resultat?.series ?? []}
-          corpus={resultat?.corpus ?? corpus}
-          lang={lang}
-          metrique={metrique}
-          chargement={chargement}
-          // « Chargement… » ne s'écrit que sans courbe à l'écran : quand une
-          // courbe est déjà là, son estompage suffit à dire l'attente
-          message={
-            message && (message !== "chargement" || !resultat)
-              ? t[`msg_${message}`]
-              : null
-          }
-          tirage={resultat?.tirage ?? 0}
-        />
-        {resultat && (
-          <details className="tableau-conteneur" onPointerDownCapture={suspendreDefile}>
-            <summary>{t.voir_donnees}</summary>
-            <DataTable series={resultat.series} lang={lang} metrique={metrique} />
-          </details>
-        )}
-      </figure>
+      <div hidden={mode !== "courbes"}>
+        <form
+          className="filtres"
+          onPointerDownCapture={suspendreDefile}
+          onKeyDownCapture={suspendreDefile}
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            setMotsTraces(mots);
+            setDemande((n) => n + 1);
+          }}
+        >
+          <label className="champ champ-mot">
+            <span>{t.lbl_mots}</span>
+            <input
+              type="text"
+              value={mots}
+              onChange={(ev) => setMots(ev.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+          <label className="champ">
+            <span>{t.lbl_corpus}</span>
+            <select value={corpus} onChange={(ev) => setCorpus(ev.target.value)}>
+              {optionsCorpus}
+            </select>
+          </label>
+          <label className="champ">
+            <span>{t.lbl_de}</span>
+            <input
+              type="number"
+              min={1990}
+              max={2026}
+              value={de}
+              onChange={(ev) => setDe(ev.target.value)}
+            />
+          </label>
+          <label className="champ">
+            <span>{t.lbl_a}</span>
+            <input
+              type="number"
+              min={1990}
+              max={2026}
+              value={a}
+              onChange={(ev) => setA(ev.target.value)}
+            />
+          </label>
+          <label className="champ">
+            <span>{t.lbl_resolution}</span>
+            <select
+              value={resolution}
+              onChange={(ev) => setResolution(ev.target.value as Resolution)}
+            >
+              <option value="mois">{t.res_mois}</option>
+              <option value="annee">{t.res_annee}</option>
+            </select>
+          </label>
+          <label className="champ">
+            <span>{t.lbl_mesure}</span>
+            <select value={metrique} onChange={(ev) => setMetrique(ev.target.value as Metrique)}>
+              <option value="pour100k">{t.mes_pour100k}</option>
+              <option value="freq">{t.mes_freq}</option>
+              <option value="brut">{t.mes_brut}</option>
+            </select>
+          </label>
+          <button type="submit" className="bouton">
+            {t.btn_tracer}
+          </button>
+        </form>
+
+        <figure className={`carte-graphe${enDefile ? " trace-defile" : ""}`}>
+          <Chart
+            series={resultat?.series ?? []}
+            corpus={resultat?.corpus ?? corpus}
+            lang={lang}
+            metrique={metrique}
+            chargement={chargement}
+            // « Chargement… » ne s'écrit que sans courbe à l'écran : quand une
+            // courbe est déjà là, son estompage suffit à dire l'attente
+            message={
+              message && (message !== "chargement" || !resultat)
+                ? t[`msg_${message}`]
+                : null
+            }
+            tirage={resultat?.tirage ?? 0}
+          />
+          {resultat && (
+            <details className="tableau-conteneur" onPointerDownCapture={suspendreDefile}>
+              <summary>{t.voir_donnees}</summary>
+              <DataTable series={resultat.series} lang={lang} metrique={metrique} />
+            </details>
+          )}
+        </figure>
+      </div>
+
+      {/* ---- modes pas encore branchés : le formulaire est posé (inerte),
+          la carte annonce la suite ; la clé remonte le panneau à la bascule */}
+      {mode === "palmares" && (
+        <div key="palmares">
+          <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
+            <label className="champ">
+              <span>{t.lbl_corpus}</span>
+              <select defaultValue={corpus}>{optionsCorpus}</select>
+            </label>
+            <label className="champ">
+              <span>{t.lbl_periode}</span>
+              <input type="number" min={1990} max={2026} defaultValue="2024" />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_longueur}</span>
+              <select defaultValue="1">
+                <option value="1">1-gram</option>
+                <option value="2">2-gram</option>
+              </select>
+            </label>
+            <label className="champ">
+              <span>{t.lbl_nombre}</span>
+              <select defaultValue="10">
+                <option value="10">Top 10</option>
+                <option value="20">Top 20</option>
+                <option value="50">Top 50</option>
+              </select>
+            </label>
+            <button type="submit" className="bouton" disabled>
+              {t.btn_classer}
+            </button>
+          </form>
+          <figure className="carte-graphe panneau-avenir">
+            <span className="badge-avenir">{t.avenir}</span>
+            <p>{t.avenir_note}</p>
+          </figure>
+        </div>
+      )}
+
+      {mode === "evolutions" && (
+        <div key="evolutions">
+          <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
+            <label className="champ">
+              <span>{t.lbl_corpus}</span>
+              <select defaultValue={corpus}>{optionsCorpus}</select>
+            </label>
+            <label className="champ">
+              <span>{t.lbl_comparer}</span>
+              <input type="number" min={1990} max={2026} defaultValue="2023" />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_a}</span>
+              <input type="number" min={1990} max={2026} defaultValue="2024" />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_seuil}</span>
+              <select defaultValue="200">
+                <option value="100">≥ 100 occurrences</option>
+                <option value="200">≥ 200 occurrences</option>
+                <option value="500">≥ 500 occurrences</option>
+              </select>
+            </label>
+            <button type="submit" className="bouton" disabled>
+              {t.btn_comparer}
+            </button>
+          </form>
+          <figure className="carte-graphe panneau-avenir">
+            <span className="badge-avenir">{t.avenir}</span>
+            <p>{t.avenir_note}</p>
+          </figure>
+        </div>
+      )}
+
+      {mode === "tests" && (
+        <div key="tests">
+          <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
+            <label className="champ">
+              <span>{t.lbl_mot_a}</span>
+              <input type="text" autoComplete="off" spellCheck={false} />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_mot_b}</span>
+              <input type="text" autoComplete="off" spellCheck={false} />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_corpus}</span>
+              <select defaultValue={corpus}>{optionsCorpus}</select>
+            </label>
+            <label className="champ">
+              <span>{t.lbl_test}</span>
+              <select defaultValue="spearman">
+                <option value="spearman">{t.test_spearman}</option>
+                <option value="pettitt">{t.test_pettitt}</option>
+                <option value="mk">{t.test_mk}</option>
+                <option value="croisee">{t.test_croisee}</option>
+              </select>
+            </label>
+            <label className="champ">
+              <span>{t.lbl_de}</span>
+              <input type="number" min={1990} max={2026} defaultValue="2015" />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_a}</span>
+              <input type="number" min={1990} max={2026} defaultValue="2026" />
+            </label>
+            <button type="submit" className="bouton" disabled>
+              {t.btn_tester}
+            </button>
+          </form>
+          <figure className="carte-graphe panneau-avenir">
+            <span className="badge-avenir">{t.avenir}</span>
+            <p>{t.avenir_note}</p>
+          </figure>
+        </div>
+      )}
     </>
   );
 }

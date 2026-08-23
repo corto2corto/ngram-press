@@ -10,6 +10,7 @@
   --encre: #191917;
   --encre-2: #62605b;
   --encre-muette: #93908a;
+  --encre-logo: #47453f;
   --grille: #f0ede4;
   --axe: #dedad0;
   --bord: #e8e5dc;
@@ -20,6 +21,8 @@
   --serie-4: #eda100;
   --ombre: rgba(20, 18, 12, 0.10);
   --anneau: rgba(184, 101, 63, 0.22);
+  /* liens sortants cités dans le texte : bleu foncé, distinct de l'accent argile */
+  --lien: #1c4e8a;
 
   /* mouvement : deux durées de réaction, une durée de tracé, trois courbes.
      Tout le site s'y tient — voir le banc d'essai des animations. */
@@ -39,6 +42,7 @@
     --encre: #f5f4ee;
     --encre-2: #c9c6bd;
     --encre-muette: #8f8c83;
+    --encre-logo: #e0ddd4;
     --grille: #2b2a26;
     --axe: #3a3833;
     --bord: rgba(245, 244, 238, 0.14);
@@ -49,6 +53,8 @@
     --serie-4: #c98500;
     --ombre: rgba(0, 0, 0, 0.5);
     --anneau: rgba(201, 122, 85, 0.28);
+    /* sur fond sombre le bleu s'éclaircit, sinon il n'est plus lisible */
+    --lien: #8ab8ea;
   }
 }
 
@@ -275,7 +281,7 @@ main > section,
 /* ---- hero */
 
 .hero {
-  padding-block: clamp(4rem, 10vw, 7.5rem) clamp(2.5rem, 6vw, 4rem);
+  padding-block: clamp(3.05rem, 7.65vw, 5.75rem) clamp(2.1rem, 5vw, 3.4rem);
 }
 
 .hero h1 {
@@ -316,7 +322,7 @@ main > section,
 /* ---- cartes d'entrée (grille de trois) */
 
 .entrees {
-  padding-block: 1rem 3.5rem;
+  padding-block: 0.85rem 3rem;
 }
 
 .entrees-grille {
@@ -399,8 +405,126 @@ main > section,
 /* ---- explorateur */
 
 .demo {
-  padding-block: 2rem 3.5rem;
+  padding-block: 1.7rem 3rem;
   scroll-margin-top: 2rem;
+}
+
+/* ---- onglets des modes : soulignés, pictogramme qui prend l'accent quand son
+   mode est actif, mention d'usage sous la rangée (maquette bêta v3) */
+
+.rang-onglets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 1.9rem;
+  border-bottom: 1px solid var(--bord);
+}
+
+.rang-onglets button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0.45rem 0 0.65rem;
+  font: inherit;
+  font-size: 0.97rem;
+  color: var(--encre-muette);
+  cursor: pointer;
+  transition: color var(--duree-courte) ease;
+}
+
+.rang-onglets button svg {
+  flex: none;
+  display: block;
+  transition: color var(--duree-courte) ease;
+}
+
+.rang-onglets button::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 260ms var(--doux);
+}
+
+.rang-onglets button:hover {
+  color: var(--encre-2);
+}
+
+.rang-onglets button.actif {
+  color: var(--encre);
+  font-weight: 550;
+}
+
+.rang-onglets button.actif svg {
+  color: var(--accent);
+}
+
+.rang-onglets button.actif::after {
+  transform: scaleX(1);
+}
+
+.rang-onglets button:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+/* la mention : à quoi sert le mode actif — rejouée à chaque bascule (clé React) */
+.desc-mode {
+  margin: 0.65rem 0 1.4rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--encre-2);
+  animation: pose-mode 380ms var(--sortie) both;
+}
+
+@keyframes pose-mode {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* les modes pas encore branchés : le formulaire est posé, la carte annonce la suite */
+.panneau-avenir {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 11rem;
+  animation: pose-mode 380ms var(--sortie) both;
+}
+
+.panneau-avenir p {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 0.95rem;
+  color: var(--encre-2);
+}
+
+.bouton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bouton:disabled:hover {
+  opacity: 0.45;
+}
+
+.bouton:disabled:active {
+  transform: none;
 }
 
 .filtres {
@@ -734,7 +858,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 /* ---- fait avec */
 
 .fait-avec {
-  padding-block: 0 4.5rem;
+  padding-block: 0 3.8rem;
 }
 
 .fait-avec-grille {
@@ -753,7 +877,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
-  color: var(--encre-logo, #47453f);
+  color: var(--encre-logo);
   transition: color var(--duree-survol) ease;
 }
 
@@ -794,7 +918,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 /* ---- le projet */
 
 .projet {
-  padding-block: clamp(2.5rem, 6vw, 4rem);
+  padding-block: clamp(2.1rem, 5vw, 3.4rem);
   border-top: 1px solid var(--bord);
   scroll-margin-top: 2rem;
 }
@@ -813,7 +937,8 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   gap: 1.1rem;
   max-width: 42rem;
   color: var(--encre-2);
-  font-size: 1.02rem;
+  /* même corps de texte que le sous-titre du hero */
+  font-size: 1.15rem;
   line-height: 1.7;
 }
 
@@ -821,10 +946,71 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   margin: 0;
 }
 
+/* noms des encadrants : liens vers leurs pages personnelles */
+
+.lien-encadrant {
+  color: var(--lien);
+  text-decoration: none;
+}
+
+.lien-encadrant:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* la fiche de l'article : une référence bibliographique sous le texte du
+   projet, filet d'accent à gauche comme une citation */
+
+.papier-ref {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 42rem;
+  margin-top: 1.9rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 16px 16px 0;
+}
+
+.papier-ref p {
+  margin: 0;
+}
+
+.papier-etiquette {
+  font-size: 0.78rem;
+  font-weight: 550;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--encre-muette);
+}
+
+/* Le titre reste en italique (c'est une référence), mais pas celui d'EB
+   Garamond, trop penché pour rester lisible à cette taille : l'italique de
+   Georgia est presque droit et bien dessiné. Corps réduit en conséquence,
+   Georgia ayant un œil bien plus grand que le Garamond. */
+.papier-titre cite {
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 1.13rem;
+  line-height: 1.45;
+}
+
+.papier-auteurs {
+  font-size: 0.95rem;
+  color: var(--encre-2);
+}
+
+.bouton-papier {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
 /* ---- bandeau contact */
 
 .contact {
-  padding-block: 0 4.5rem;
+  padding-block: 0 3.8rem;
   scroll-margin-top: 2rem;
 }
 
@@ -833,7 +1019,9 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
    noir. D'où les couleurs en dur plutôt qu'en jetons. */
 
 .feuille-contact {
-  background: #ffffff;
+  /* Plusieurs teintes de blanc plutôt qu'un aplat : blanc pur en haut,
+     la feuille se réchauffe doucement vers le bas. */
+  background: linear-gradient(to bottom, #ffffff 0%, #ffffff 55%, #fefdfa 75%, #f8f5ee 100%);
   color: #26251f;
   border: 1px solid rgba(25, 25, 23, 0.08);
   border-radius: 6px;
@@ -846,7 +1034,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 }
 
 .portrait-auteur {
-  width: clamp(150px, 21vw, 200px);
+  width: clamp(185px, 25vw, 245px);
   height: auto;
 }
 
@@ -864,12 +1052,12 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 .feuille-contact .contact-p {
   margin: 0.9rem 0 0;
   color: #6b675c;
+  font-size: 17px;
   max-width: 34rem;
 }
 
 .feuille-contact .contact-p-loisirs {
   margin-top: 0.4rem;
-  color: #93908a;
 }
 
 .contact-liens {
@@ -917,7 +1105,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 
 .pied {
   border-top: 1px solid var(--bord);
-  padding-block: 2.5rem 3rem;
+  padding-block: 2.1rem 2.55rem;
 }
 
 .pied-colonnes {
