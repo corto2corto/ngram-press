@@ -4,9 +4,12 @@
 
 export const API = process.env.NEXT_PUBLIC_NGRAM_API ?? "/api/ngram";
 
+// pas d'agrégation servi par l'API ; « semaine » viendra plus tard (côté Flask)
+export type Resolution = "jour" | "mois" | "annee";
+
 export type Point = {
   x: number; // position continue (année décimale) pour l'axe X
-  etiquette: string; // "2023" ou "2023-04"
+  etiquette: string; // "2023", "2023-04" ou "2023-04-14"
   freq: number; // occurrences pour 100 000 mots
   n: number; // occurrences brutes
   total: number; // mots de la période (dénominateur des métriques relatives)
@@ -40,7 +43,7 @@ const dejaServies = new Map<string, Promise<Serie[]>>();
 export function requeteSeries(options: {
   mots: string[];
   corpus: string;
-  resolution: "mois" | "annee";
+  resolution: Resolution;
   de: string;
   a: string;
 }): Promise<Serie[]> {
@@ -60,9 +63,25 @@ export function requeteSeries(options: {
   return promesse;
 }
 
+// abscisse d'un point : l'année, plus le milieu du mois ou du jour ramené à la
+// fraction d'année écoulée (au prorata exact de la longueur de l'année en jour)
+function abscisse(resolution: Resolution, annee: number, mois: number, jour: number): number {
+  if (resolution === "annee") return annee;
+  if (resolution === "mois") return annee + (mois - 0.5) / 12;
+  const debut = Date.UTC(annee, 0, 1);
+  const duree = Date.UTC(annee + 1, 0, 1) - debut;
+  return annee + (Date.UTC(annee, mois - 1, jour) - debut + 43_200_000) / duree;
+}
+
+function etiquette(resolution: Resolution, annee: number, mois: number, jour: number): string {
+  if (resolution === "annee") return String(annee);
+  const anneeMois = `${annee}-${String(mois).padStart(2, "0")}`;
+  return resolution === "mois" ? anneeMois : `${anneeMois}-${String(jour).padStart(2, "0")}`;
+}
+
 async function chercherSeries(
   cle: string,
-  options: { mots: string[]; resolution: "mois" | "annee" },
+  options: { mots: string[]; resolution: Resolution },
 ): Promise<Serie[]> {
   const reponse = await fetch(`${API}/query?${cle}`);
   if (!reponse.ok) throw new Error(await reponse.text());
@@ -73,13 +92,11 @@ async function chercherSeries(
   for (const l of lignes) {
     const annee = Number(l.annee);
     const mois = Number(l.mois || 0);
+    const jour = Number(l.jour || 0);
     const total = Number(l.total);
     parMot.get(l.gram)?.push({
-      x: options.resolution === "mois" ? annee + (mois - 0.5) / 12 : annee,
-      etiquette:
-        options.resolution === "mois"
-          ? `${annee}-${String(mois).padStart(2, "0")}`
-          : String(annee),
+      x: abscisse(options.resolution, annee, mois, jour),
+      etiquette: etiquette(options.resolution, annee, mois, jour),
       freq: total ? (Number(l.n) / total) * 1e5 : 0,
       n: Number(l.n),
       total,

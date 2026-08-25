@@ -10,14 +10,13 @@
 // lui-même après une minute sans interaction. Le survol du graphe est sans effet.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { chargerCorpus, requeteSeries, type Serie } from "@/lib/api";
+import { chargerCorpus, requeteSeries, type Resolution, type Serie } from "@/lib/api";
 import { DEFILE, DUREE_ETAPE, REPRISE_APRES } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
 
-type Resolution = "mois" | "annee";
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
 // les quatre modes de l'explorateur ; seules les Courbes sont branchées sur
@@ -329,6 +328,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
               value={resolution}
               onChange={(ev) => setResolution(ev.target.value as Resolution)}
             >
+              <option value="jour">{t.res_jour}</option>
               <option value="mois">{t.res_mois}</option>
               <option value="annee">{t.res_annee}</option>
             </select>
