@@ -1,0 +1,209 @@
+openapi: 3.0.3
+
+info:
+  title: Agora API
+  version: "1.0.0"
+  description: |
+    API permettant d'interroger des bases de fréquences lexicales construites à
+    partir d'un corpus de presse numérique française contemporaine (Le Monde,
+    Le Parisien, Mediapart, Les Échos, etc.).
+
+    ### 📚 Utilisation rapide
+    Les routes de données retournent du **CSV** (`text/plain`) ; les routes de
+    service retournent du **JSON**.
+
+    Exemple R :
+    ```r
+    read.csv("https://shiny.ens-paris-saclay.fr/guni/agora/query?corpus=leparisien&mot=inflation")
+    ```
+
+    Exemple Python :
+    ```python
+    import pandas as pd
+    pd.read_csv("https://shiny.ens-paris-saclay.fr/guni/agora/query"
+                "?corpus=leparisien&mot=inflation&resolution=annee")
+    ```
+
+    ### 🔤 Tokenisation
+    Les expressions sont mises en minuscules, les apostrophes typographiques
+    normalisées, et la ponctuation retirée. Un mot absent de la base renvoie une
+    série à zéro plutôt qu'une erreur.
+
+  contact:
+    name: Code source du projet
+    url: https://github.com/corto2corto/ngram-press
+
+servers:
+  - url: https://shiny.ens-paris-saclay.fr/guni/agora
+    description: Serveur principal (ENS Paris-Saclay)
+
+paths:
+  /query:
+    get:
+      summary: Fréquence d'un mot ou syntagme
+      description: |
+        Retourne le nombre d'occurrences d'un mot ou d'un couple de mots sur une
+        période donnée, accompagné du volume total du corpus pour la même période
+        (dénominateur permettant de calculer une fréquence relative).
+
+        **Colonnes CSV retournées :** `gram` (l'expression cherchée), `n`
+        (occurrences), `total` (mots du corpus sur la période), `annee`, `mois`
+        (si résolution `mois`), `jour` (si résolution `jour`).
+
+        **Plusieurs expressions :** séparez-les par une virgule
+        (`mot=inflation,chômage`). Chacune donne son propre groupe de lignes,
+        identifié par la colonne `gram`.
+
+        **Limitation :** 1 ou 2 mots par expression. Les bigrammes ne sont
+        disponibles que pour les corpus dont la base 2-gram est construite —
+        voir `avec_2gram` sur la route racine.
+      parameters:
+        - $ref: '#/components/parameters/CorpusParam'
+        - name: mot
+          in: query
+          description: |
+            Mot ou syntagme de 1 à 2 mots. Plusieurs expressions peuvent être
+            demandées en une requête, séparées par une virgule.
+          required: true
+          schema:
+            type: string
+          example: inflation
+        - $ref: '#/components/parameters/FromParam'
+        - $ref: '#/components/parameters/ToParam'
+        - name: resolution
+          in: query
+          description: Granularité temporelle des résultats. Défaut `mois`.
+          required: false
+          schema:
+            $ref: '#/components/schemas/Resolution'
+          example: mois
+
+      responses:
+        "200":
+          description: CSV des fréquences temporelles
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "gram,annee,mois,n,total\ninflation,2023,1,412,8104233\ninflation,2023,2,388,7620118"
+        "400":
+          description: |
+            Paramètre invalide : corpus inconnu, expression de plus de 2 mots,
+            base n-gram absente pour ce corpus, ou paramètre `mot` manquant.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "corpus inconnu : lemonde (choix : le_monde, leparisien, mediapart)"
+
+  /corpus:
+    get:
+      summary: Liste des corpus disponibles
+      description: |
+        Retourne la liste des identifiants de corpus interrogeables, triée par
+        ordre alphabétique. Cette liste est découverte dynamiquement d'après les
+        bases présentes sur le serveur : un corpus y apparaît dès que sa base est
+        construite, sans redémarrage de l'API.
+
+        C'est la source de vérité pour le paramètre `corpus` des autres routes.
+      responses:
+        "200":
+          description: Tableau JSON des identifiants de corpus
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["le_figaro", "le_monde", "leparisien", "les_echos", "mediapart"]
+
+  /:
+    get:
+      summary: État de l'API
+      description: |
+        Route de service : indique que l'API répond, combien de corpus sont
+        disponibles, et lesquels disposent d'une base de bigrammes (donc
+        interrogeables avec un syntagme de 2 mots).
+      responses:
+        "200":
+          description: État courant de l'API
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api:
+                    type: string
+                    description: Nom de l'API.
+                    example: agora
+                  corpus:
+                    type: integer
+                    description: Nombre de corpus disponibles.
+                    example: 32
+                  avec_2gram:
+                    type: array
+                    description: Corpus disposant d'une base de bigrammes.
+                    items:
+                      type: string
+                    example: ["le_monde", "leparisien"]
+
+components:
+  parameters:
+    CorpusParam:
+      name: corpus
+      in: query
+      required: true
+      description: |
+        Identifiant du corpus à interroger.
+
+        La liste dépend des bases présentes sur le serveur et évolue au fil des
+        constructions : appelez **`GET /corpus`** pour obtenir la liste à jour.
+        Un identifiant inconnu renvoie une erreur 400 qui énumère les choix
+        valides.
+      schema:
+        type: string
+      example: leparisien
+
+    FromParam:
+      name: from
+      in: query
+      description: |
+        Borne de début, incluse. Accepte `AAAA`, `AAAA-MM` ou `AAAA-MM-JJ` ;
+        une date partielle est complétée au premier jour de la période.
+        Défaut `1900`.
+      required: false
+      schema:
+        $ref: '#/components/schemas/Date'
+      example: "2020"
+
+    ToParam:
+      name: to
+      in: query
+      description: |
+        Borne de fin, incluse. Accepte `AAAA`, `AAAA-MM` ou `AAAA-MM-JJ` ;
+        une date partielle est complétée au dernier jour de la période.
+        Défaut `2100`.
+      required: false
+      schema:
+        $ref: '#/components/schemas/Date'
+      example: "2024"
+
+  schemas:
+    Date:
+      type: string
+      pattern: '^\d{4}(-\d{2}(-\d{2})?)?$'
+      description: |
+        Date au format `AAAA`, `AAAA-MM` ou `AAAA-MM-JJ`.
+
+    Resolution:
+      type: string
+      enum: [jour, mois, annee]
+      default: mois
+      description: |
+        Granularité temporelle des résultats.
+
+        | Valeur | Agrégation | Colonnes de date |
+        | :--- | :--- | :--- |
+        | `jour` | aucune | `annee`, `mois`, `jour` |
+        | `mois` | par mois | `annee`, `mois` |
+        | `annee` | par année | `annee` |

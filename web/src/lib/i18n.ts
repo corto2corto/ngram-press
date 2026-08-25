@@ -200,6 +200,7 @@ export const textes = {
     contact_ecrire: "M'écrire",
 
     // pied de page
+    pied_api: "API et documentation",
     pied_texte: "Agora — mémoire de master, 2026",
   },
   en: {
@@ -312,6 +313,7 @@ export const textes = {
     contact_cv: "View the CV",
     contact_ecrire: "Write to me",
 
+    pied_api: "API and documentation",
     pied_texte: "Agora — master's thesis, 2026",
   },
 } satisfies Record<Lang, unknown>;

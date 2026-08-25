@@ -111,6 +111,9 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                 <li>
                   <a href="https://github.com/corto2corto/ngram-press">GitHub</a>
                 </li>
+                <li>
+                  <a href="/swagger">{t.pied_api}</a>
+                </li>
               </ul>
             </div>
             <div>
