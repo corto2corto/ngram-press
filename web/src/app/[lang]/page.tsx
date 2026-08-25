@@ -18,6 +18,41 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         </a>
       </section>
 
+      <section className="entrees">
+        <p className="etiquette">{t.entrees_etiquette}</p>
+        <div className="entrees-grille">
+          <a className="carte-entree" href="#explorer">
+            <span className="categorie">{t.e1_cat}</span>
+            <h3>{t.e1_titre}</h3>
+            <p>{t.e1_p}</p>
+            <span className="pied-carte lien-accent">
+              {t.e1_lien} <span className="fleche">→</span>
+            </span>
+          </a>
+          <div className="carte-entree">
+            <span className="categorie">{t.e2_cat}</span>
+            <h3>{t.e2_titre}</h3>
+            <p>{t.e2_p}</p>
+            <span className="pied-carte">
+              <span className="badge-avenir">{t.avenir}</span>
+            </span>
+          </div>
+          <div className="carte-entree">
+            <span className="categorie">{t.e3_cat}</span>
+            <h3>{t.e3_titre}</h3>
+            <p>{t.e3_p}</p>
+            <span className="pied-carte">
+              <span className="badge-avenir">{t.avenir}</span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="demo" id="explorer">
+        <p className="etiquette">{t.demo_titre}</p>
+        <Explorer lang={lang} />
+      </section>
+
       <section className="projet" id="projet">
         <h2>{t.projet_titre}</h2>
         <div className="projet-corps">
@@ -70,41 +105,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             {t.papier_lire}
           </a>
         </aside>
-      </section>
-
-      <section className="entrees">
-        <p className="etiquette">{t.entrees_etiquette}</p>
-        <div className="entrees-grille">
-          <a className="carte-entree" href="#explorer">
-            <span className="categorie">{t.e1_cat}</span>
-            <h3>{t.e1_titre}</h3>
-            <p>{t.e1_p}</p>
-            <span className="pied-carte lien-accent">
-              {t.e1_lien} <span className="fleche">→</span>
-            </span>
-          </a>
-          <div className="carte-entree">
-            <span className="categorie">{t.e2_cat}</span>
-            <h3>{t.e2_titre}</h3>
-            <p>{t.e2_p}</p>
-            <span className="pied-carte">
-              <span className="badge-avenir">{t.avenir}</span>
-            </span>
-          </div>
-          <div className="carte-entree">
-            <span className="categorie">{t.e3_cat}</span>
-            <h3>{t.e3_titre}</h3>
-            <p>{t.e3_p}</p>
-            <span className="pied-carte">
-              <span className="badge-avenir">{t.avenir}</span>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <section className="demo" id="explorer">
-        <p className="etiquette">{t.demo_titre}</p>
-        <Explorer lang={lang} />
       </section>
 
       <section className="contact" id="contact">
