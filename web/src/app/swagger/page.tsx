@@ -27,20 +27,10 @@ export default function Swagger() {
         src={`https://unpkg.com/swagger-ui-dist@${VERSION}/swagger-ui-bundle.js`}
         defer
       />
-      {/* SwaggerUIBundle n'existe qu'une fois le bundle chargé : d'où le defer
-          sur les deux scripts, qui garantit l'ordre d'exécution. */}
-      <script
-        defer
-        dangerouslySetInnerHTML={{
-          __html: `SwaggerUIBundle({
-            url: "/agora_swagger.yml",
-            dom_id: "#swagger-ui",
-            deepLinking: true,
-            tryItOutEnabled: true,
-            defaultModelsExpandDepth: -1,
-          });`,
-        }}
-      />
+      {/* l'init vit dans public/swagger-init.js : defer est sans effet sur un
+          script inline, seuls deux scripts externes différés s'exécutent dans
+          l'ordre garanti (bundle d'abord, init ensuite). */}
+      <script src="/swagger-init.js" defer />
     </>
   );
 }
