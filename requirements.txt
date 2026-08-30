@@ -1,5 +1,7 @@
 flask
 flask-cors
+mcp>=2  # SDK v2 : import mcp.server.mcpserver (api/mcp_agora.py)
+requests
 pandas
 numpy
 scipy

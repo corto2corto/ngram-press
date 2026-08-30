@@ -1,7 +1,8 @@
 # API Agora : sert les bases n-grammes du serveur shiny de l'ENS (stage-mids).
-# Différences avec api/app.py : bases découpées par n (<corpus>_1gram.db,
-# <corpus>_2gram.db) et découvertes automatiquement dans NGRAM_DIR — un corpus
-# apparaît dès que sa base est construite, sans redémarrage ni liste en dur.
+# Différences avec api/app.py : bases fusionnées <corpus>_ngram.db (tables
+# unigram et bigram ensemble, pas de trigrammes) découvertes automatiquement
+# dans NGRAM_DIR — un corpus apparaît dès que sa base est construite, sans
+# redémarrage ni liste en dur.
 # Lancement (serveur) : venv_agora/bin/gunicorn --bind 127.0.0.1:8010 api.app_agora:app
 # Test local : NGRAM_DIR=data python -m api.app_agora  puis  http://localhost:8502/corpus
 
@@ -13,10 +14,12 @@ import sqlite3
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 import pandas as pd
+import requests
 
 from scripts.tokenisation import tokeniser
 
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
+MCP_LOCAL = os.environ.get("AGORA_MCP", "http://127.0.0.1:8011/mcp")
 TABLE = {1: "unigram", 2: "bigram"}
 
 app = Flask(__name__)
@@ -24,13 +27,9 @@ CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
 
 
 def catalogue():
-    # {corpus: {n: chemin}} d'après les fichiers présents dans DOSSIER
-    cat = {}
-    for chemin in glob.glob(os.path.join(DOSSIER, "*_[12]gram.db")):
-        m = re.fullmatch(r"(.+)_([12])gram\.db", os.path.basename(chemin))
-        if m:
-            cat.setdefault(m.group(1), {})[int(m.group(2))] = chemin
-    return cat
+    # {corpus: chemin} d'après les fichiers présents dans DOSSIER
+    return {os.path.basename(chemin)[:-len("_ngram.db")]: chemin
+            for chemin in glob.glob(os.path.join(DOSSIER, "*_ngram.db"))}
 
 
 def borne_date(texte, complement):
@@ -60,14 +59,49 @@ def serie(conn, tokens, date_min, date_max):
 @app.route("/")
 def accueil():
     cat = catalogue()
-    return jsonify({"api": "agora", "corpus": len(cat),
-                    "avec_2gram": sorted(c for c, d in cat.items() if 2 in d)})
+    return jsonify({"api": "agora", "corpus": len(cat), "avec_2gram": sorted(cat)})
 
 
 @app.route("/corpus")
 def liste_corpus():
     # le front attend une simple liste de noms (web/src/lib/api.ts)
     return jsonify(sorted(catalogue()))
+
+
+@app.route("/catalogue")
+def catalogue_detaille():
+    # version enrichie de /corpus : bornes de dates et présence de bigrammes,
+    # lues dans total_unigram (une ligne par jour, MIN/MAX immédiats)
+    iso = lambda d: f"{d // 10000:04d}-{d // 100 % 100:02d}-{d % 100:02d}"
+    infos = []
+    for corpus, chemin in sorted(catalogue().items()):
+        conn = sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
+        d0, d1 = conn.execute("SELECT MIN(date), MAX(date) FROM total_unigram").fetchone()
+        conn.close()
+        infos.append({"corpus": corpus,
+                      "debut": iso(d0) if d0 else None,
+                      "fin": iso(d1) if d1 else None,
+                      "avec_2gram": True})
+    return jsonify(infos)
+
+
+@app.route("/mcp", methods=["GET", "POST", "DELETE", "OPTIONS"])
+def proxy_mcp():
+    # même montage que gallicagram.com (app.py, routes /v2/mcp/) : le serveur
+    # MCP tourne à part (api/mcp_agora.py, port 8011) et ce proxy l'expose sous
+    # l'URL publique de l'API ; stream=True pour ne pas bufferiser le SSE
+    try:
+        reponse = requests.request(
+            method=request.method, url=MCP_LOCAL, params=request.args,
+            headers={c: v for c, v in request.headers if c.lower() != "host"},
+            data=request.get_data(), timeout=60, stream=True)
+    except requests.exceptions.RequestException as e:
+        return jsonify({"erreur": f"serveur MCP indisponible : {e}"}), 503
+    exclus = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+    entetes = [(c, v) for c, v in reponse.raw.headers.items() if c.lower() not in exclus]
+    if "text/event-stream" in reponse.headers.get("Content-Type", ""):
+        return Response(reponse.iter_content(chunk_size=1024), reponse.status_code, entetes)
+    return Response(reponse.content, reponse.status_code, entetes)
 
 
 @app.route("/query")
@@ -85,10 +119,7 @@ def query():
         tokens = tokeniser(gram)
         if not 1 <= len(tokens) <= 2:
             return f"« {gram.strip()} » : 1 ou 2 mots attendus", 400
-        chemin = cat[corpus].get(len(tokens))
-        if chemin is None:
-            return f"pas encore de base {len(tokens)}-gram pour {corpus}", 400
-        conn = sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"file:{cat[corpus]}?mode=ro", uri=True)
         totaux = pd.read_sql_query(
             f"SELECT date, total FROM total_{TABLE[len(tokens)]} WHERE date BETWEEN ? AND ?",
             conn, params=[date_min, date_max])

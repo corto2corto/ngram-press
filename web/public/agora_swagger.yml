@@ -29,6 +29,11 @@ info:
     normalisées, et la ponctuation retirée. Un mot absent de la base renvoie une
     série à zéro plutôt qu'une erreur.
 
+    ### 🤖 Serveur MCP
+    L'API est aussi accessible aux assistants IA (Claude, ChatGPT...) via un
+    serveur MCP (*Model Context Protocol*, transport HTTP streamable) exposé
+    sur `/mcp`, qui propose les outils `list_corpora` et `query_frequency`.
+
   contact:
     name: Code source du projet
     url: https://github.com/corto2corto/ngram-press
@@ -116,6 +121,40 @@ paths:
                 items:
                   type: string
                 example: ["le_figaro", "le_monde", "leparisien", "les_echos", "mediapart"]
+
+  /catalogue:
+    get:
+      summary: Corpus disponibles avec périodes couvertes
+      description: |
+        Version enrichie de `/corpus` : pour chaque corpus, les bornes de dates
+        réellement couvertes par la base (lues sur les volumes journaliers) et
+        la présence d'une base de bigrammes (syntagmes de 2 mots interrogeables).
+      responses:
+        "200":
+          description: Tableau JSON, un objet par corpus
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    corpus:
+                      type: string
+                      description: Identifiant du corpus.
+                      example: leparisien
+                    debut:
+                      type: string
+                      description: Première date disponible (`AAAA-MM-JJ`).
+                      example: "1944-12-18"
+                    fin:
+                      type: string
+                      description: Dernière date disponible (`AAAA-MM-JJ`).
+                      example: "2025-06-30"
+                    avec_2gram:
+                      type: boolean
+                      description: Vrai si la base de bigrammes est construite.
+                      example: true
 
   /:
     get:
