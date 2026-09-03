@@ -13,6 +13,7 @@ import sqlite3
 
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
+import numpy as np
 import pandas as pd
 import requests
 
@@ -21,10 +22,25 @@ from scripts.tokenisation import tokeniser
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
 MCP_LOCAL = os.environ.get("AGORA_MCP", "http://127.0.0.1:8011/mcp")
 TABLE = {1: "unigram", 2: "bigram"}
-# composantes gelées des PCA de sauts (pca/README.md) : nom -> taille des blocs, en jours de parution
+# jeu d'étude des PCA de sauts (pca/README.md) : composantes gelées et fenêtres du fit
 PCA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pca")
-PAS_PCA = {"unifie1j": 1, "unifie3j": 3}
-DEMI = 15   # fenêtre de 31 blocs : -15 à +15
+PCAS = ("unifie1j", "unifie3j")
+FENETRES = {}   # nom de la PCA -> fenêtres du fit, lues une fois par worker
+
+
+def fenetres_fit(nom_pca):
+    # fenêtres du fit + la fenêtre MOYENNE (z-scorée) du jeu de chaque seuil : pca() du stage
+    # centre les colonnes avant la SVD, les coordonnées sont donc celles de (z - moyenne).
+    # Vérifié le 03/09/2026 contre projections_unifie*.csv du stage : écart 5e-5 (arrondi du CSV).
+    if nom_pca not in FENETRES:
+        from rupture.pca import normaliser
+        d = np.load(os.path.join(PCA_DIR, f"fenetres_{nom_pca}.npz"))
+        fit = {k: d[k] for k in ("fenetres", "mot", "date", "X_t", "N_t", "surprise")}
+        for seuil in (4, 6):
+            Z, _ = normaliser(fit["fenetres"][fit["surprise"] >= seuil], "z")
+            fit[f"moyenne_s{seuil}"] = Z.mean(axis=0)
+        FENETRES[nom_pca] = fit
+    return FENETRES[nom_pca]
 
 app = Flask(__name__)
 CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
@@ -150,108 +166,66 @@ def query():
 
 @app.route("/projection")
 def projection():
-    # projection du pic le plus surprenant d'un mot sur les 4 premières composantes d'une
-    # PCA gelée (pca/composantes_<pca>.npz, copiées de stage-mids — voir pca/README.md).
-    # Chaîne : série journalière du mot (X_t, N_t) sur les jours de parution de la base,
-    # loi « bnb » de rupture.pics ajustée sur la SÉRIE ENTIÈRE avec double fit (comme
-    # rupture/pics_masse.py du stage, qui a produit les pics du fit de la PCA ; la période
-    # ne sert qu'à choisir le pic), surprise = -log10 p, pic le plus surprenant de la
-    # période, fenêtre de 31 blocs de `pas` jours de parution centrée sur le pic, taux
-    # pour 100 000, z-score de la fenêtre (rupture.pca.normaliser, le calcul du stage),
-    # produits scalaires avec les composantes (déjà orientées, pas de moyenne colonne).
-    # /projection?mot=guerre&corpus=le_monde&from=2022&to=2022&pca=unifie1j&seuil=6
-    import numpy as np
-    try:
-        from rupture import pics as rp            # statsmodels + scipy
-    except ImportError as e:
-        return f"{e.name} manquant : pip install statsmodels scipy dans venv_agora", 500
+    # projection d'un pic sur les 4 premières composantes d'une PCA gelée. Tout vient du jeu
+    # d'étude du stage, copié dans pca/ (voir pca/README.md) : les fenêtres du fit
+    # (fenetres_<pca>.npz — taux pour 100 000 sur 31 jours, ou 31 blocs de 3 jours, autour
+    # de chaque pic du corpus unifié : 36 médias sommés, grille calendaire 2008-2026,
+    # vocabulaire des 10 000 mots les plus fréquents du Monde, surprise >= 4, un pic par
+    # événement) et les composantes (composantes_<pca>.npz). L'API ne recalcule rien : elle
+    # cherche la fenêtre du mot de plus grande surprise dans la période, la z-score
+    # (rupture.pca.normaliser, le calcul du fit) et la projette. Les bases ngram ne sont pas
+    # lues — JOURNAL.md (03/09/2026) explique pourquoi.
+    # /projection?mot=guerre&from=2022&to=2022&pca=unifie1j&seuil=6
     from rupture.pca import normaliser
 
-    cat = catalogue()
-    corpus = request.args.get("corpus", "")
-    if corpus not in cat:
-        return f"corpus inconnu : {corpus} (choix : {', '.join(sorted(cat))})", 400
     gram = request.args.get("mot", "").strip()
     if not gram:
         return "paramètre mot manquant", 400
     tokens = tokeniser(gram)
-    if not 1 <= len(tokens) <= 2:
-        return f"« {gram} » : 1 ou 2 mots attendus", 400
+    if len(tokens) != 1:
+        return f"« {gram} » : un seul mot attendu (le jeu du fit est en unigrammes)", 400
+    mot = tokens[0]
     nom_pca = request.args.get("pca", "unifie1j")
-    if nom_pca not in PAS_PCA:
-        return f"pca inconnue : {nom_pca} (choix : {', '.join(PAS_PCA)})", 400
+    if nom_pca not in PCAS:
+        return f"pca inconnue : {nom_pca} (choix : {', '.join(PCAS)})", 400
     seuil = request.args.get("seuil", "6")
     if seuil not in ("4", "6"):
         return f"seuil inconnu : {seuil} (choix : 4, 6)", 400
-    date_min = borne_date(request.args.get("from") or "1900", 101)
-    date_max = borne_date(request.args.get("to") or "2100", 1231)
+    date_min = borne_date(request.args.get("from") or "2008", 101)
+    date_max = borne_date(request.args.get("to") or "2026", 1231)
 
-    # série complète du mot (la fenêtre peut déborder de la période), jours de parution
-    # seulement (N_t > 0), zéros réinjectés ; mot inconnu du vocabulaire -> 404
-    conn = sqlite3.connect(f"file:{cat[corpus]}?mode=ro", uri=True)
-    ids = []
-    for t in tokens:
-        ligne = conn.execute("SELECT id FROM token WHERE word = ?", (t,)).fetchone()
-        if ligne is None:
-            conn.close()
-            return f"« {gram} » : inconnu de la base {corpus}", 404
-        ids.append(ligne[0])
-    table = TABLE[len(tokens)]
-    conditions = " AND ".join(f"w{i} = ?" for i in range(1, len(tokens) + 1))
-    totaux = pd.read_sql_query(
-        f"SELECT date, total AS N_t FROM total_{table} WHERE total > 0 ORDER BY date", conn)
-    occ = pd.read_sql_query(f"SELECT date, n AS X_t FROM {table} WHERE {conditions}", conn, params=ids)
-    conn.close()
-    d = totaux.merge(occ, on="date", how="left")
-    d["X_t"] = d["X_t"].fillna(0).astype(int)
+    # la fenêtre du mot de plus grande surprise dans la période
+    fit = fenetres_fit(nom_pca)
+    du_mot = fit["mot"] == mot
+    if not du_mot.any():
+        return (f"« {mot} » : hors du jeu du fit (10 000 mots les plus fréquents du Monde "
+                "ayant au moins un pic entre 2008 et 2026)", 404)
+    dans = du_mot & (fit["date"] >= date_min) & (fit["date"] <= date_max)
+    if not dans.any():
+        return f"« {mot} » : aucun pic entre {date_min} et {date_max} dans le jeu du fit", 404
+    i = int(np.argmax(np.where(dans, fit["surprise"], -1.0)))
+    taux = fit["fenetres"][i].astype(np.float64)
 
-    X = d["X_t"].to_numpy(float)
-    N = d["N_t"].to_numpy(float)
-    if X.sum() == 0:
-        return f"« {gram} » : aucune occurrence dans {corpus}", 404
-    dans_periode = ((d["date"] >= date_min) & (d["date"] <= date_max)).to_numpy()
-    if not dans_periode.any():
-        return f"aucun jour de parution dans {corpus} entre {date_min} et {date_max}", 400
-
-    # p-valeurs du mélange « bnb » ajusté sur toute la série (double fit), puis pic de
-    # plus grande surprise parmi les jours de la période
-    _, p, _ = rp.ajuster(X, N, "bnb", fits=2)
-    pos = int(np.argmin(np.where(dans_periode, p, 1.0)))   # position dans la série complète
-    if p[pos] >= rp.SEUIL:
-        return f"« {gram} » : aucun pic sur la période (p ≥ {rp.SEUIL:g})", 404
-    date_pic = int(d["date"].iloc[pos])
-
-    # fenêtre : 31 blocs de `pas` jours de parution centrés sur le pic (bloc k = jours
-    # pas*k - pas//2 à pas*k + pas//2 autour du pic) ; les bords du corpus font défaut
-    pas = PAS_PCA[nom_pca]
-    demi = DEMI * pas + pas // 2
-    if pos - demi < 0 or pos + demi >= len(d):
-        return (f"fenêtre hors du corpus : il faut {demi} jours de parution de chaque côté "
-                f"du pic ({date_pic}) dans {corpus}", 400)
-    lignes = pos + np.arange(-demi, demi + 1)
-    Xf = d["X_t"].to_numpy(float)[lignes].reshape(2 * DEMI + 1, pas).sum(axis=1)
-    Nf = d["N_t"].to_numpy(float)[lignes].reshape(2 * DEMI + 1, pas).sum(axis=1)
-    taux = 1e5 * Xf / Nf
-
-    # z-score de la fenêtre (une ligne), exactement comme au fit ; puis projection directe
-    # sur les composantes gelées (pas de moyenne colonne dans les fichiers : cf. pca/README.md)
+    # z-score de la fenêtre (une ligne), exactement comme au fit, moins la fenêtre moyenne du
+    # fit (centrage colonne de pca()), puis produits scalaires avec les composantes gelées
     Z, garde = normaliser(taux[None, :], "z")
     if not len(garde):
-        return f"fenêtre plate autour du pic ({date_pic}) : rien à projeter", 400
+        return f"fenêtre plate autour du pic ({int(fit['date'][i])}) : rien à projeter", 400
     gele = np.load(os.path.join(PCA_DIR, f"composantes_{nom_pca}.npz"))
     composantes = gele[f"composantes_s{seuil}"]  # (4, 31), déjà orientées
-    coordonnees = composantes @ Z[0]
+    moyenne = fit[f"moyenne_s{seuil}"]
+    coordonnees = composantes @ (Z[0] - moyenne)
     return jsonify({
-        "mot": gram, "corpus": corpus, "pca": nom_pca, "seuil": int(seuil),
+        "mot": mot, "corpus": "unifie", "pca": nom_pca, "seuil": int(seuil),
         "de": int(date_min), "a": int(date_max),
-        "pic": {"date": date_pic, "surprise": float(-np.log10(max(p[pos], 1e-300))),
-                "X_t": int(X[pos]), "N_t": int(N[pos])},
+        "pic": {"date": int(fit["date"][i]), "surprise": float(fit["surprise"][i]),
+                "X_t": int(fit["X_t"][i]), "N_t": int(fit["N_t"][i])},
         "coordonnees": np.round(coordonnees, 5).tolist(),
         "variance": np.round(gele[f"variance_s{seuil}"], 5).tolist(),
         "fenetre": {"offsets": gele["blocs"].tolist(),
                     "taux": np.round(taux, 4).tolist(),
                     "z": np.round(Z[0], 5).tolist()},
-        "reconstruction": np.round(coordonnees @ composantes, 5).tolist(),
+        "reconstruction": np.round(moyenne + coordonnees @ composantes, 5).tolist(),
     })
 
 

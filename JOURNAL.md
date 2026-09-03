@@ -1,5 +1,38 @@
 # Journal du projet
 
+## 03/09/2026 — projection d'un pic sur la PCA gelée : on cherche, on ne recalcule pas
+- Nouvel onglet « Tests statistiques » : un mot, une période, et le pic est projeté
+  sur les 4 premières composantes des PCA du stage (`pca/`, composantes gelées,
+  1 jour ou blocs de 3 jours, seuils 4 et 6). Route `/projection` de app_agora.py.
+- Première version : l'API relisait la série du mot dans les bases, ajustait la
+  loi « bnb » et découpait la fenêtre elle-même. Abandonnée pour trois raisons.
+  D'abord la grille : le fit a été fait sur le corpus unifié, en jours
+  calendaires (36 médias, il y a des articles tous les jours), alors que l'API
+  raisonnait en jours de parution d'un seul média — pour un quotidien sans
+  édition le dimanche la fenêtre s'étire, pour un hebdomadaire elle couvre sept
+  mois. Ensuite le recalcul : refaire un fit à chaque requête, c'est reproduire
+  à peu près la chaîne du stage sans garantie d'en retrouver les pics (ajuster
+  sur la période au lieu de la série entière suffisait à en perdre). Les bases
+  sont figées ; les comptes suffisent, rien n'oblige à recalculer. Enfin la
+  vérification : par média, aucune référence à laquelle comparer.
+- Version retenue : les fenêtres du fit elles-mêmes (`fenetres_unifie1j.npz`,
+  `fenetres_unifie3j.npz`, 17 Mo) sont copiées dans `pca/` et l'API y cherche
+  la fenêtre du mot de plus grande surprise dans la période, puis la z-score et
+  la projette. Réponse immédiate, aucune lecture des bases, et le résultat est
+  celui du stage par construction.
+- Ce que ça restreint : le vocabulaire, les 10 000 mots les plus fréquents du
+  Monde (9 782 ont un pic), la période 2008-2026, et les pics de surprise ≥ 4.
+  Un mot hors du jeu reçoit un 404 clair. L'outil explore le jeu d'étude, il ne
+  suit pas la presse d'aujourd'hui — l'onglet le dit.
+- Vérification contre `projections_unifie*.csv` du stage (128 000 fenêtres) :
+  elle a révélé que `pca()` centre les colonnes avant la SVD, donc que les
+  coordonnées sont celles de (z − fenêtre moyenne du fit). Sans ce centrage,
+  écart jusqu'à 2,6 ; avec, 5·10⁻⁵. La moyenne est recalculée au chargement à
+  partir des fenêtres du fit du même seuil.
+- statsmodels et scipy restent dans requirements.txt et dans venv_agora :
+  `rupture/pics.py` en a besoin, et une projection à la volée sur les bases
+  reste possible plus tard, en jours calendaires cette fois.
+
 ## 23/08/2026 — Le Monde, Le Figaro et Les Échos complets sur l'ENS
 - Problème détecté la veille : les bases de ces 3 médias étaient construites sur
   des CSV incomplets (articles récents seuls) — Le Monde n'avait que 621 jours.

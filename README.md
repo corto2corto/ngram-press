@@ -15,7 +15,7 @@ l'impact des rachats de journaux sur le contenu éditorial.
 | `/top?corpus=lemonde&periode=2023` | ngrams les plus fréquents d'une période |
 | `/evolution?avant=2018&apres=2023` | ce qui monte / descend entre deux périodes |
 | `/fiche?mot=guerre&corpus=lemonde` | fiche statistique : ajustements Poisson / binomiale négative, pics, moments (JSON) |
-| `/projection?mot=guerre&corpus=le_monde&from=2022&to=2022&pca=unifie1j&seuil=6` | projection du pic le plus surprenant de la période sur les 4 composantes d'une PCA gelée (JSON, voir [pca/README.md](pca/README.md)) — route de `api/app_agora.py`, l'API du site |
+| `/projection?mot=guerre&from=2022&to=2022&pca=unifie1j&seuil=6` | projection du pic le plus surprenant de la période (jeu d'étude du corpus unifié, voir [pca/README.md](pca/README.md)) sur les 4 composantes d'une PCA gelée (JSON) — route de `api/app_agora.py`, l'API du site |
 
 Lancement local : `python -m api.app` puis http://localhost:8501/.
 La variable d'environnement `NGRAM_DIR` indique le dossier des bases

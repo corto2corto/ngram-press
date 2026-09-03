@@ -1,15 +1,15 @@
 "use client";
 
 // Projection d'un pic sur une PCA gelée (onglet « Tests statistiques ») : on
-// tape un mot, on choisit une période, l'API garde le pic le plus surprenant et
-// le projette sur les quatre premières composantes (route /projection de
-// api/app_agora.py, voir pca/README.md). Fenêtre observée contre fenêtre
-// reconstruite (31 points) dans le même SVG maison que Chart.tsx, puis tableau
-// des coordonnées. La liste des journaux est celle de l'explorateur (/corpus).
+// tape un mot, on choisit une période, l'API prend le pic le plus surprenant du
+// jeu d'étude (corpus unifié des 36 médias, 2008-2026) et le projette sur les
+// quatre premières composantes (route /projection de api/app_agora.py, voir
+// pca/README.md). Fenêtre observée contre fenêtre reconstruite (31 points)
+// dans le même SVG maison que Chart.tsx, puis tableau des coordonnées.
 
 import { useEffect, useRef, useState } from "react";
 import { ErreurApi, requeteProjection, type Projection as Resultat } from "@/lib/api";
-import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+import { localeDe, textes, type Lang } from "@/lib/i18n";
 
 const MARGE = { haut: 20, droite: 16, bas: 30, gauche: 44 };
 const HAUTEUR = 300;
@@ -17,16 +17,13 @@ const HAUTEUR = 300;
 const dateIso = (d: number) =>
   `${Math.floor(d / 10000)}-${String(Math.floor(d / 100) % 100).padStart(2, "0")}-${String(d % 100).padStart(2, "0")}`;
 
-export default function Projection({ lang, journaux }: { lang: Lang; journaux: string[] }) {
+export default function Projection({ lang }: { lang: Lang }) {
   const t = textes[lang];
   const locale = localeDe(lang);
 
   const [mot, setMot] = useState("");
-  // le journal choisi, ou le premier de la liste si elle ne le contient pas (encore)
-  const [corpusVoulu, setCorpus] = useState("le_monde");
-  const corpus = journaux.includes(corpusVoulu) ? corpusVoulu : journaux[0];
-  const [de, setDe] = useState("2022");
-  const [a, setA] = useState("2022");
+  const [de, setDe] = useState("2008");
+  const [a, setA] = useState("2026");
   const [pca, setPca] = useState("unifie1j");
   const [seuil, setSeuil] = useState("6");
 
@@ -41,7 +38,7 @@ export default function Projection({ lang, journaux }: { lang: Lang; journaux: s
     setChargement(true);
     setMessage(null);
     try {
-      const r = await requeteProjection({ mot: mot.trim(), corpus, de, a, pca, seuil });
+      const r = await requeteProjection({ mot: mot.trim(), de, a, pca, seuil });
       if (numero !== appel.current) return;
       setResultat((p) => ({ r, tirage: (p?.tirage ?? 0) + 1 }));
     } catch (e) {
@@ -66,7 +63,6 @@ export default function Projection({ lang, journaux }: { lang: Lang; journaux: s
   }, [resultat]);
 
   const r = resultat?.r;
-  const nomCorpus = r ? (corpusNoms[r.corpus] ?? r.corpus) : "";
   const formater = (v: number, decimales = 2) =>
     v.toLocaleString(locale, { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
 
@@ -134,22 +130,12 @@ export default function Projection({ lang, journaux }: { lang: Lang; journaux: s
           <input type="text" value={mot} onChange={(ev) => setMot(ev.target.value)} autoComplete="off" spellCheck={false} />
         </label>
         <label className="champ">
-          <span>{t.lbl_corpus}</span>
-          <select value={corpus} onChange={(ev) => setCorpus(ev.target.value)}>
-            {journaux.map((nom) => (
-              <option key={nom} value={nom}>
-                {corpusNoms[nom] ?? nom}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="champ">
           <span>{t.lbl_de}</span>
-          <input type="number" min={1990} max={2026} value={de} onChange={(ev) => setDe(ev.target.value)} />
+          <input type="number" min={2008} max={2026} value={de} onChange={(ev) => setDe(ev.target.value)} />
         </label>
         <label className="champ">
           <span>{t.lbl_a}</span>
-          <input type="number" min={1990} max={2026} value={a} onChange={(ev) => setA(ev.target.value)} />
+          <input type="number" min={2008} max={2026} value={a} onChange={(ev) => setA(ev.target.value)} />
         </label>
         <label className="champ">
           <span>{t.proj_lbl_pca}</span>
@@ -174,7 +160,7 @@ export default function Projection({ lang, journaux }: { lang: Lang; journaux: s
         {r ? (
           <>
             <figcaption className="titre-graphe" key={resultat.tirage}>
-              {t.proj_titre(r.mot, nomCorpus)}
+              {t.proj_titre(r.mot)}
             </figcaption>
             <p className="pic-info">
               {t.proj_pic(

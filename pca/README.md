@@ -1,55 +1,51 @@
-# Composantes gelées des PCA de sauts
+# Jeu d'étude des PCA de sauts (fichiers gelés)
 
-Deux fichiers `.npz` copiés le 02/09/2026 depuis le dépôt du stage
-(`stage-mids/campagne_pca/data_presentation/`, produits par
-`presentation_unifie1j.qmd` et `presentation_unifie3j.qmd`). Ils ne sont
-jamais recalculés ici : la PCA a été ajustée une fois, les composantes sont
-figées.
+Quatre fichiers `.npz` copiés depuis le dépôt du stage (`stage-mids`), jamais
+recalculés ici : la PCA a été ajustée une fois, tout est figé.
 
-| Fichier | Corpus | Pas de temps | Fenêtre | Seuils | Variance (s6) |
-|---|---|---|---|---|---|
-| `composantes_unifie1j.npz` | unifié (36 médias) | 1 jour de parution | ±15 jours (31 valeurs) | 4 et 6 | 13,2 / 11,1 / 7,9 / 6,2 % |
-| `composantes_unifie3j.npz` | unifié (36 médias) | blocs de 3 jours de parution | ±15 blocs (31 valeurs) | 4 et 6 | 14,4 / 13,1 / 8,0 / 7,0 % |
+| Fichier | Contenu | Origine (stage-mids) | Copié le |
+|---|---|---|---|
+| `composantes_unifie1j.npz` | `blocs` (−15…+15), `composantes_s4`, `composantes_s6` (4 × 31), `variance_s4`, `variance_s6` | `campagne_pca/data_presentation/` | 02/09/2026 |
+| `composantes_unifie3j.npz` | idem, blocs de 3 jours | idem | 02/09/2026 |
+| `fenetres_unifie1j.npz` | les 89 591 fenêtres du fit : `fenetres` (n × 31, taux pour 100 000), `mot`, `date`, `X_t`, `N_t`, `surprise` | `campagne_pca/data/pics_unifie/fenetres_unifie.npz` | 03/09/2026 |
+| `fenetres_unifie3j.npz` | les 38 856 fenêtres du fit en blocs de 3 jours, mêmes champs | `campagne_pca/data/pics_unifie/fenetres_unifie3j.npz` | 03/09/2026 |
 
-Contenu de chaque fichier : `blocs` (les 31 décalages, de −15 à +15),
-`composantes_s4` et `composantes_s6` (4 × 31, une composante par ligne),
-`variance_s4` et `variance_s6` (part de variance de chacune des 4 composantes).
 Le suffixe `s4`/`s6` est le seuil de surprise (−log10 p) des pics retenus au
-moment du fit : seuil 6 = pics plus rares et plus nets.
+fit : la PCA du seuil 6 est ajustée sur les seules fenêtres de surprise ≥ 6.
+
+| PCA | Corpus | Pas de temps | Fenêtre | Variance (s6) |
+|---|---|---|---|---|
+| `unifie1j` | unifié (36 médias sommés, grille calendaire, 2008 → août 2026) | 1 jour | ±15 jours (31 valeurs) | 13,2 / 11,1 / 7,9 / 6,2 % |
+| `unifie3j` | idem | blocs de 3 jours | ±15 blocs (31 valeurs) | 14,4 / 13,1 / 8,0 / 7,0 % |
 
 ## Ce qu'est une observation
 
-Ce ne sont pas des PCA sur des mots. Chaque observation du fit est une fenêtre
-de 31 valeurs autour d'un pic d'un mot (positions −15 à +15), en occurrences
+Ce ne sont pas des PCA sur des mots. Chaque observation est une fenêtre de
+31 valeurs autour d'un pic d'un mot (positions −15 à +15), en occurrences
 pour 100 000 mots (`1e5 · X / N`), puis centrée-réduite **ligne par ligne**
 (`rupture.pca.normaliser(F, "z")`). Une composante est donc une forme
-temporelle de 31 valeurs. Les composantes sont déjà orientées (signe fixé lors
-du fit) : on ne touche pas aux signes.
+temporelle de 31 valeurs. Les composantes sont déjà orientées (signe fixé au
+fit) : on ne touche pas aux signes.
+
+Le jeu du fit (chaîne `masse_unifie → agreger 3 → pics_masse → nms →
+fenetres_masse` du stage) : vocabulaire des 10 000 mots les plus fréquents du
+Monde, pics de surprise ≥ 4 sous la loi « bnb » ajustée sur toute la série,
+un pic par événement (suppression des voisins), fenêtres complètes seulement.
 
 ## Projeter un mot (route `/projection` de `api/app_agora.py`)
 
-1. Série journalière du mot lue dans `<corpus>_ngram.db` (occurrences jointes
-   aux totaux journaliers, zéros réinjectés), jours de parution seulement
-   (N_t > 0).
-2. Loi « bnb » de `rupture.pics` ajustée sur la **série entière** du mot,
-   avec double fit (`fits=2`), exactement comme `rupture/pics_masse.py` du
-   stage qui a produit les pics du fit ; p-valeur par jour, surprise =
-   −log10 p. La période demandée ne sert qu'à choisir le pic : le jour de
-   plus grande surprise dans la période (p < 1e-4, sinon « aucun pic »).
-3. Fenêtre autour du pic, indexée en **jours de parution** :
-   - `unifie1j` : jours −15 à +15, taux = `1e5 · X_t / N_t` par jour ;
-   - `unifie3j` : 31 blocs de 3 jours de parution centrés sur le pic, bloc k =
-     jours 3k−1 à 3k+1, taux = `1e5 · ΣX / ΣN` par bloc.
-     **Hypothèse à confirmer** : dans le pipeline du stage
-     (`rupture/agreger.py`), la grille de blocs est fixée dès le début de la
-     série (blocs consécutifs de 3 jours de parution, date = jour du milieu),
-     puis les pics sont détectés sur la série agrégée ; le pic tombe donc
-     quelque part dans son bloc, pas forcément au milieu. Ici la grille est
-     recentrée sur le jour du pic.
-4. Normalisation : `rupture.pca.normaliser(F, "z")` sur une matrice à une
-   seule ligne (la fenêtre), exactement comme au fit.
-5. Projection : `coordonnée_k = ⟨fenêtre normalisée, composante_k⟩`, k = 1..4.
-   Les fichiers gelés ne contiennent pas de moyenne colonne : les fenêtres du
-   fit étant centrées ligne par ligne, on projette directement sur les
-   composantes, sans recentrage. Reconstruction à 4 composantes =
-   `Σ_k coordonnée_k · composante_k`.
+L'API ne lit pas les bases n-grammes et ne recalcule rien (voir JOURNAL.md,
+03/09/2026) : elle cherche dans `fenetres_<pca>.npz`.
+
+1. Fenêtre du mot de plus grande surprise dans la période demandée. Mot hors
+   du jeu, ou sans pic dans la période : 404.
+2. `rupture.pca.normaliser(F, "z")` sur cette fenêtre (une ligne), exactement
+   comme au fit.
+3. **Centrage colonne** : `pca()` du stage soustrait la fenêtre moyenne du jeu
+   avant la SVD. La moyenne n'est pas dans les fichiers de composantes, elle
+   est recalculée au chargement à partir des fenêtres du fit du même seuil
+   (z-score, puis moyenne par position). Vérifié le 03/09/2026 sur toutes les
+   fenêtres contre `projections_unifie*.csv` du stage : écart maximal 5·10⁻⁵,
+   soit l'arrondi du CSV. Sans ce centrage l'écart atteint 2,6.
+4. `coordonnée_k = ⟨z − moyenne, composante_k⟩`, k = 1..4. Reconstruction à
+   4 composantes = `moyenne + Σ_k coordonnée_k · composante_k`.

@@ -107,9 +107,10 @@ async function chercherSeries(
     .filter((s) => s.points.length > 0);
 }
 
-// ---- projection d'un pic sur une PCA gelée (route /projection de api/app.py,
-// voir pca/README.md). Une erreur 400/404 porte un message lisible : il remonte
-// tel quel dans ErreurApi ; un échec réseau reste une Error ordinaire.
+// ---- projection d'un pic sur une PCA gelée (route /projection de api/app_agora.py,
+// voir pca/README.md) : les pics viennent du jeu d'étude du corpus unifié, pas
+// d'un journal. Une erreur 400/404 porte un message lisible : il remonte tel
+// quel dans ErreurApi ; un échec réseau reste une Error ordinaire.
 
 export type Projection = {
   mot: string;
@@ -133,7 +134,6 @@ export class ErreurApi extends Error {
 
 export async function requeteProjection(options: {
   mot: string;
-  corpus: string;
   de: string;
   a: string;
   pca: string;
@@ -141,7 +141,6 @@ export async function requeteProjection(options: {
 }): Promise<Projection> {
   const params = new URLSearchParams({
     mot: options.mot,
-    corpus: options.corpus,
     from: options.de,
     to: options.a,
     pca: options.pca,

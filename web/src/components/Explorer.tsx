@@ -448,7 +448,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
 
       {mode === "tests" && (
         <div key="tests">
-          <Projection lang={lang} journaux={corpusListe} />
+          <Projection lang={lang} />
         </div>
       )}
     </>

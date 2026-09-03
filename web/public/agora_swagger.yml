@@ -160,24 +160,25 @@ paths:
     get:
       summary: Forme du pic d'un mot, projetée sur une PCA gelée
       description: |
-        Sur la période demandée, l'API ajuste une loi de comptage (mélange
-        Bernoulli × binomiale négative) à la série journalière du mot, garde le
-        jour le plus surprenant (p-valeur minimale, surprise = −log10 p), découpe
-        la fenêtre de 31 valeurs autour de ce pic (jours de parution, ou blocs de
-        3 jours), la centre-réduit, et la projette sur les quatre premières
-        composantes d'une analyse en composantes principales figée, ajustée une
-        fois sur les pics du corpus unifié (36 médias). Détails et fichiers :
-        `pca/README.md` du dépôt.
+        Les pics viennent du jeu d'étude du mémoire, figé : corpus unifié des
+        36 médias (grille calendaire, 2008-2026), vocabulaire des 10 000 mots
+        les plus fréquents du Monde, pics de surprise ≥ 4 (mélange Bernoulli ×
+        binomiale négative, surprise = −log10 p), un pic par événement. L'API
+        prend, pour le mot, le pic le plus surprenant de la période demandée,
+        sa fenêtre de 31 valeurs (jours, ou blocs de 3 jours), la centre-réduit,
+        et la projette sur les quatre premières composantes d'une analyse en
+        composantes principales figée, ajustée une fois sur ces fenêtres. Les
+        bases n-grammes ne sont pas lues. Détails et fichiers : `pca/README.md`
+        du dépôt.
 
         **Réponse JSON :** `pic` (date `AAAAMMJJ`, surprise, `X_t`, `N_t`),
         `coordonnees` (4 valeurs), `variance` (part de variance de chaque axe),
         `fenetre` (`offsets` −15…+15, `taux` pour 100 000 mots, `z` centrés-réduits)
         et `reconstruction` (31 valeurs, à 4 composantes).
       parameters:
-        - $ref: '#/components/parameters/CorpusParam'
         - name: mot
           in: query
-          description: Mot ou syntagme de 1 à 2 mots (une seule expression).
+          description: Un seul mot (le jeu d'étude est en unigrammes).
           required: true
           schema:
             type: string
@@ -186,7 +187,7 @@ paths:
         - $ref: '#/components/parameters/ToParam'
         - name: pca
           in: query
-          description: PCA gelée. `unifie1j` (par jour de parution) ou `unifie3j` (blocs de 3 jours). Défaut `unifie1j`.
+          description: PCA gelée. `unifie1j` (par jour) ou `unifie3j` (blocs de 3 jours). Défaut `unifie1j`.
           required: false
           schema:
             type: string
@@ -209,7 +210,7 @@ paths:
                 type: object
                 properties:
                   mot: { type: string, example: guerre }
-                  corpus: { type: string, example: le_monde }
+                  corpus: { type: string, example: unifie }
                   pca: { type: string, example: unifie1j }
                   seuil: { type: integer, example: 6 }
                   pic:
@@ -230,21 +231,20 @@ paths:
                   reconstruction: { type: array, items: { type: number } }
         "400":
           description: |
-            Paramètre invalide (corpus, pca ou seuil inconnu, expression de plus
-            de 2 mots), période sans jour de parution, fenêtre qui déborde du
-            corpus, ou fenêtre plate.
+            Paramètre invalide : pca ou seuil inconnu, expression de plus d'un
+            mot, paramètre `mot` manquant.
           content:
             text/plain:
               schema:
                 type: string
-                example: "fenêtre hors du corpus : il faut 15 jours de parution de chaque côté du pic (19441220) dans le_monde"
+                example: "pca inconnue : unifie7j (choix : unifie1j, unifie3j)"
         "404":
-          description: Mot inconnu de la base, aucune occurrence, ou aucun pic (p ≥ 1e-4) sur la période.
+          description: Mot hors du jeu d'étude, ou aucun pic de ce mot sur la période.
           content:
             text/plain:
               schema:
                 type: string
-                example: "« inflation » : aucun pic sur la période (p ≥ 0.0001)"
+                example: "« inflation » : aucun pic entre 20150101 et 20151231 dans le jeu du fit"
 
   /:
     get:

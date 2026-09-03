@@ -118,8 +118,9 @@ export const textes = {
     ong_desc_palmares: "Permet de classer les mots les plus fréquents d'une période.",
     ong_desc_evolutions: "Permet de repérer ce qui monte et ce qui descend entre deux périodes.",
     ong_desc_tests:
-      "Projette le pic le plus marqué d'un mot sur les quatre premières composantes d'une "
-      + "analyse en composantes principales des formes de pics (fenêtre de ±15 autour du pic).",
+      "Projette un pic du jeu d'étude (corpus unifié des 36 médias, 2008-2026, 10 000 mots) "
+      + "sur les quatre premières composantes d'une analyse en composantes principales des "
+      + "formes de pics.",
 
     // formulaires des modes pas encore branchés sur l'API
     lbl_periode: "Période",
@@ -145,13 +146,15 @@ export const textes = {
     proj_pca_1j: "Corpus unifié, par jour",
     proj_pca_3j: "Corpus unifié, blocs de 3 jours",
     btn_projeter: "Projeter",
-    proj_depart: "Tapez un mot, choisissez une période puis « Projeter ».",
-    proj_titre: (mot: string, corpus: string) => `« ${mot} » dans ${corpus} — forme du pic`,
+    proj_depart:
+      "Tapez un mot, choisissez une période puis « Projeter ». Le pic retenu est le plus "
+      + "surprenant de la période dans le jeu d'étude.",
+    proj_titre: (mot: string) => `« ${mot} » dans le corpus unifié — forme du pic`,
     proj_pic: (date: string, surprise: string, x: string, n: string) =>
       `Pic du ${date} · surprise ${surprise} · ${x} occurrences sur ${n} mots`,
     proj_observe: "Fenêtre observée (centrée-réduite)",
     proj_reconstruit: "Reconstruction à 4 composantes",
-    proj_axe_1j: "jours de parution autour du pic",
+    proj_axe_1j: "jours autour du pic",
     proj_axe_3j: "blocs de 3 jours autour du pic",
     proj_col_comp: "Composante",
     proj_col_coord: "Coordonnée",
@@ -261,8 +264,8 @@ export const textes = {
     ong_desc_palmares: "Rank the most frequent words of a period.",
     ong_desc_evolutions: "Spot what rises and what falls between two periods.",
     ong_desc_tests:
-      "Project a word's sharpest peak onto the first four components of a principal component "
-      + "analysis of peak shapes (±15 window around the peak).",
+      "Project a peak from the study set (unified corpus of 36 outlets, 2008-2026, 10,000 words) "
+      + "onto the first four components of a principal component analysis of peak shapes.",
 
     lbl_periode: "Period",
     lbl_longueur: "Length",
@@ -286,13 +289,15 @@ export const textes = {
     proj_pca_1j: "Unified corpus, daily",
     proj_pca_3j: "Unified corpus, 3-day blocks",
     btn_projeter: "Project",
-    proj_depart: "Type a word, pick a period, then “Project”.",
-    proj_titre: (mot: string, corpus: string) => `“${mot}” in ${corpus} — shape of the peak`,
+    proj_depart:
+      "Type a word, pick a period, then “Project”. The peak shown is the most surprising one "
+      + "of the period in the study set.",
+    proj_titre: (mot: string) => `“${mot}” in the unified corpus — shape of the peak`,
     proj_pic: (date: string, surprise: string, x: string, n: string) =>
       `Peak on ${date} · surprise ${surprise} · ${x} occurrences out of ${n} words`,
     proj_observe: "Observed window (standardised)",
     proj_reconstruit: "4-component reconstruction",
-    proj_axe_1j: "publication days around the peak",
+    proj_axe_1j: "days around the peak",
     proj_axe_3j: "3-day blocks around the peak",
     proj_col_comp: "Component",
     proj_col_coord: "Coordinate",
