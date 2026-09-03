@@ -31,9 +31,11 @@ du fit) : on ne touche pas aux signes.
 1. Série journalière du mot lue dans `<corpus>_ngram.db` (occurrences jointes
    aux totaux journaliers, zéros réinjectés), jours de parution seulement
    (N_t > 0).
-2. Pics sur la période demandée : loi « bnb » de `rupture.pics`, p-valeur
-   par jour, surprise = −log10 p ; on garde le jour de plus grande surprise
-   (à condition que p < 1e-4, sinon « aucun pic »).
+2. Loi « bnb » de `rupture.pics` ajustée sur la **série entière** du mot,
+   avec double fit (`fits=2`), exactement comme `rupture/pics_masse.py` du
+   stage qui a produit les pics du fit ; p-valeur par jour, surprise =
+   −log10 p. La période demandée ne sert qu'à choisir le pic : le jour de
+   plus grande surprise dans la période (p < 1e-4, sinon « aucun pic »).
 3. Fenêtre autour du pic, indexée en **jours de parution** :
    - `unifie1j` : jours −15 à +15, taux = `1e5 · X_t / N_t` par jour ;
    - `unifie3j` : 31 blocs de 3 jours de parution centrés sur le pic, bloc k =

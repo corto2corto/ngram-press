@@ -153,8 +153,10 @@ def projection():
     # projection du pic le plus surprenant d'un mot sur les 4 premières composantes d'une
     # PCA gelée (pca/composantes_<pca>.npz, copiées de stage-mids — voir pca/README.md).
     # Chaîne : série journalière du mot (X_t, N_t) sur les jours de parution de la base,
-    # loi « bnb » de rupture.pics ajustée sur la période (surprise = -log10 p), pic le plus
-    # surprenant, fenêtre de 31 blocs de `pas` jours de parution centrée sur le pic, taux
+    # loi « bnb » de rupture.pics ajustée sur la SÉRIE ENTIÈRE avec double fit (comme
+    # rupture/pics_masse.py du stage, qui a produit les pics du fit de la PCA ; la période
+    # ne sert qu'à choisir le pic), surprise = -log10 p, pic le plus surprenant de la
+    # période, fenêtre de 31 blocs de `pas` jours de parution centrée sur le pic, taux
     # pour 100 000, z-score de la fenêtre (rupture.pca.normaliser, le calcul du stage),
     # produits scalaires avec les composantes (déjà orientées, pas de moyenne colonne).
     # /projection?mot=guerre&corpus=le_monde&from=2022&to=2022&pca=unifie1j&seuil=6
@@ -203,20 +205,20 @@ def projection():
     d = totaux.merge(occ, on="date", how="left")
     d["X_t"] = d["X_t"].fillna(0).astype(int)
 
-    periode = d[(d["date"] >= date_min) & (d["date"] <= date_max)]
-    if len(periode) < 60:
-        return f"période trop courte ({len(periode)} jours avec publication) : fit trop fragile", 400
-    X = periode["X_t"].to_numpy(float)
-    N = periode["N_t"].to_numpy(float)
+    X = d["X_t"].to_numpy(float)
+    N = d["N_t"].to_numpy(float)
     if X.sum() == 0:
-        return f"« {gram} » : aucune occurrence dans {corpus} sur la période", 404
+        return f"« {gram} » : aucune occurrence dans {corpus}", 404
+    dans_periode = ((d["date"] >= date_min) & (d["date"] <= date_max)).to_numpy()
+    if not dans_periode.any():
+        return f"aucun jour de parution dans {corpus} entre {date_min} et {date_max}", 400
 
-    # pic de plus grande surprise sur la période (p-valeurs du mélange « bnb »)
-    _, p, _ = rp.ajuster(X, N, "bnb")
-    i = int(p.argmin())
-    if p[i] >= rp.SEUIL:
+    # p-valeurs du mélange « bnb » ajusté sur toute la série (double fit), puis pic de
+    # plus grande surprise parmi les jours de la période
+    _, p, _ = rp.ajuster(X, N, "bnb", fits=2)
+    pos = int(np.argmin(np.where(dans_periode, p, 1.0)))   # position dans la série complète
+    if p[pos] >= rp.SEUIL:
         return f"« {gram} » : aucun pic sur la période (p ≥ {rp.SEUIL:g})", 404
-    pos = int(periode.index[i])                  # position du pic dans la série complète
     date_pic = int(d["date"].iloc[pos])
 
     # fenêtre : 31 blocs de `pas` jours de parution centrés sur le pic (bloc k = jours
@@ -242,8 +244,8 @@ def projection():
     return jsonify({
         "mot": gram, "corpus": corpus, "pca": nom_pca, "seuil": int(seuil),
         "de": int(date_min), "a": int(date_max),
-        "pic": {"date": date_pic, "surprise": float(-np.log10(max(p[i], 1e-300))),
-                "X_t": int(X[i]), "N_t": int(N[i])},
+        "pic": {"date": date_pic, "surprise": float(-np.log10(max(p[pos], 1e-300))),
+                "X_t": int(X[pos]), "N_t": int(N[pos])},
         "coordonnees": np.round(coordonnees, 5).tolist(),
         "variance": np.round(gele[f"variance_s{seuil}"], 5).tolist(),
         "fenetre": {"offsets": gele["blocs"].tolist(),

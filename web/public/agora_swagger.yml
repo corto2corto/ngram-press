@@ -231,8 +231,8 @@ paths:
         "400":
           description: |
             Paramètre invalide (corpus, pca ou seuil inconnu, expression de plus
-            de 2 mots), période trop courte pour l'ajustement (moins de 60 jours
-            de parution), fenêtre qui déborde du corpus, ou fenêtre plate.
+            de 2 mots), période sans jour de parution, fenêtre qui déborde du
+            corpus, ou fenêtre plate.
           content:
             text/plain:
               schema:
