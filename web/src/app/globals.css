@@ -1238,3 +1238,154 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
     scroll-behavior: auto;
   }
 }
+
+/* ---- catalogue des PCA (CataloguePca.tsx) : sous-onglets de l'onglet Tests,
+   rappel des paramètres, trois cartes de figures en SVG, bascules en pilules */
+
+/* la couleur du point du pic (archétypes) : un rouge franc, distinct de l'accent
+   argile et des séries, lisible sur les deux surfaces */
+:root {
+  --pic: #e34948;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pic: #f06b69;
+  }
+}
+
+.pilules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pilules button {
+  background: none;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  padding: 0.32rem 0.9rem;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition:
+    background-color var(--duree-courte) ease,
+    color var(--duree-courte) ease,
+    border-color var(--duree-courte) ease;
+}
+
+.pilules button:hover {
+  border-color: var(--axe);
+  color: var(--encre);
+}
+
+.pilules button.actif {
+  background: var(--encre);
+  border-color: var(--encre);
+  color: var(--fond);
+}
+
+.pilules button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.sous-onglets {
+  margin: -0.4rem 0 1.3rem;
+}
+
+.catalogue-pca {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* la fiche des paramètres : une liste à deux colonnes, puis les CSV */
+.params-pca {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 1.4rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.params-pca dt {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--encre-muette);
+  padding-top: 0.15rem;
+}
+
+.params-pca dd {
+  margin: 0;
+  color: var(--encre);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.params-pca code {
+  font-size: 0.85em;
+  color: var(--encre-2);
+}
+
+.liens-csv {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.4rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+/* titre de figure à gauche, bascule à droite */
+.entete-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.2rem;
+}
+
+.entete-figure .titre-graphe {
+  animation: none;
+}
+
+.entete-figure .pilules button {
+  padding: 0.22rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* le SVG garde sa taille de police : sur un écran étroit, il défile en largeur */
+.zone-figure {
+  position: relative;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+  transition: opacity 0.25s ease;
+}
+
+.zone-figure svg {
+  display: block;
+}
+
+.catalogue-pca.charge .zone-figure {
+  opacity: 0.45;
+}
+
+.legende-technique {
+  margin: 0.7rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--encre-muette);
+}
+
+@media (max-width: 600px) {
+  .params-pca {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .params-pca dd {
+    margin-bottom: 0.5rem;
+  }
+}

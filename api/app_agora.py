@@ -26,6 +26,9 @@ TABLE = {1: "unigram", 2: "bigram"}
 PCA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pca")
 PCAS = ("unifie1j", "unifie3j")
 FENETRES = {}   # nom de la PCA -> fenêtres du fit, lues une fois par worker
+# catalogue des 18 PCA de sauts du stage (pca/README.md, « Catalogue ») : catalogue.csv et un
+# <id>.npz par PCA, servis tels quels par /pca/catalogue et /pca/<id>
+CATALOGUE_PCA = {}   # "lignes" -> liste du catalogue ; id -> contenu JSON du fichier
 
 
 def fenetres_fit(nom_pca):
@@ -41,6 +44,39 @@ def fenetres_fit(nom_pca):
             fit[f"moyenne_s{seuil}"] = Z.mean(axis=0)
         FENETRES[nom_pca] = fit
     return FENETRES[nom_pca]
+
+
+def charger_catalogue_pca():
+    # catalogue.csv (une ligne par PCA) et les 18 fichiers <id>.npz, lus une fois par worker à
+    # la première requête, comme fenetres_fit() ; rien n'est recalculé, les tableaux sont
+    # arrondis et convertis en listes pour le JSON. Champs : pca/README.md.
+    if "lignes" in CATALOGUE_PCA:
+        return CATALOGUE_PCA
+    cat = pd.read_csv(os.path.join(PCA_DIR, "catalogue.csv"), dtype=str, keep_default_na=False)
+    lignes = []
+    for l in cat.to_dict("records"):
+        liste = lambda champ, conv: [conv(v) for v in l[champ].split(";")] if l[champ] else []
+        lignes.append({
+            "id": l["id"], "famille": l["famille"], "corpus": l["corpus"],
+            "vocabulaire": l["vocabulaire"], "pas_jours": int(l["pas_jours"]),
+            "demi": int(l["demi"]), "unite": l["unite"],
+            "seuils": liste("seuils", float), "n_fenetres": liste("n_fenetres", int),
+            "fenetres_annoncees": int(l["fenetres_annoncees"]) if l["fenetres_annoncees"] else None,
+            "plancher_archetypes": liste("plancher_archetypes", float),
+            "source": l["source"]})
+    decimales = {"composantes": 6, "variance": 6, "spectre": 6, "tranches_moyenne": 5,
+                 "arch_pos_z": 5, "arch_neg_z": 5, "arch_pos_proj": 4, "arch_neg_proj": 4}
+    for ligne in lignes:
+        d = np.load(os.path.join(PCA_DIR, f"{ligne['id']}.npz"))
+        contenu = {}
+        for k in d.files:
+            v = d[k]
+            if k in decimales:
+                v = np.round(v, decimales[k])
+            contenu[k] = v.item() if v.ndim == 0 else v.tolist()
+        CATALOGUE_PCA[ligne["id"]] = contenu
+    CATALOGUE_PCA["lignes"] = lignes
+    return CATALOGUE_PCA
 
 app = Flask(__name__)
 CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
@@ -162,6 +198,26 @@ def query():
     else:  # jour
         df = df.drop(columns="date")
     return Response(df.to_csv(index=False), mimetype="text/plain")
+
+
+@app.route("/pca/catalogue")
+def pca_catalogue():
+    # les 18 PCA de sauts et leurs paramètres : famille, corpus, vocabulaire, pas de la grille
+    # (jours), demi-fenêtre (en pas), unité, seuils, fenêtres entrées dans la PCA à chaque
+    # seuil, plancher d'occurrences des archétypes, fichier d'origine dans le stage
+    return jsonify(charger_catalogue_pca()["lignes"])
+
+
+@app.route("/pca/<nom>")
+def pca_fichier(nom):
+    # tout le contenu d'un <id>.npz en JSON (champs : pca/README.md) : composantes et parts
+    # de variance par seuil, profils moyens et effectifs des 5 tranches de projection, fenêtres
+    # archétypes des deux côtés avec mot, date, occurrences au pic et projection
+    cat = charger_catalogue_pca()
+    if nom == "lignes" or nom not in cat:
+        ids = ", ".join(l["id"] for l in cat["lignes"])
+        return f"pca inconnue : {nom} (choix : {ids})", 404
+    return jsonify(cat[nom])
 
 
 @app.route("/projection")

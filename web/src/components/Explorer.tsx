@@ -17,14 +17,18 @@ import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
 import Projection from "@/components/Projection";
+import CataloguePca from "@/components/CataloguePca";
 
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
-// les quatre modes de l'explorateur ; les Courbes et les Tests (projection d'un
-// pic sur la PCA gelée) sont branchés sur l'API, les deux autres posent leur
-// formulaire et annoncent la suite
+// les quatre modes de l'explorateur ; les Courbes et les Tests sont branchés sur
+// l'API, les deux autres posent leur formulaire et annoncent la suite
 type Mode = "courbes" | "palmares" | "evolutions" | "tests";
 const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
+// les deux vues des Tests : la projection d'un pic sur la PCA gelée, et le
+// catalogue des PCA de sauts (figures seules)
+type VueTests = "projection" | "catalogue";
+const VUES_TESTS: VueTests[] = ["projection", "catalogue"];
 
 // pictogrammes des onglets (traits 1.8, 16 px)
 const ICONES: Record<Mode, ReactElement> = {
@@ -56,6 +60,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // onglet actif ; les Courbes gardent leur état (elles sont masquées, pas
   // démontées) quand un autre mode est ouvert
   const [mode, setMode] = useState<Mode>("courbes");
+  const [vueTests, setVueTests] = useState<VueTests>("projection");
 
   // l'état de départ est la première configuration du défilement ; le champ des
   // mots part vide, la frappe automatique l'écrira.
@@ -272,9 +277,10 @@ export default function Explorer({ lang }: { lang: Lang }) {
           </button>
         ))}
       </nav>
-      {/* la clé rejoue l'animation de la mention à chaque bascule */}
-      <p className="desc-mode" key={mode}>
-        {t[`ong_desc_${mode}`]}
+      {/* la clé rejoue l'animation de la mention à chaque bascule (de mode, ou
+          de vue dans les Tests) */}
+      <p className="desc-mode" key={mode === "tests" ? `tests-${vueTests}` : mode}>
+        {mode === "tests" && vueTests === "catalogue" ? t.ong_desc_catalogue : t[`ong_desc_${mode}`]}
       </p>
 
       <div hidden={mode !== "courbes"}>
@@ -448,7 +454,20 @@ export default function Explorer({ lang }: { lang: Lang }) {
 
       {mode === "tests" && (
         <div key="tests">
-          <Projection lang={lang} />
+          <nav className="pilules sous-onglets" aria-label={t.vues_aria}>
+            {VUES_TESTS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={vueTests === v ? "actif" : undefined}
+                aria-pressed={vueTests === v}
+                onClick={() => setVueTests(v)}
+              >
+                {t[`vue_${v}`]}
+              </button>
+            ))}
+          </nav>
+          {vueTests === "projection" ? <Projection lang={lang} /> : <CataloguePca lang={lang} />}
         </div>
       )}
     </>

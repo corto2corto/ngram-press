@@ -246,6 +246,127 @@ paths:
                 type: string
                 example: "« inflation » : aucun pic entre 20150101 et 20151231 dans le jeu du fit"
 
+  /pca/catalogue:
+    get:
+      summary: Catalogue des PCA de sauts
+      description: |
+        Les 18 analyses en composantes principales de formes de pics calculées
+        pour le mémoire, avec leurs paramètres. Deux familles : le **corpus
+        unifié** (36 médias, vocabulaire du Monde ou étendu, seuils 4 et 6) et la
+        **campagne par média** (Le Monde, Le Figaro, Les Échos, Mediapart, un
+        seul seuil). Rien n'est recalculé : les fichiers viennent du dépôt du
+        stage et sont figés (`pca/README.md` du dépôt, section « Catalogue »).
+
+        Chaque entrée donne : `id`, `famille`, `corpus`, `vocabulaire`,
+        `pas_jours` (pas de la grille en jours : 1, 3 ou 7), `demi`
+        (demi-fenêtre en pas ; une fenêtre a 2·demi + 1 valeurs), `unite`
+        (« jours », « blocs de 3 jours », « semaines »), `seuils` (seuils de
+        surprise, un ou deux), `n_fenetres` (fenêtres entrées dans la PCA à
+        chaque seuil), `fenetres_annoncees` (effectif annoncé dans la campagne,
+        `null` au corpus unifié), `plancher_archetypes` (occurrences minimales
+        au pic pour être archétype, 0 = pas de filtre) et `source` (fichier
+        d'origine dans le stage).
+      responses:
+        "200":
+          description: Tableau JSON, un objet par PCA
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, example: etendu1j }
+                    famille: { type: string, example: corpus unifié }
+                    corpus: { type: string, example: corpus unifié (36 médias) }
+                    vocabulaire: { type: string, example: "étendu, 11 780 mots (top-10 000 + 1 780 mots récents)" }
+                    pas_jours: { type: integer, example: 1 }
+                    demi: { type: integer, example: 15 }
+                    unite: { type: string, example: jours }
+                    seuils: { type: array, items: { type: number }, example: [4, 6] }
+                    n_fenetres: { type: array, items: { type: integer }, example: [108416, 40462] }
+                    fenetres_annoncees: { type: integer, nullable: true, example: null }
+                    plancher_archetypes: { type: array, items: { type: number }, example: [20, 20] }
+                    source: { type: string, example: pics_etendu/fenetres_etendu.npz }
+
+  /pca/{id}:
+    get:
+      summary: Contenu complet d'une PCA de sauts
+      description: |
+        Tout le contenu du fichier gelé d'une PCA du catalogue, en JSON : de
+        quoi redessiner les trois figures des rapports de présentation sans
+        rien recalculer. Les tableaux ont pour premier axe le **seuil** (dans
+        l'ordre de `seuils`), puis la **composante** (les quatre premières).
+
+        - `composantes` (S × 4 × D) et `variance` (S × 4) : les quatre premières
+          composantes, déjà orientées (ne pas toucher aux signes), et leur part
+          de variance ; `spectre` (S × D) : parts de variance de toutes les
+          composantes ; `offsets` (D) : positions −demi … +demi.
+        - `tranches_quantiles` (6 bornes : 0, 0,10, 0,35, 0,65, 0,90, 1),
+          `tranches_moyenne` (S × 4 × 5 × D) : profil moyen (z-score) des
+          fenêtres de chaque tranche de projection sur la composante, et
+          `tranches_n` (S × 4 × 5) leurs effectifs — recette de la figure 4
+          d'Aubrun, Morel, Benzaquen et Bouchaud (PNAS, 2025).
+        - `arch_pos_*` et `arch_neg_*` (S × 4 × 4 [× D]) : les quatre fenêtres
+          réelles de projection la plus positive, resp. la plus négative, sur
+          chaque composante — `z` (la fenêtre centrée-réduite), `mot`, `date`
+          (`AAAAMMJJ`), `occ` (occurrences au pic), `proj` (projection) ;
+          `arch_plancher` (S) : occurrences minimales au pic exigées.
+        - scalaires d'identité : `id`, `famille`, `corpus`, `vocabulaire`,
+          `source`, `unite`, `pas_jours`, `demi`, et `n_fenetres` (S).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identifiant d'une PCA du catalogue (`GET /pca/catalogue`).
+          schema:
+            type: string
+            enum: [unifie1j, unifie3j, etendu1j, etendu3j, configA, configC, configD, configF, configG, configH, hebdoMonde, hebdoFigaro, hebdoEchos, hebdoMediapart, optimale, lemonde, lemonde3j, lemonde7j]
+          example: etendu1j
+      responses:
+        "200":
+          description: Contenu du fichier (JSON, 25 à 65 Ko)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, example: etendu1j }
+                  famille: { type: string, example: corpus unifié }
+                  corpus: { type: string, example: corpus unifié (36 médias) }
+                  vocabulaire: { type: string }
+                  source: { type: string }
+                  unite: { type: string, example: jours }
+                  pas_jours: { type: integer, example: 1 }
+                  demi: { type: integer, example: 15 }
+                  seuils: { type: array, items: { type: number }, example: [4, 6] }
+                  n_fenetres: { type: array, items: { type: integer }, example: [108416, 40462] }
+                  offsets: { type: array, items: { type: integer }, example: [-15, -14, -13] }
+                  composantes: { type: array, items: { type: array, items: { type: array, items: { type: number } } }, description: S × 4 × D }
+                  variance: { type: array, items: { type: array, items: { type: number } }, example: [[0.106, 0.091, 0.072, 0.059], [0.133, 0.112, 0.080, 0.063]] }
+                  spectre: { type: array, items: { type: array, items: { type: number } }, description: S × D }
+                  tranches_quantiles: { type: array, items: { type: number }, example: [0, 0.1, 0.35, 0.65, 0.9, 1] }
+                  tranches_moyenne: { type: array, items: {}, description: S × 4 × 5 × D }
+                  tranches_n: { type: array, items: {}, description: S × 4 × 5, example: [[[4047, 10115, 12138, 10115, 4047]]] }
+                  arch_plancher: { type: array, items: { type: number }, example: [20, 20] }
+                  arch_pos_z: { type: array, items: {}, description: S × 4 × 4 × D }
+                  arch_pos_mot: { type: array, items: {}, description: S × 4 × 4, example: [[["russes", "canicule", "hamas", "moyen"]]] }
+                  arch_pos_date: { type: array, items: {}, description: S × 4 × 4, AAAAMMJJ }
+                  arch_pos_occ: { type: array, items: {}, description: S × 4 × 4 }
+                  arch_pos_proj: { type: array, items: {}, description: S × 4 × 4 }
+                  arch_neg_z: { type: array, items: {}, description: idem, côté négatif }
+                  arch_neg_mot: { type: array, items: {} }
+                  arch_neg_date: { type: array, items: {} }
+                  arch_neg_occ: { type: array, items: {} }
+                  arch_neg_proj: { type: array, items: {} }
+        "404":
+          description: Identifiant absent du catalogue.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "pca inconnue : unifie7j (choix : unifie1j, unifie3j, etendu1j, …)"
+
   /:
     get:
       summary: État de l'API

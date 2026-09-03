@@ -154,3 +154,69 @@ export async function requeteProjection(options: {
   }
   return r.json();
 }
+
+// ---- catalogue des PCA de sauts (routes /pca/catalogue et /pca/<id> de
+// api/app_agora.py, fichiers gelés décrits dans pca/README.md). Tout est servi
+// tel quel : le front ne recalcule rien, il dessine.
+
+export type PcaCatalogue = {
+  id: string;
+  famille: string; // « corpus unifié » ou « campagne par média »
+  corpus: string;
+  vocabulaire: string;
+  pas_jours: number; // 1, 3 ou 7
+  demi: number; // demi-fenêtre en pas : une fenêtre a 2·demi + 1 valeurs
+  unite: string; // « jours », « blocs de 3 jours », « semaines »
+  seuils: number[]; // un ou deux seuils de surprise
+  n_fenetres: number[]; // fenêtres entrées dans la PCA, par seuil
+  fenetres_annoncees: number | null;
+  plancher_archetypes: number[]; // occurrences minimales au pic, par seuil (0 = pas de filtre)
+  source: string;
+};
+
+// axes des tableaux : seuil, composante (4), [tranche (5) | archétype (4)], offset (D)
+export type PcaFichier = Omit<PcaCatalogue, "fenetres_annoncees" | "plancher_archetypes"> & {
+  offsets: number[];
+  composantes: number[][][];
+  variance: number[][];
+  spectre: number[][];
+  tranches_quantiles: number[]; // 0, 0,10, 0,35, 0,65, 0,90, 1
+  tranches_moyenne: number[][][][];
+  tranches_n: number[][][];
+  arch_plancher: number[];
+  arch_pos_z: number[][][][];
+  arch_pos_mot: string[][][];
+  arch_pos_date: number[][][]; // AAAAMMJJ
+  arch_pos_occ: number[][][];
+  arch_pos_proj: number[][][];
+  arch_neg_z: number[][][][];
+  arch_neg_mot: string[][][];
+  arch_neg_date: number[][][];
+  arch_neg_occ: number[][][];
+  arch_neg_proj: number[][][];
+};
+
+async function lireJson<T>(chemin: string): Promise<T> {
+  const r = await fetch(`${API}${chemin}`);
+  if (!r.ok) {
+    const texte = await r.text();
+    throw new ErreurApi(texte.trimStart().startsWith("<") ? "" : texte, r.status);
+  }
+  return r.json();
+}
+
+export function chargerCataloguePca(): Promise<PcaCatalogue[]> {
+  return lireJson<PcaCatalogue[]>("/pca/catalogue");
+}
+
+// les fichiers sont figés : un fichier déjà lu n'est pas redemandé
+const pcaLues = new Map<string, Promise<PcaFichier>>();
+
+export function chargerPca(id: string): Promise<PcaFichier> {
+  const connue = pcaLues.get(id);
+  if (connue) return connue;
+  const promesse = lireJson<PcaFichier>(`/pca/${encodeURIComponent(id)}`);
+  pcaLues.set(id, promesse);
+  promesse.catch(() => pcaLues.delete(id));
+  return promesse;
+}

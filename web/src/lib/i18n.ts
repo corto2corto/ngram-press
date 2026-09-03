@@ -160,6 +160,84 @@ export const textes = {
     proj_col_coord: "Coordonnée",
     proj_col_var: "Part de variance",
 
+    // catalogue des PCA de sauts (CataloguePca.tsx) : sous-onglets de l'onglet
+    // Tests statistiques, rappel des paramètres, trois figures et leurs légendes
+    // techniques. Les valeurs textuelles des fichiers (famille, corpus,
+    // vocabulaire) sont en français : pca_* les rendent dans la langue du site.
+    vues_aria: "Vues des tests statistiques",
+    vue_projection: "Projection d'un pic",
+    vue_catalogue: "Catalogue des PCA",
+    ong_desc_catalogue:
+      "Les 18 analyses en composantes principales de formes de pics calculées pour le mémoire, "
+      + "telles quelles : composantes, tranches de projection et fenêtres archétypes.",
+    cat_lbl_pca: "PCA",
+    pca_famille: (f: string) => f,
+    pca_corpus: (c: string) => c,
+    pca_vocab: (v: string) => v,
+    pca_unite: (pas: number): string => (pas === 1 ? "jours" : pas === 3 ? "blocs de 3 jours" : "semaines"),
+    pca_grille: (pas: number): string =>
+      pas === 1 ? "jour par jour" : pas === 3 ? "blocs de 3 jours" : "semaine par semaine",
+    pca_axe: (pas: number) =>
+      `${pas === 1 ? "jours" : pas === 3 ? "blocs de 3 jours" : "semaines"} autour du pic`,
+    pca_option: (id: string, corpus: string, unite: string) => `${id} · ${corpus} · ${unite}`,
+    cat_famille: "Famille",
+    cat_corpus: "Corpus",
+    cat_vocab: "Vocabulaire",
+    cat_grille: "Grille",
+    cat_fenetre: "Fenêtre",
+    cat_fenetre_val: (demi: string, unite: string, d: string) => `±${demi} ${unite}, ${d} valeurs`,
+    cat_seuils: "Seuils de surprise",
+    cat_n_fenetres: "Fenêtres dans la PCA",
+    cat_n_par_seuil: (n: string, seuil: string) => `${n} (seuil ${seuil})`,
+    cat_plancher: "Plancher des archétypes",
+    cat_plancher_val: (n: string) => `≥ ${n} occurrences au pic`,
+    cat_plancher_aucun: "aucun filtre",
+    cat_source: "Fichier d'origine (stage)",
+    liste_et: (xs: string[]) => xs.join(" et "),
+    seuil_n: (s: string) => `seuil ${s}`,
+    csv_composantes: "Composantes (CSV)",
+    csv_tranches: "Tranches (CSV)",
+    comp_long: (k: number) => `composante ${k}`,
+    comp_court: (k: number) => `comp. ${k}`,
+    comp_titre: (k: number, part: string) => `composante ${k} (${part})`,
+    n_fenetres: (n: string) => `${n} fenêtres`,
+    fig_comp_titre: "Les quatre premières composantes",
+    fig_comp_legende2: (s4: string, s6: string) =>
+      `Seuil ${s4} en pointillé, seuil ${s6} en trait plein ; part de variance du seuil ${s6} en titre. `
+      + "Composantes orientées vers la queue lourde de leurs projections.",
+    fig_comp_legende1: (s: string) =>
+      `Seuil ${s} ; part de variance en titre. Composantes orientées vers la queue lourde de `
+      + "leurs projections.",
+    fig_tranches_titre: "Tranches de projection",
+    fig_tranches_legende: (seuil: string, trois: boolean) =>
+      "Fenêtres triées par leur projection sur la composante et découpées aux quantiles 10, 35, "
+      + "65 et 90 % ; profil moyen (centré-réduit) de chaque tranche"
+      + (trois ? ", les trois tranches du milieu refondues en une (moyenne pondérée par les effectifs)" : "")
+      + ` ; effectifs du seuil ${seuil}, échelle commune par ligne. D'après la figure 4 d'Aubrun, `
+      + "Morel, Benzaquen et Bouchaud (PNAS, 2025).",
+    bascule_5: "5 tranches",
+    bascule_3: "3 tranches",
+    tranche_bornes: (a: string, b: string) => `${a}–${b} %`,
+    tranche_basse: (part: string) => `tranche basse (${part})`,
+    tranche_milieu: (part: string) => `milieu (${part})`,
+    tranche_haute: (part: string) => `tranche haute (${part})`,
+    fig_arch_titre: "Fenêtres archétypes",
+    fig_arch_legende: (seuil: string, plancher: string | null, deuxCotes: boolean) =>
+      "Pour chaque composante, "
+      + (deuxCotes
+        ? "les deux fenêtres réelles de projection la plus positive (à gauche) et les deux de projection la plus négative (à droite)"
+        : "les quatre fenêtres réelles de projection la plus positive")
+      + ` au seuil ${seuil}`
+      + (plancher ? `, parmi celles d'au moins ${plancher} occurrences au pic` : "")
+      + " ; fenêtres centrées-réduites, point rouge au jour du pic.",
+    bascule_pos: "4 côté positif",
+    bascule_2_2: "2 + 2 des deux côtés",
+    cote_pos: "côté positif",
+    cote_neg: "côté négatif",
+    arch_titre: (mot: string, date: string) => `${mot} — ${date}`,
+    arch_occ: (n: string) => `${n} occ. au pic`,
+    arch_proj: (p: string) => `proj. ${p}`,
+
     lbl_mots: "Mots (séparés par des virgules)",
     lbl_corpus: "Journal",
     lbl_de: "De",
@@ -302,6 +380,87 @@ export const textes = {
     proj_col_comp: "Component",
     proj_col_coord: "Coordinate",
     proj_col_var: "Share of variance",
+
+    vues_aria: "Statistical test views",
+    vue_projection: "Project a peak",
+    vue_catalogue: "PCA catalogue",
+    ong_desc_catalogue:
+      "The 18 principal component analyses of peak shapes computed for the thesis, as they are: "
+      + "components, projection slices and archetype windows.",
+    cat_lbl_pca: "PCA",
+    pca_famille: (f: string) =>
+      ({ "corpus unifié": "unified corpus", "campagne par média": "per-outlet campaign" })[f] ?? f,
+    pca_corpus: (c: string) =>
+      c === "corpus unifié (36 médias)" ? "unified corpus (36 outlets)" : c,
+    pca_vocab: (v: string) =>
+      ({
+        "top-10 000 du Monde (jours actifs 1944-2025)": "Le Monde top 10,000 (active days 1944-2025)",
+        "étendu, 11 780 mots (top-10 000 + 1 780 mots récents)":
+          "extended, 11,780 words (top 10,000 + 1,780 recent words)",
+        "top-10 000 du média": "outlet's top 10,000",
+      })[v] ?? v,
+    pca_unite: (pas: number): string => (pas === 1 ? "days" : pas === 3 ? "3-day blocks" : "weeks"),
+    pca_grille: (pas: number): string => (pas === 1 ? "day by day" : pas === 3 ? "3-day blocks" : "week by week"),
+    pca_axe: (pas: number) =>
+      `${pas === 1 ? "days" : pas === 3 ? "3-day blocks" : "weeks"} around the peak`,
+    pca_option: (id: string, corpus: string, unite: string) => `${id} · ${corpus} · ${unite}`,
+    cat_famille: "Family",
+    cat_corpus: "Corpus",
+    cat_vocab: "Vocabulary",
+    cat_grille: "Grid",
+    cat_fenetre: "Window",
+    cat_fenetre_val: (demi: string, unite: string, d: string) => `±${demi} ${unite}, ${d} values`,
+    cat_seuils: "Surprise thresholds",
+    cat_n_fenetres: "Windows in the PCA",
+    cat_n_par_seuil: (n: string, seuil: string) => `${n} (threshold ${seuil})`,
+    cat_plancher: "Archetype floor",
+    cat_plancher_val: (n: string) => `≥ ${n} occurrences at the peak`,
+    cat_plancher_aucun: "no filter",
+    cat_source: "Source file (internship repo)",
+    liste_et: (xs: string[]) => xs.join(" and "),
+    seuil_n: (s: string) => `threshold ${s}`,
+    csv_composantes: "Components (CSV)",
+    csv_tranches: "Slices (CSV)",
+    comp_long: (k: number) => `component ${k}`,
+    comp_court: (k: number) => `comp. ${k}`,
+    comp_titre: (k: number, part: string) => `component ${k} (${part})`,
+    n_fenetres: (n: string) => `${n} windows`,
+    fig_comp_titre: "The first four components",
+    fig_comp_legende2: (s4: string, s6: string) =>
+      `Threshold ${s4} dashed, threshold ${s6} solid; share of variance at threshold ${s6} in the title. `
+      + "Components oriented towards the heavy tail of their projections.",
+    fig_comp_legende1: (s: string) =>
+      `Threshold ${s}; share of variance in the title. Components oriented towards the heavy tail `
+      + "of their projections.",
+    fig_tranches_titre: "Projection slices",
+    fig_tranches_legende: (seuil: string, trois: boolean) =>
+      "Windows sorted by their projection on the component and cut at the 10, 35, 65 and 90% "
+      + "quantiles; mean profile (standardised) of each slice"
+      + (trois ? ", the three middle slices merged into one (mean weighted by slice sizes)" : "")
+      + `; sizes at threshold ${seuil}, shared scale per row. After figure 4 of Aubrun, Morel, `
+      + "Benzaquen and Bouchaud (PNAS, 2025).",
+    bascule_5: "5 slices",
+    bascule_3: "3 slices",
+    tranche_bornes: (a: string, b: string) => `${a}–${b}%`,
+    tranche_basse: (part: string) => `bottom slice (${part})`,
+    tranche_milieu: (part: string) => `middle (${part})`,
+    tranche_haute: (part: string) => `top slice (${part})`,
+    fig_arch_titre: "Archetype windows",
+    fig_arch_legende: (seuil: string, plancher: string | null, deuxCotes: boolean) =>
+      "For each component, "
+      + (deuxCotes
+        ? "the two real windows with the most positive projection (left) and the two with the most negative (right)"
+        : "the four real windows with the most positive projection")
+      + ` at threshold ${seuil}`
+      + (plancher ? `, among those with at least ${plancher} occurrences at the peak` : "")
+      + "; standardised windows, red dot on the peak day.",
+    bascule_pos: "4 positive side",
+    bascule_2_2: "2 + 2 both sides",
+    cote_pos: "positive side",
+    cote_neg: "negative side",
+    arch_titre: (mot: string, date: string) => `${mot} — ${date}`,
+    arch_occ: (n: string) => `${n} occ. at the peak`,
+    arch_proj: (p: string) => `proj. ${p}`,
 
     lbl_mots: "Words (comma-separated)",
     lbl_corpus: "Newspaper",

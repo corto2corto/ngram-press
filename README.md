@@ -16,6 +16,8 @@ l'impact des rachats de journaux sur le contenu éditorial.
 | `/evolution?avant=2018&apres=2023` | ce qui monte / descend entre deux périodes |
 | `/fiche?mot=guerre&corpus=lemonde` | fiche statistique : ajustements Poisson / binomiale négative, pics, moments (JSON) |
 | `/projection?mot=guerre&from=2022&to=2022&pca=unifie1j&seuil=6` | projection du pic le plus surprenant de la période (jeu d'étude du corpus unifié, voir [pca/README.md](pca/README.md)) sur les 4 composantes d'une PCA gelée (JSON) — route de `api/app_agora.py`, l'API du site |
+| `/pca/catalogue` | les 18 PCA de sauts du mémoire et leurs paramètres (JSON) — `api/app_agora.py` |
+| `/pca/etendu1j` | tout le contenu du fichier gelé d'une PCA : composantes, tranches de projection, fenêtres archétypes (JSON, voir [pca/README.md](pca/README.md)) — `api/app_agora.py` |
 
 Lancement local : `python -m api.app` puis http://localhost:8501/.
 La variable d'environnement `NGRAM_DIR` indique le dossier des bases

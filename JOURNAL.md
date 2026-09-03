@@ -1,5 +1,43 @@
 # Journal du projet
 
+## 03/09/2026 — catalogue des PCA de sauts : 18 figures gelées, servies telles quelles
+- Nouvelle vue « Catalogue des PCA » dans l'onglet Tests statistiques, à côté
+  de la projection : les 18 PCA déjà calculées dans le stage (corpus unifié
+  `unifie1j/3j`, `etendu1j/3j` aux seuils 4 et 6 ; campagne par média
+  `configA…H`, `hebdo*`, `optimale`, `lemonde*`, un seul seuil), en figures
+  seules, sans paragraphe d'interprétation.
+- Les données : un `<id>.npz` par PCA et `catalogue.csv`, produits par
+  `campagne_pca/scripts/exporter_site.py` (stage-mids, commit 868b973), copiés
+  dans `pca/` sans modification (SHA-256 vérifiés) ; `pca/README.md` décrit les
+  champs. Composantes déjà orientées : on ne touche pas aux signes, on ne
+  recalcule rien — seule la refonte des trois tranches du milieu (moyenne
+  pondérée par `tranches_n`) se fait côté front.
+- API (`app_agora.py`) : `/pca/catalogue` (paramètres des 18) et `/pca/<id>`
+  (tout le fichier en JSON, 25 à 65 Ko, 331 Ko pour les 18). Fichiers lus une
+  fois par worker à la première requête, comme `fenetres_fit()`, arrondis
+  (composantes 6 décimales, profils 5, projections 4). Doc dans
+  `agora_swagger.yml`, tableau des routes du README.
+- Front (`CataloguePca.tsx`, SVG maison comme `Projection.tsx`) : sélecteur
+  groupé par famille, fiche des paramètres, puis (a) grille 2 × 2 des
+  composantes, seuil bas en pointillé et seuil haut en plein, part de variance
+  du seuil haut en titre ; (b) une ligne par composante, profils moyens et
+  effectifs des tranches aux quantiles 10/35/65/90 %, bascule 5 ↔ 3 tranches ;
+  (c) grille 4 × 4 des archétypes du seuil haut, titre mot — date, occurrences
+  au pic, point rouge au jour 0, bascule 4 côté positif ↔ 2 + 2. Deux CSV
+  (composantes, tranches) en URL data. FR/EN, clair/sombre.
+- Contrôle contre `presentation_etendu1j.pdf` : mêmes nombres par construction
+  (variances 13/11/8/6 %, tranches 4 047 / 10 115 / 12 138, milieu refondu
+  32 368 fenêtres, archétypes russes / canicule / hamas / moyen…, côté négatif
+  chef / bouton…). Retouches après premier rendu : marge droite des cellules
+  (l'étiquette « +15 » était rognée), graduations y plus denses, largeur
+  minimale par colonne (défilement horizontal sur écran étroit).
+- Méthode : le calibrage a d'abord été fait avec un navigateur headless piloté
+  en CDP ; à proscrire, Corto l'a rappelé — lancer localhost et lui demander
+  son avis, sans captures automatiques.
+- Branche `catalogue-pca`, rien de poussé. Mise en ligne après validation, dans
+  l'ordre : pull du clone ngram-press sur l'ENS et `kill -HUP` du master
+  gunicorn (tmux agora), puis fusion dans main pour Vercel.
+
 ## 03/09/2026 — projection d'un pic sur la PCA gelée : on cherche, on ne recalcule pas
 - Nouvel onglet « Tests statistiques » : un mot, une période, et le pic est projeté
   sur les 4 premières composantes des PCA du stage (`pca/`, composantes gelées,
