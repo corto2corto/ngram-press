@@ -856,6 +856,53 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   }
 }
 
+/* ---- projection d'un pic sur la PCA (Projection.tsx) : même carte que le
+   graphe, ligne d'information sous le titre, SVG plus bas, tableau court */
+
+.pic-info {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--encre-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.legende .trait.pointille {
+  border-top-style: dashed;
+}
+
+.zone-projection {
+  position: relative;
+  margin-top: 0.75rem;
+}
+
+.zone-projection svg {
+  display: block;
+  width: 100%;
+  height: 300px;
+  transition: opacity 0.25s ease;
+}
+
+.zone-projection.charge svg {
+  opacity: 0.45;
+}
+
+.tableau-projection {
+  max-height: none;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.etat-projection {
+  display: grid;
+  place-content: center;
+  min-height: 11rem;
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--encre-muette);
+}
+
 /* ---- fait avec */
 
 .fait-avec {

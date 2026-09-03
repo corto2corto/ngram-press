@@ -15,6 +15,7 @@ l'impact des rachats de journaux sur le contenu éditorial.
 | `/top?corpus=lemonde&periode=2023` | ngrams les plus fréquents d'une période |
 | `/evolution?avant=2018&apres=2023` | ce qui monte / descend entre deux périodes |
 | `/fiche?mot=guerre&corpus=lemonde` | fiche statistique : ajustements Poisson / binomiale négative, pics, moments (JSON) |
+| `/projection?mot=guerre&corpus=le_monde&from=2022&to=2022&pca=unifie1j&seuil=6` | projection du pic le plus surprenant de la période sur les 4 composantes d'une PCA gelée (JSON, voir [pca/README.md](pca/README.md)) — route de `api/app_agora.py`, l'API du site |
 
 Lancement local : `python -m api.app` puis http://localhost:8501/.
 La variable d'environnement `NGRAM_DIR` indique le dossier des bases
@@ -24,6 +25,9 @@ La variable d'environnement `NGRAM_DIR` indique le dossier des bases
 
 `api/`, `scripts/tokenisation.py` et `rupture/{extraire,pics,serie}.py` sont
 copiés à l'identique depuis le dépôt de travail du stage (`stage-mids`).
+`rupture/pca.py` en est une copie réduite : les fonctions `normaliser` et `pca`
+mot pour mot, sans les figures (qui tiraient matplotlib).
+Les composantes gelées de `pca/` viennent du même dépôt (voir `pca/README.md`).
 La tokenisation ne doit pas dériver : les requêtes doivent découper les mots
 exactement comme les bases ont été construites.
 

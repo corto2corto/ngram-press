@@ -106,3 +106,52 @@ async function chercherSeries(
     .map(([gram, points]) => ({ gram, points: points.sort((a, b) => a.x - b.x) }))
     .filter((s) => s.points.length > 0);
 }
+
+// ---- projection d'un pic sur une PCA gelée (route /projection de api/app.py,
+// voir pca/README.md). Une erreur 400/404 porte un message lisible : il remonte
+// tel quel dans ErreurApi ; un échec réseau reste une Error ordinaire.
+
+export type Projection = {
+  mot: string;
+  corpus: string;
+  pca: string;
+  seuil: number;
+  pic: { date: number; surprise: number; X_t: number; N_t: number };
+  coordonnees: number[]; // 4 valeurs
+  variance: number[]; // part de variance de chaque axe
+  fenetre: { offsets: number[]; taux: number[]; z: number[] }; // 31 valeurs
+  reconstruction: number[]; // 31 valeurs, à 4 composantes
+};
+
+export class ErreurApi extends Error {
+  code: number;
+  constructor(message: string, code: number) {
+    super(message);
+    this.code = code;
+  }
+}
+
+export async function requeteProjection(options: {
+  mot: string;
+  corpus: string;
+  de: string;
+  a: string;
+  pca: string;
+  seuil: string;
+}): Promise<Projection> {
+  const params = new URLSearchParams({
+    mot: options.mot,
+    corpus: options.corpus,
+    from: options.de,
+    to: options.a,
+    pca: options.pca,
+    seuil: options.seuil,
+  });
+  const r = await fetch(`${API}/projection?${params}`);
+  if (!r.ok) {
+    // une page HTML (404 d'une API sans cette route, proxy…) n'est pas un message
+    const texte = await r.text();
+    throw new ErreurApi(texte.trimStart().startsWith("<") ? "" : texte, r.status);
+  }
+  return r.json();
+}

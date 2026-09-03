@@ -156,6 +156,96 @@ paths:
                       description: Vrai si la base de bigrammes est construite.
                       example: true
 
+  /projection:
+    get:
+      summary: Forme du pic d'un mot, projetée sur une PCA gelée
+      description: |
+        Sur la période demandée, l'API ajuste une loi de comptage (mélange
+        Bernoulli × binomiale négative) à la série journalière du mot, garde le
+        jour le plus surprenant (p-valeur minimale, surprise = −log10 p), découpe
+        la fenêtre de 31 valeurs autour de ce pic (jours de parution, ou blocs de
+        3 jours), la centre-réduit, et la projette sur les quatre premières
+        composantes d'une analyse en composantes principales figée, ajustée une
+        fois sur les pics du corpus unifié (36 médias). Détails et fichiers :
+        `pca/README.md` du dépôt.
+
+        **Réponse JSON :** `pic` (date `AAAAMMJJ`, surprise, `X_t`, `N_t`),
+        `coordonnees` (4 valeurs), `variance` (part de variance de chaque axe),
+        `fenetre` (`offsets` −15…+15, `taux` pour 100 000 mots, `z` centrés-réduits)
+        et `reconstruction` (31 valeurs, à 4 composantes).
+      parameters:
+        - $ref: '#/components/parameters/CorpusParam'
+        - name: mot
+          in: query
+          description: Mot ou syntagme de 1 à 2 mots (une seule expression).
+          required: true
+          schema:
+            type: string
+          example: guerre
+        - $ref: '#/components/parameters/FromParam'
+        - $ref: '#/components/parameters/ToParam'
+        - name: pca
+          in: query
+          description: PCA gelée. `unifie1j` (par jour de parution) ou `unifie3j` (blocs de 3 jours). Défaut `unifie1j`.
+          required: false
+          schema:
+            type: string
+            enum: [unifie1j, unifie3j]
+          example: unifie1j
+        - name: seuil
+          in: query
+          description: Seuil de surprise des pics retenus au fit de la PCA, 4 ou 6. Défaut 6.
+          required: false
+          schema:
+            type: integer
+            enum: [4, 6]
+          example: 6
+      responses:
+        "200":
+          description: Projection du pic (JSON)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mot: { type: string, example: guerre }
+                  corpus: { type: string, example: le_monde }
+                  pca: { type: string, example: unifie1j }
+                  seuil: { type: integer, example: 6 }
+                  pic:
+                    type: object
+                    properties:
+                      date: { type: integer, example: 20220224 }
+                      surprise: { type: number, example: 41.7 }
+                      X_t: { type: integer, example: 412 }
+                      N_t: { type: integer, example: 183210 }
+                  coordonnees: { type: array, items: { type: number }, example: [2.31, 1.48, -0.43, -3.23] }
+                  variance: { type: array, items: { type: number }, example: [0.132, 0.111, 0.079, 0.062] }
+                  fenetre:
+                    type: object
+                    properties:
+                      offsets: { type: array, items: { type: integer } }
+                      taux: { type: array, items: { type: number } }
+                      z: { type: array, items: { type: number } }
+                  reconstruction: { type: array, items: { type: number } }
+        "400":
+          description: |
+            Paramètre invalide (corpus, pca ou seuil inconnu, expression de plus
+            de 2 mots), période trop courte pour l'ajustement (moins de 60 jours
+            de parution), fenêtre qui déborde du corpus, ou fenêtre plate.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "fenêtre hors du corpus : il faut 15 jours de parution de chaque côté du pic (19441220) dans le_monde"
+        "404":
+          description: Mot inconnu de la base, aucune occurrence, ou aucun pic (p ≥ 1e-4) sur la période.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "« inflation » : aucun pic sur la période (p ≥ 0.0001)"
+
   /:
     get:
       summary: État de l'API

@@ -118,7 +118,8 @@ export const textes = {
     ong_desc_palmares: "Permet de classer les mots les plus fréquents d'une période.",
     ong_desc_evolutions: "Permet de repérer ce qui monte et ce qui descend entre deux périodes.",
     ong_desc_tests:
-      "Permet de tester une hypothèse : corrélation, rupture ou tendance, avec sa p-value.",
+      "Projette le pic le plus marqué d'un mot sur les quatre premières composantes d'une "
+      + "analyse en composantes principales des formes de pics (fenêtre de ±15 autour du pic).",
 
     // formulaires des modes pas encore branchés sur l'API
     lbl_periode: "Période",
@@ -137,6 +138,24 @@ export const textes = {
     btn_comparer: "Comparer",
     btn_tester: "Tester",
     avenir_note: "Cette vue arrive bientôt : le formulaire est posé, la méthode suit.",
+
+    // projection d'un pic sur la PCA gelée (Projection.tsx)
+    proj_lbl_mot: "Mot",
+    proj_lbl_pca: "PCA",
+    proj_pca_1j: "Corpus unifié, par jour",
+    proj_pca_3j: "Corpus unifié, blocs de 3 jours",
+    btn_projeter: "Projeter",
+    proj_depart: "Tapez un mot, choisissez une période puis « Projeter ».",
+    proj_titre: (mot: string, corpus: string) => `« ${mot} » dans ${corpus} — forme du pic`,
+    proj_pic: (date: string, surprise: string, x: string, n: string) =>
+      `Pic du ${date} · surprise ${surprise} · ${x} occurrences sur ${n} mots`,
+    proj_observe: "Fenêtre observée (centrée-réduite)",
+    proj_reconstruit: "Reconstruction à 4 composantes",
+    proj_axe_1j: "jours de parution autour du pic",
+    proj_axe_3j: "blocs de 3 jours autour du pic",
+    proj_col_comp: "Composante",
+    proj_col_coord: "Coordonnée",
+    proj_col_var: "Part de variance",
 
     lbl_mots: "Mots (séparés par des virgules)",
     lbl_corpus: "Journal",
@@ -241,7 +260,9 @@ export const textes = {
     ong_desc_courbes: "Follow words through time.",
     ong_desc_palmares: "Rank the most frequent words of a period.",
     ong_desc_evolutions: "Spot what rises and what falls between two periods.",
-    ong_desc_tests: "Test a hypothesis: correlation, break or trend, with its p-value.",
+    ong_desc_tests:
+      "Project a word's sharpest peak onto the first four components of a principal component "
+      + "analysis of peak shapes (±15 window around the peak).",
 
     lbl_periode: "Period",
     lbl_longueur: "Length",
@@ -259,6 +280,23 @@ export const textes = {
     btn_comparer: "Compare",
     btn_tester: "Test",
     avenir_note: "This view is coming soon: the form is in place, the method follows.",
+
+    proj_lbl_mot: "Word",
+    proj_lbl_pca: "PCA",
+    proj_pca_1j: "Unified corpus, daily",
+    proj_pca_3j: "Unified corpus, 3-day blocks",
+    btn_projeter: "Project",
+    proj_depart: "Type a word, pick a period, then “Project”.",
+    proj_titre: (mot: string, corpus: string) => `“${mot}” in ${corpus} — shape of the peak`,
+    proj_pic: (date: string, surprise: string, x: string, n: string) =>
+      `Peak on ${date} · surprise ${surprise} · ${x} occurrences out of ${n} words`,
+    proj_observe: "Observed window (standardised)",
+    proj_reconstruit: "4-component reconstruction",
+    proj_axe_1j: "publication days around the peak",
+    proj_axe_3j: "3-day blocks around the peak",
+    proj_col_comp: "Component",
+    proj_col_coord: "Coordinate",
+    proj_col_var: "Share of variance",
 
     lbl_mots: "Words (comma-separated)",
     lbl_corpus: "Newspaper",

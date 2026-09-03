@@ -16,11 +16,13 @@ import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
+import Projection from "@/components/Projection";
 
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
-// les quatre modes de l'explorateur ; seules les Courbes sont branchées sur
-// l'API, les autres posent leur formulaire et annoncent la suite
+// les quatre modes de l'explorateur ; les Courbes et les Tests (projection d'un
+// pic sur la PCA gelée) sont branchés sur l'API, les deux autres posent leur
+// formulaire et annoncent la suite
 type Mode = "courbes" | "palmares" | "evolutions" | "tests";
 const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
 
@@ -446,44 +448,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
 
       {mode === "tests" && (
         <div key="tests">
-          <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
-            <label className="champ">
-              <span>{t.lbl_mot_a}</span>
-              <input type="text" autoComplete="off" spellCheck={false} />
-            </label>
-            <label className="champ">
-              <span>{t.lbl_mot_b}</span>
-              <input type="text" autoComplete="off" spellCheck={false} />
-            </label>
-            <label className="champ">
-              <span>{t.lbl_corpus}</span>
-              <select defaultValue={corpus}>{optionsCorpus}</select>
-            </label>
-            <label className="champ">
-              <span>{t.lbl_test}</span>
-              <select defaultValue="spearman">
-                <option value="spearman">{t.test_spearman}</option>
-                <option value="pettitt">{t.test_pettitt}</option>
-                <option value="mk">{t.test_mk}</option>
-                <option value="croisee">{t.test_croisee}</option>
-              </select>
-            </label>
-            <label className="champ">
-              <span>{t.lbl_de}</span>
-              <input type="number" min={1990} max={2026} defaultValue="2015" />
-            </label>
-            <label className="champ">
-              <span>{t.lbl_a}</span>
-              <input type="number" min={1990} max={2026} defaultValue="2026" />
-            </label>
-            <button type="submit" className="bouton" disabled>
-              {t.btn_tester}
-            </button>
-          </form>
-          <figure className="carte-graphe panneau-avenir">
-            <span className="badge-avenir">{t.avenir}</span>
-            <p>{t.avenir_note}</p>
-          </figure>
+          <Projection lang={lang} journaux={corpusListe} />
         </div>
       )}
     </>

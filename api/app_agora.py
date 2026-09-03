@@ -21,6 +21,10 @@ from scripts.tokenisation import tokeniser
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
 MCP_LOCAL = os.environ.get("AGORA_MCP", "http://127.0.0.1:8011/mcp")
 TABLE = {1: "unigram", 2: "bigram"}
+# composantes gelées des PCA de sauts (pca/README.md) : nom -> taille des blocs, en jours de parution
+PCA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pca")
+PAS_PCA = {"unifie1j": 1, "unifie3j": 3}
+DEMI = 15   # fenêtre de 31 blocs : -15 à +15
 
 app = Flask(__name__)
 CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
@@ -142,6 +146,111 @@ def query():
     else:  # jour
         df = df.drop(columns="date")
     return Response(df.to_csv(index=False), mimetype="text/plain")
+
+
+@app.route("/projection")
+def projection():
+    # projection du pic le plus surprenant d'un mot sur les 4 premières composantes d'une
+    # PCA gelée (pca/composantes_<pca>.npz, copiées de stage-mids — voir pca/README.md).
+    # Chaîne : série journalière du mot (X_t, N_t) sur les jours de parution de la base,
+    # loi « bnb » de rupture.pics ajustée sur la période (surprise = -log10 p), pic le plus
+    # surprenant, fenêtre de 31 blocs de `pas` jours de parution centrée sur le pic, taux
+    # pour 100 000, z-score de la fenêtre (rupture.pca.normaliser, le calcul du stage),
+    # produits scalaires avec les composantes (déjà orientées, pas de moyenne colonne).
+    # /projection?mot=guerre&corpus=le_monde&from=2022&to=2022&pca=unifie1j&seuil=6
+    import numpy as np
+    try:
+        from rupture import pics as rp            # statsmodels + scipy
+    except ImportError as e:
+        return f"{e.name} manquant : pip install statsmodels scipy dans venv_agora", 500
+    from rupture.pca import normaliser
+
+    cat = catalogue()
+    corpus = request.args.get("corpus", "")
+    if corpus not in cat:
+        return f"corpus inconnu : {corpus} (choix : {', '.join(sorted(cat))})", 400
+    gram = request.args.get("mot", "").strip()
+    if not gram:
+        return "paramètre mot manquant", 400
+    tokens = tokeniser(gram)
+    if not 1 <= len(tokens) <= 2:
+        return f"« {gram} » : 1 ou 2 mots attendus", 400
+    nom_pca = request.args.get("pca", "unifie1j")
+    if nom_pca not in PAS_PCA:
+        return f"pca inconnue : {nom_pca} (choix : {', '.join(PAS_PCA)})", 400
+    seuil = request.args.get("seuil", "6")
+    if seuil not in ("4", "6"):
+        return f"seuil inconnu : {seuil} (choix : 4, 6)", 400
+    date_min = borne_date(request.args.get("from") or "1900", 101)
+    date_max = borne_date(request.args.get("to") or "2100", 1231)
+
+    # série complète du mot (la fenêtre peut déborder de la période), jours de parution
+    # seulement (N_t > 0), zéros réinjectés ; mot inconnu du vocabulaire -> 404
+    conn = sqlite3.connect(f"file:{cat[corpus]}?mode=ro", uri=True)
+    ids = []
+    for t in tokens:
+        ligne = conn.execute("SELECT id FROM token WHERE word = ?", (t,)).fetchone()
+        if ligne is None:
+            conn.close()
+            return f"« {gram} » : inconnu de la base {corpus}", 404
+        ids.append(ligne[0])
+    table = TABLE[len(tokens)]
+    conditions = " AND ".join(f"w{i} = ?" for i in range(1, len(tokens) + 1))
+    totaux = pd.read_sql_query(
+        f"SELECT date, total AS N_t FROM total_{table} WHERE total > 0 ORDER BY date", conn)
+    occ = pd.read_sql_query(f"SELECT date, n AS X_t FROM {table} WHERE {conditions}", conn, params=ids)
+    conn.close()
+    d = totaux.merge(occ, on="date", how="left")
+    d["X_t"] = d["X_t"].fillna(0).astype(int)
+
+    periode = d[(d["date"] >= date_min) & (d["date"] <= date_max)]
+    if len(periode) < 60:
+        return f"période trop courte ({len(periode)} jours avec publication) : fit trop fragile", 400
+    X = periode["X_t"].to_numpy(float)
+    N = periode["N_t"].to_numpy(float)
+    if X.sum() == 0:
+        return f"« {gram} » : aucune occurrence dans {corpus} sur la période", 404
+
+    # pic de plus grande surprise sur la période (p-valeurs du mélange « bnb »)
+    _, p, _ = rp.ajuster(X, N, "bnb")
+    i = int(p.argmin())
+    if p[i] >= rp.SEUIL:
+        return f"« {gram} » : aucun pic sur la période (p ≥ {rp.SEUIL:g})", 404
+    pos = int(periode.index[i])                  # position du pic dans la série complète
+    date_pic = int(d["date"].iloc[pos])
+
+    # fenêtre : 31 blocs de `pas` jours de parution centrés sur le pic (bloc k = jours
+    # pas*k - pas//2 à pas*k + pas//2 autour du pic) ; les bords du corpus font défaut
+    pas = PAS_PCA[nom_pca]
+    demi = DEMI * pas + pas // 2
+    if pos - demi < 0 or pos + demi >= len(d):
+        return (f"fenêtre hors du corpus : il faut {demi} jours de parution de chaque côté "
+                f"du pic ({date_pic}) dans {corpus}", 400)
+    lignes = pos + np.arange(-demi, demi + 1)
+    Xf = d["X_t"].to_numpy(float)[lignes].reshape(2 * DEMI + 1, pas).sum(axis=1)
+    Nf = d["N_t"].to_numpy(float)[lignes].reshape(2 * DEMI + 1, pas).sum(axis=1)
+    taux = 1e5 * Xf / Nf
+
+    # z-score de la fenêtre (une ligne), exactement comme au fit ; puis projection directe
+    # sur les composantes gelées (pas de moyenne colonne dans les fichiers : cf. pca/README.md)
+    Z, garde = normaliser(taux[None, :], "z")
+    if not len(garde):
+        return f"fenêtre plate autour du pic ({date_pic}) : rien à projeter", 400
+    gele = np.load(os.path.join(PCA_DIR, f"composantes_{nom_pca}.npz"))
+    composantes = gele[f"composantes_s{seuil}"]  # (4, 31), déjà orientées
+    coordonnees = composantes @ Z[0]
+    return jsonify({
+        "mot": gram, "corpus": corpus, "pca": nom_pca, "seuil": int(seuil),
+        "de": int(date_min), "a": int(date_max),
+        "pic": {"date": date_pic, "surprise": float(-np.log10(max(p[i], 1e-300))),
+                "X_t": int(X[i]), "N_t": int(N[i])},
+        "coordonnees": np.round(coordonnees, 5).tolist(),
+        "variance": np.round(gele[f"variance_s{seuil}"], 5).tolist(),
+        "fenetre": {"offsets": gele["blocs"].tolist(),
+                    "taux": np.round(taux, 4).tolist(),
+                    "z": np.round(Z[0], 5).tolist()},
+        "reconstruction": np.round(coordonnees @ composantes, 5).tolist(),
+    })
 
 
 if __name__ == "__main__":
