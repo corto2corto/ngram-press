@@ -626,6 +626,14 @@ main > section,
   border-radius: 2px;
 }
 
+/* le témoin imite la marque : un pavé quand la série est en barres */
+.legende .trait.pave,
+.infobulle .trait.pave {
+  width: 10px;
+  height: 10px;
+  border-top: 0;
+}
+
 .zone-graphe {
   position: relative;
   margin-top: 0.75rem;
@@ -652,8 +660,8 @@ main > section,
    sur la précédente. pathLength="1" normalise la longueur du chemin : la durée
    ne dépend donc pas du nombre de points. Le tracé rejoue à chaque requête,
    grâce à la clé de tirage posée sur les groupes de séries (Chart.tsx). */
-/* A6bis — la nouvelle courbe balaie l'ancienne : la copie figée (Chart.tsx,
-   couche sortante) se rogne de gauche à droite sur la durée et la courbe de
+/* A6bis — le nouveau tracé balaie l'ancien : la copie figée (Chart.tsx,
+   couche sortante, courbe ou barres) se rogne de gauche à droite sur la durée et la courbe de
    temps du tracé lui-même — l'ancienne s'efface là où la nouvelle se dessine —
    pendant qu'un fondu doux éteint ce qui reste à droite. inset() se mesure sur
    la fill-box du groupe SVG, c'est-à-dire la boîte de la courbe elle-même. */
@@ -716,6 +724,27 @@ main > section,
   }
   100% {
     transform: scale(1);
+  }
+}
+
+/* A6ter — en occurrences brutes, les barres poussent depuis la ligne de base,
+   en vague de gauche à droite, dans le sens du temps : --part (Chart.tsx) est
+   le rang de la barre dans sa série, de 0 à 1, et règle son départ. La vague
+   entière tient dans la durée de tracé, comme la courbe qu'elle remplace ;
+   chaque série part avec le même retard que sa courbe (--retard). */
+.serie .barre {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: pousser calc(var(--duree-trace) * 0.45) var(--sortie)
+    calc(var(--retard) + var(--duree-trace) * 0.55 * var(--part, 0)) both;
+}
+
+@keyframes pousser {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
   }
 }
 

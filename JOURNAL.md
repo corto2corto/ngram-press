@@ -8,6 +8,14 @@
   la relance. Après : 200 sur 8010 et sur l'URL publique, `/projection` et
   `/corpus` intacts.
 - Ensuite fusion de `catalogue-pca` dans `main` (avance rapide) pour Vercel.
+- Explorateur, mesure « occurrences brutes » : rendu en barres (`Chart.tsx`)
+  au lieu de la courbe lissée — un décompte entier, souvent creux, ne se lisse
+  pas (une occurrence isolée s'étalait en fractions sur ses voisines). Barres
+  de 24 px au plus, sommet arrondi et base carrée, jour de 2 px entre séries
+  d'une même période et entre périodes dès que la place le permet, histogramme
+  serré au pas jour ; axe Y à pas entier ; survol par bande de période ;
+  apparition en vague de gauche à droite (A6ter dans `globals.css`), l'ancien
+  tracé balayé comme pour les courbes. Les fréquences restent en courbes lissées.
 
 ## 03/09/2026 — catalogue des PCA de sauts : 18 figures gelées, servies telles quelles
 - Nouvelle vue « Catalogue des PCA » dans l'onglet Tests statistiques, à côté
