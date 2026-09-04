@@ -1,5 +1,14 @@
 # Journal du projet
 
+## 04/09/2026 — catalogue des PCA en ligne
+- Sur l'ENS : `git pull --ff-only origin catalogue-pca` dans le clone ngram-press,
+  puis relance du gunicorn agora (Ctrl+C dans `agora:0`, même commande). Un pull
+  seul ne suffit pas : gunicorn tourne sans `--reload`, les workers gardent le
+  code importé au démarrage — vérifié, `/pca/catalogue` restait en 404 jusqu'à
+  la relance. Après : 200 sur 8010 et sur l'URL publique, `/projection` et
+  `/corpus` intacts.
+- Ensuite fusion de `catalogue-pca` dans `main` (avance rapide) pour Vercel.
+
 ## 03/09/2026 — catalogue des PCA de sauts : 18 figures gelées, servies telles quelles
 - Nouvelle vue « Catalogue des PCA » dans l'onglet Tests statistiques, à côté
   de la projection : les 18 PCA déjà calculées dans le stage (corpus unifié
