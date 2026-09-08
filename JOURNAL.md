@@ -1,5 +1,16 @@
 # Journal du projet
 
+## 08/09/2026 — le MCP à l'adresse agoragram.fr/mcp
+- Le serveur MCP tournait déjà sur l'ENS (`agora_mcp`, port 8011) et répondait
+  sur `/guni/agora/mcp` ; vérifié depuis le Mac : initialize, tools/list et un
+  tools/call réel passent en 200. Rien relancé côté serveur.
+- Il est sans état (réponses JSON, pas d'identifiant de session ni de flux
+  SSE) : un simple rewrite Vercel suffit. Ajout dans `next.config.ts` de
+  `/mcp` → `${API}/mcp`, à côté du relais `/api/ngram`. Un rewrite est essayé
+  avant la route dynamique `[lang]`, donc pas de conflit. Testé en `next dev` :
+  les trois appels passent par le relais, `/fr` reste servi. Adresse publique
+  une fois déployé : `https://agoragram.fr/mcp`. Swagger mis à jour.
+
 ## 04/09/2026 — catalogue des PCA en ligne
 - Sur l'ENS : `git pull --ff-only origin catalogue-pca` dans le clone ngram-press,
   puis relance du gunicorn agora (Ctrl+C dans `agora:0`, même commande). Un pull

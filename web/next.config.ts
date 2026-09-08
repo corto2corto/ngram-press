@@ -8,7 +8,13 @@ const API = process.env.NGRAM_API_URL ?? "https://shiny.ens-paris-saclay.fr/guni
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    return [{ source: "/api/ngram/:path*", destination: `${API}/:path*` }];
+    return [
+      { source: "/api/ngram/:path*", destination: `${API}/:path*` },
+      // Serveur MCP d'Agora à une adresse agoragram : /mcp est relayé vers le
+      // proxy /mcp de app_agora.py (transport HTTP streamable, sans état :
+      // simples POST JSON, donc compatible avec un rewrite Vercel).
+      { source: "/mcp", destination: `${API}/mcp` },
+    ];
   },
 };
 

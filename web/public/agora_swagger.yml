@@ -33,6 +33,8 @@ info:
     L'API est aussi accessible aux assistants IA (Claude, ChatGPT...) via un
     serveur MCP (*Model Context Protocol*, transport HTTP streamable) exposé
     sur `/mcp`, qui propose les outils `list_corpora` et `query_frequency`.
+    Adresse à donner au client MCP : `https://agoragram.fr/mcp` (relais Vercel
+    vers le même serveur).
 
   contact:
     name: Code source du projet
