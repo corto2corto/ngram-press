@@ -18,6 +18,7 @@ import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
 import Projection from "@/components/Projection";
 import CataloguePca from "@/components/CataloguePca";
+import Ratio from "@/components/Ratio";
 
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
@@ -25,10 +26,11 @@ type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 // l'API, les deux autres posent leur formulaire et annoncent la suite
 type Mode = "courbes" | "palmares" | "evolutions" | "tests";
 const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
-// les deux vues des Tests : la projection d'un pic sur la PCA gelée, et le
-// catalogue des PCA de sauts (figures seules)
-type VueTests = "projection" | "catalogue";
-const VUES_TESTS: VueTests[] = ["projection", "catalogue"];
+// les trois vues des Tests : la projection d'un pic sur la PCA gelée, le
+// catalogue des PCA de sauts (figures seules) et l'usage relatif de deux mots
+// média par média
+type VueTests = "projection" | "catalogue" | "ratio";
+const VUES_TESTS: VueTests[] = ["projection", "catalogue", "ratio"];
 
 // pictogrammes des onglets (traits 1.8, 16 px)
 const ICONES: Record<Mode, ReactElement> = {
@@ -280,7 +282,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
       {/* la clé rejoue l'animation de la mention à chaque bascule (de mode, ou
           de vue dans les Tests) */}
       <p className="desc-mode" key={mode === "tests" ? `tests-${vueTests}` : mode}>
-        {mode === "tests" && vueTests === "catalogue" ? t.ong_desc_catalogue : t[`ong_desc_${mode}`]}
+        {mode === "tests" && vueTests !== "projection" ? t[`ong_desc_${vueTests}`] : t[`ong_desc_${mode}`]}
       </p>
 
       <div hidden={mode !== "courbes"}>
@@ -467,7 +469,13 @@ export default function Explorer({ lang }: { lang: Lang }) {
               </button>
             ))}
           </nav>
-          {vueTests === "projection" ? <Projection lang={lang} /> : <CataloguePca lang={lang} />}
+          {vueTests === "projection" ? (
+            <Projection lang={lang} />
+          ) : vueTests === "catalogue" ? (
+            <CataloguePca lang={lang} />
+          ) : (
+            <Ratio lang={lang} />
+          )}
         </div>
       )}
     </>

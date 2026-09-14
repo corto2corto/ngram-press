@@ -238,6 +238,32 @@ export const textes = {
     arch_occ: (n: string) => `${n} occ. au pic`,
     arch_proj: (p: string) => `proj. ${p}`,
 
+    // usage relatif de deux expressions, média par média (Ratio.tsx) : troisième
+    // vue de l'onglet Tests statistiques, graphe en sucettes trié
+    vue_ratio: "Usage relatif",
+    ong_desc_ratio:
+      "Compare l'usage de deux mots dans chaque média : le rapport de leurs fréquences sur la "
+      + "période, un média par ligne, du plus grand au plus petit.",
+    ratio_depart:
+      "Tapez deux mots, choisissez une période puis « Comparer » : chaque média se place selon "
+      + "le rapport fréquence de A / fréquence de B.",
+    ratio_titre: (a: string, b: string) => `Usage relatif de « ${a} » et « ${b} »`,
+    ratio_sous: (de: string, a: string, n: string) => `${de} – ${a} · ${n} médias`,
+    ratio_axe: (a: string, b: string) => `fréquence de « ${a} » / fréquence de « ${b} »`,
+    ratio_egal: "usage égal",
+    ratio_col_media: "Média",
+    ratio_col_n: (m: string) => `« ${m} »`,
+    ratio_col_pour100k: "pour 100 000",
+    ratio_col_ratio: "Rapport",
+    ratio_absents: (n: number, b: string, liste: string) =>
+      `${n === 1 ? "Média sans" : `${n} médias sans`} occurrence de « ${b} » sur la période, `
+      + `donc sans rapport : ${liste}.`,
+    ratio_sans_donnees: (n: number, liste: string) =>
+      `${n === 1 ? "Média sans" : `${n} médias sans`} article sur la période : ${liste}.`,
+    ratio_aucun: "Aucun média n'a les deux mots sur cette période.",
+    ratio_bulle_ratio: "rapport",
+    ratio_bulle_occ: (n: string) => `${n} occ.`,
+
     lbl_mots: "Mots (séparés par des virgules)",
     lbl_corpus: "Journal",
     lbl_de: "De",
@@ -461,6 +487,30 @@ export const textes = {
     arch_titre: (mot: string, date: string) => `${mot} — ${date}`,
     arch_occ: (n: string) => `${n} occ. at the peak`,
     arch_proj: (p: string) => `proj. ${p}`,
+
+    vue_ratio: "Relative usage",
+    ong_desc_ratio:
+      "Compare the usage of two words in each outlet: the ratio of their frequencies over the "
+      + "period, one outlet per row, from largest to smallest.",
+    ratio_depart:
+      "Type two words, pick a period, then “Compare”: each outlet is placed by the ratio "
+      + "frequency of A / frequency of B.",
+    ratio_titre: (a: string, b: string) => `Relative usage of “${a}” and “${b}”`,
+    ratio_sous: (de: string, a: string, n: string) => `${de} – ${a} · ${n} outlets`,
+    ratio_axe: (a: string, b: string) => `frequency of “${a}” / frequency of “${b}”`,
+    ratio_egal: "equal usage",
+    ratio_col_media: "Outlet",
+    ratio_col_n: (m: string) => `“${m}”`,
+    ratio_col_pour100k: "per 100,000",
+    ratio_col_ratio: "Ratio",
+    ratio_absents: (n: number, b: string, liste: string) =>
+      `${n === 1 ? "Outlet with no" : `${n} outlets with no`} occurrence of “${b}” over the period, `
+      + `hence no ratio: ${liste}.`,
+    ratio_sans_donnees: (n: number, liste: string) =>
+      `${n === 1 ? "Outlet with no" : `${n} outlets with no`} article over the period: ${liste}.`,
+    ratio_aucun: "No outlet has both words over this period.",
+    ratio_bulle_ratio: "ratio",
+    ratio_bulle_occ: (n: string) => `${n} occ.`,
 
     lbl_mots: "Words (comma-separated)",
     lbl_corpus: "Newspaper",

@@ -1,0 +1,330 @@
+"use client";
+
+// Usage relatif de deux expressions, média par média (onglet « Tests
+// statistiques ») : on tape deux mots et une période, l'API (route /ratio de
+// api/app_agora.py) somme sur chaque base les occurrences et le total de mots
+// de la période, et renvoie le rapport fréquence de A / fréquence de B. Graphe
+// en sucettes trié, un média par ligne, dans le même SVG maison que Chart.tsx :
+// tige depuis zéro, point au rapport, repère pointillé au rapport 1 (usage
+// égal). Les médias sans occurrence de B (rapport indéfini) ou sans article sur
+// la période sont dits sous le graphe, et figurent dans le tableau.
+
+import { useEffect, useRef, useState } from "react";
+import { ErreurApi, requeteRatio, type Ratio as Resultat, type RatioCorpus } from "@/lib/api";
+import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+
+const MARGE = { haut: 30, droite: 28, bas: 40 };
+const RANG = 30; // hauteur d'une ligne (un média)
+const RAYON = 5;
+
+function pasArrondi(brut: number): number {
+  const puissance = 10 ** Math.floor(Math.log10(brut));
+  for (const m of [1, 2, 5]) if (m * puissance >= brut) return m * puissance;
+  return 10 * puissance;
+}
+
+const nomDe = (c: string) => corpusNoms[c] ?? c;
+
+const dateIso = (d: number) =>
+  `${Math.floor(d / 10000)}-${String(Math.floor(d / 100) % 100).padStart(2, "0")}-${String(d % 100).padStart(2, "0")}`;
+
+export default function Ratio({ lang }: { lang: Lang }) {
+  const t = textes[lang];
+  const locale = localeDe(lang);
+
+  // la vue s'ouvre sur un exemple parlant, tracé de lui-même
+  const [motA, setMotA] = useState("gaza");
+  const [motB, setMotB] = useState("ukraine");
+  const [de, setDe] = useState("2023");
+  const [a, setA] = useState("2025");
+
+  const [chargement, setChargement] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [resultat, setResultat] = useState<{ r: Resultat; tirage: number } | null>(null);
+  const [indice, setIndice] = useState<number | null>(null);
+  const appel = useRef(0);
+
+  const comparer = async (formulaire: { motA: string; motB: string; de: string; a: string }) => {
+    if (!formulaire.motA.trim() || !formulaire.motB.trim()) return;
+    const numero = ++appel.current;
+    setChargement(true);
+    setMessage(null);
+    try {
+      const r = await requeteRatio({ ...formulaire, motA: formulaire.motA.trim(), motB: formulaire.motB.trim() });
+      if (numero !== appel.current) return;
+      setResultat((p) => ({ r, tirage: (p?.tirage ?? 0) + 1 }));
+      setIndice(null);
+    } catch (e) {
+      if (numero !== appel.current) return;
+      setResultat(null);
+      setMessage(e instanceof ErreurApi && e.message ? e.message : t.msg_erreur);
+    } finally {
+      if (numero === appel.current) setChargement(false);
+    }
+  };
+
+  // premier tracé à l'ouverture de la vue, une seule fois
+  const initialise = useRef(false);
+  useEffect(() => {
+    if (initialise.current) return;
+    initialise.current = true;
+    comparer({ motA: "gaza", motB: "ukraine", de: "2023", a: "2025" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // largeur du graphe suivant le conteneur, comme Chart.tsx
+  const zone = useRef<HTMLDivElement>(null);
+  const [largeur, setLargeur] = useState(0);
+  useEffect(() => {
+    const el = zone.current;
+    if (!el) return;
+    const observateur = new ResizeObserver(() => setLargeur(el.clientWidth));
+    observateur.observe(el);
+    setLargeur(el.clientWidth);
+    return () => observateur.disconnect();
+  }, [resultat]);
+
+  const r = resultat?.r;
+  const formaterRatio = (v: number) =>
+    v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formaterFreq = (f: number | null) =>
+    f === null ? "—" : (f * 1e5).toLocaleString(locale, { maximumSignificantDigits: 3 });
+  const formaterN = (n: number) => n.toLocaleString(locale);
+  // la date est lue en UTC et rendue en UTC : pas de veille au soir selon le fuseau
+  const formaterDate = (d: number) =>
+    new Date(dateIso(d)).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+
+  // les trois familles de lignes : tracées, sans B (rapport indéfini), sans article
+  const tracees: RatioCorpus[] = r ? r.corpus.filter((l) => l.ratio !== null) : [];
+  const sansB = r ? r.corpus.filter((l) => l.ratio === null && l.total_a > 0) : [];
+  const sansDonnees = r ? r.corpus.filter((l) => l.total_a === 0 && l.total_b === 0) : [];
+
+  // échelles : les médias en lignes, le rapport en abscisse de 0 à un plafond rond
+  const margeGauche = 14 + 6.6 * Math.max(6, ...tracees.map((l) => nomDe(l.corpus).length));
+  const hauteur = MARGE.haut + RANG * Math.max(1, tracees.length) + MARGE.bas;
+  const xMax = Math.max(1, ...tracees.map((l) => l.ratio ?? 0));
+  const pas = pasArrondi(xMax / 4);
+  const xHaut = pas * Math.ceil((xMax * 1.02) / pas);
+  const px = (v: number) => margeGauche + (v / xHaut) * (largeur - margeGauche - MARGE.droite);
+  const py = (i: number) => MARGE.haut + RANG * i + RANG / 2;
+  const graduations: number[] = [];
+  for (let v = 0; v <= xHaut + 1e-9; v += pas) graduations.push(Math.round(v / pas) * pas + 0);
+  const pret = r !== undefined && largeur > 0 && tracees.length > 0;
+
+  const surSurvol = (ev: React.PointerEvent<SVGSVGElement>) => {
+    if (!pret) return;
+    const rect = ev.currentTarget.getBoundingClientRect();
+    const i = Math.floor((ev.clientY - rect.top - MARGE.haut) / RANG);
+    setIndice(i >= 0 && i < tracees.length ? i : null);
+  };
+  const survolee = indice !== null ? tracees[indice] : null;
+  const aDroite = survolee !== null && px(survolee.ratio ?? 0) < largeur / 2;
+
+  const listeNoms = (lignes: RatioCorpus[]) => lignes.map((l) => nomDe(l.corpus)).join(", ");
+
+  return (
+    <>
+      <form
+        className="filtres"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          comparer({ motA, motB, de, a });
+        }}
+      >
+        <label className="champ">
+          <span>{t.lbl_mot_a}</span>
+          <input type="text" value={motA} onChange={(ev) => setMotA(ev.target.value)} autoComplete="off" spellCheck={false} />
+        </label>
+        <label className="champ">
+          <span>{t.lbl_mot_b}</span>
+          <input type="text" value={motB} onChange={(ev) => setMotB(ev.target.value)} autoComplete="off" spellCheck={false} />
+        </label>
+        <label className="champ">
+          <span>{t.lbl_de}</span>
+          <input type="number" min={1944} max={2026} value={de} onChange={(ev) => setDe(ev.target.value)} />
+        </label>
+        <label className="champ">
+          <span>{t.lbl_a}</span>
+          <input type="number" min={1944} max={2026} value={a} onChange={(ev) => setA(ev.target.value)} />
+        </label>
+        <button type="submit" className="bouton" disabled={chargement}>
+          {t.btn_comparer}
+        </button>
+      </form>
+
+      <figure className="carte-graphe">
+        {r ? (
+          <>
+            <figcaption className="titre-graphe" key={resultat.tirage}>
+              {t.ratio_titre(r.mot_a, r.mot_b)}
+            </figcaption>
+            <p className="pic-info">
+              {t.ratio_sous(formaterDate(r.de), formaterDate(r.a), formaterN(r.corpus.length))}
+            </p>
+
+            <div className={`zone-ratio${chargement ? " charge" : ""}`} ref={zone}>
+              {largeur > 0 && tracees.length > 0 && (
+                <svg
+                  role="img"
+                  viewBox={`0 0 ${largeur} ${hauteur}`}
+                  style={{ height: hauteur }}
+                  onPointerMove={surSurvol}
+                  onPointerLeave={() => setIndice(null)}
+                >
+                  {/* bande de la ligne survolée, derrière tout */}
+                  {indice !== null && (
+                    <rect x={0} y={MARGE.haut + RANG * indice} width={largeur} height={RANG} rx={6} fill="var(--grille)" />
+                  )}
+
+                  {graduations.map((v) => (
+                    <g key={v}>
+                      <line
+                        x1={px(v)}
+                        x2={px(v)}
+                        y1={MARGE.haut}
+                        y2={hauteur - MARGE.bas}
+                        stroke={v === 0 ? "var(--axe)" : "var(--grille)"}
+                        strokeWidth={1}
+                      />
+                      <text x={px(v)} y={hauteur - MARGE.bas + 16} textAnchor="middle" fontSize={11} fill="var(--encre-muette)">
+                        {v.toLocaleString(locale)}
+                      </text>
+                    </g>
+                  ))}
+
+                  {/* le repère de l'usage égal : rapport 1 */}
+                  {xHaut > 1 && (
+                    <g>
+                      <line
+                        x1={px(1)}
+                        x2={px(1)}
+                        y1={MARGE.haut - 6}
+                        y2={hauteur - MARGE.bas}
+                        stroke="var(--encre-muette)"
+                        strokeWidth={1}
+                        strokeDasharray="3 4"
+                      />
+                      <text x={px(1)} y={MARGE.haut - 12} textAnchor="middle" fontSize={10.5} fill="var(--encre-muette)">
+                        {t.ratio_egal}
+                      </text>
+                    </g>
+                  )}
+
+                  <text x={largeur - MARGE.droite} y={hauteur - 6} textAnchor="end" fontSize={11} fill="var(--encre-muette)">
+                    {t.ratio_axe(r.mot_a, r.mot_b)}
+                  </text>
+
+                  {tracees.map((l, i) => (
+                    <text
+                      key={l.corpus}
+                      x={margeGauche - 12}
+                      y={py(i) + 4}
+                      textAnchor="end"
+                      fontSize={12}
+                      fill={indice === i ? "var(--encre)" : "var(--encre-2)"}
+                    >
+                      {nomDe(l.corpus)}
+                    </text>
+                  ))}
+
+                  {/* les sucettes : la clé de tirage rejoue l'animation à chaque comparaison */}
+                  <g className="sucettes" key={resultat.tirage}>
+                    {tracees.map((l, i) => {
+                      const v = l.ratio ?? 0;
+                      const part = i / Math.max(1, tracees.length - 1);
+                      return (
+                        <g key={l.corpus} className="sucette" style={{ "--part": part } as React.CSSProperties}>
+                          <path
+                            className="tige"
+                            pathLength={1}
+                            d={`M${px(0)},${py(i)}H${Math.max(px(0), px(v) - RAYON)}`}
+                            fill="none"
+                            stroke="var(--serie-1)"
+                            strokeWidth={1.6}
+                            strokeOpacity={0.6}
+                          />
+                          <circle className="point" cx={px(v)} cy={py(i)} r={RAYON} fill="var(--serie-1)" stroke="var(--surface)" strokeWidth={2} />
+                        </g>
+                      );
+                    })}
+                  </g>
+                </svg>
+              )}
+
+              {survolee && (
+                <div
+                  className="infobulle"
+                  style={{
+                    top: MARGE.haut + RANG * (indice ?? 0) - 6,
+                    left: aDroite ? px(survolee.ratio ?? 0) + 14 : undefined,
+                    right: aDroite ? undefined : largeur - px(survolee.ratio ?? 0) + 14,
+                  }}
+                >
+                  <div className="quand">{nomDe(survolee.corpus)}</div>
+                  <div className="ligne">
+                    <span>{t.ratio_bulle_ratio}</span>
+                    <span className="valeur">{formaterRatio(survolee.ratio ?? 0)}</span>
+                  </div>
+                  <div className="ligne">
+                    <span>{t.ratio_col_n(r.mot_a)}</span>
+                    <span className="valeur">
+                      {formaterFreq(survolee.freq_a)} · {t.ratio_bulle_occ(formaterN(survolee.n_a))}
+                    </span>
+                  </div>
+                  <div className="ligne">
+                    <span>{t.ratio_col_n(r.mot_b)}</span>
+                    <span className="valeur">
+                      {formaterFreq(survolee.freq_b)} · {t.ratio_bulle_occ(formaterN(survolee.n_b))}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {tracees.length === 0 && <p className="etat-projection">{t.ratio_aucun}</p>}
+            </div>
+
+            {(sansB.length > 0 || sansDonnees.length > 0) && (
+              <p className="note-ratio">
+                {sansB.length > 0 && t.ratio_absents(sansB.length, r.mot_b, listeNoms(sansB))}
+                {sansB.length > 0 && sansDonnees.length > 0 && " "}
+                {sansDonnees.length > 0 && t.ratio_sans_donnees(sansDonnees.length, listeNoms(sansDonnees))}
+              </p>
+            )}
+
+            <details className="tableau-conteneur">
+              <summary>{t.voir_donnees}</summary>
+              <div className="defilement tableau-ratio">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">{t.ratio_col_media}</th>
+                      <th scope="col">{t.ratio_col_n(r.mot_a)}</th>
+                      <th scope="col">{t.ratio_col_pour100k}</th>
+                      <th scope="col">{t.ratio_col_n(r.mot_b)}</th>
+                      <th scope="col">{t.ratio_col_pour100k}</th>
+                      <th scope="col">{t.ratio_col_ratio}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {r.corpus.map((l) => (
+                      <tr key={l.corpus}>
+                        <td>{nomDe(l.corpus)}</td>
+                        <td>{formaterN(l.n_a)}</td>
+                        <td>{formaterFreq(l.freq_a)}</td>
+                        <td>{formaterN(l.n_b)}</td>
+                        <td>{formaterFreq(l.freq_b)}</td>
+                        <td>{l.ratio === null ? "—" : formaterRatio(l.ratio)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </>
+        ) : (
+          <p className="etat-projection">{chargement ? t.msg_chargement : (message ?? t.ratio_depart)}</p>
+        )}
+      </figure>
+    </>
+  );
+}

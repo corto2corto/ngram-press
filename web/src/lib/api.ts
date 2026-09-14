@@ -220,3 +220,37 @@ export function chargerPca(id: string): Promise<PcaFichier> {
   promesse.catch(() => pcaLues.delete(id));
   return promesse;
 }
+
+// ---- usage relatif de deux expressions, corpus par corpus (route /ratio de
+// api/app_agora.py) : occurrences et total de mots de chaque expression sur la
+// période, fréquences et leur rapport freq_a / freq_b. Le rapport est nul si A
+// est absente, null si B l'est ou si le corpus n'a rien sur la période ; les
+// lignes arrivent triées par rapport décroissant, les null à la fin.
+
+export type RatioCorpus = {
+  corpus: string;
+  n_a: number;
+  total_a: number;
+  freq_a: number | null;
+  n_b: number;
+  total_b: number;
+  freq_b: number | null;
+  ratio: number | null;
+};
+
+export type Ratio = {
+  mot_a: string;
+  mot_b: string;
+  de: number; // AAAAMMJJ
+  a: number;
+  corpus: RatioCorpus[];
+};
+
+export function requeteRatio(options: { motA: string; motB: string; de: string; a: string }): Promise<Ratio> {
+  const params = new URLSearchParams({
+    mot: `${options.motA},${options.motB}`,
+    from: options.de,
+    to: options.a,
+  });
+  return lireJson<Ratio>(`/ratio?${params}`);
+}

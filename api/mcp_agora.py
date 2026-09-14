@@ -23,7 +23,8 @@ mcp = MCPServer(
         "Agora mesure la fréquence des mots dans la presse numérique française "
         "contemporaine (Le Monde, Le Parisien, Mediapart, Les Échos...). "
         "Appelle d'abord list_corpora pour connaître les corpus valides et "
-        "leurs périodes, puis query_frequency pour obtenir les séries."
+        "leurs périodes, puis query_frequency pour obtenir les séries, ou "
+        "compare_usage pour classer les médias selon l'usage relatif de deux mots."
     ),
 )
 
@@ -93,6 +94,43 @@ def query_frequency(mot: str, corpus: str, debut: str = "1900",
     df["freq"] = (df["n"] / df["total"].where(df["total"] > 0)).fillna(0)
     df["freq"] = df["freq"].map(lambda f: float(f"{f:.4g}"))
     return {"lignes": df.to_dict("records"), "nb_lignes": len(df)}
+
+
+@mcp.tool()
+def compare_usage(mot_a: str, mot_b: str, debut: str = "1900", fin: str = "2100",
+                  corpus: str = "") -> dict:
+    """Compare l'usage relatif de deux expressions d'un média à l'autre : pour
+    chaque corpus, le rapport fréquence de A / fréquence de B sur la période.
+
+    ### Quand utiliser cet outil :
+    - Pour savoir quels médias emploient davantage un mot qu'un autre
+      (ex. « gaza » contre « ukraine », « entrecôte » contre « tofu »), et
+      classer les médias selon ce rapport.
+    - Pour un seul média dans le temps, préférer `query_frequency`.
+
+    ### Paramètres :
+    - `mot_a`, `mot_b` : une expression chacun (1 ou 2 mots, tokenisée comme
+      dans `query_frequency`).
+    - `debut` / `fin` : bornes incluses, au format AAAA, AAAA-MM ou AAAA-MM-JJ.
+    - `corpus` : identifiants séparés par des virgules (voir `list_corpora`) ;
+      vide = tous les corpus.
+
+    ### Ce que renvoie l'outil :
+    `{mot_a, mot_b, de, a, corpus: [...]}` avec, par corpus : `n_a`, `n_b`
+    (occurrences sur la période), `total_a`, `total_b` (mots du corpus sur la
+    période), `freq_a`, `freq_b` (fréquences relatives) et `ratio`
+    (`freq_a / freq_b`). Le rapport vaut 0 si A est absente, null si B l'est
+    ou si le corpus n'a aucun article sur la période. Les corpus sont triés
+    par rapport décroissant, les null en dernier. En cas de paramètre
+    invalide, `{erreur}` détaille le problème.
+    """
+    params = {"mot": f"{mot_a},{mot_b}", "from": debut, "to": fin}
+    if corpus:
+        params["corpus"] = corpus
+    reponse = requests.get(f"{API}/ratio", timeout=120, params=params)
+    if reponse.status_code != 200:
+        return {"erreur": reponse.text}
+    return reponse.json()
 
 
 if __name__ == "__main__":

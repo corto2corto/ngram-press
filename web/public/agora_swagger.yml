@@ -32,7 +32,8 @@ info:
     ### 🤖 Serveur MCP
     L'API est aussi accessible aux assistants IA (Claude, ChatGPT...) via un
     serveur MCP (*Model Context Protocol*, transport HTTP streamable) exposé
-    sur `/mcp`, qui propose les outils `list_corpora` et `query_frequency`.
+    sur `/mcp`, qui propose les outils `list_corpora`, `query_frequency` et
+    `compare_usage`.
     Adresse à donner au client MCP : `https://agoragram.fr/mcp` (relais Vercel
     vers le même serveur).
 
@@ -157,6 +158,71 @@ paths:
                       type: boolean
                       description: Vrai si la base de bigrammes est construite.
                       example: true
+
+  /ratio:
+    get:
+      summary: Usage relatif de deux expressions, corpus par corpus
+      description: |
+        Pour chaque corpus (tous par défaut), somme sur la période les
+        occurrences de chaque expression et le total de mots de sa table
+        (unigrammes ou bigrammes), calcule les deux fréquences et leur rapport
+        `freq_a / freq_b`. Le rapport vaut 0 si A est absente, `null` si B
+        l'est ou si le corpus n'a aucun article sur la période. Les corpus sont
+        triés par rapport décroissant, les `null` en dernier. C'est la vue
+        « Usage relatif » de l'onglet Tests statistiques du site.
+
+        **Réponse JSON :** `mot_a`, `mot_b`, `de`, `a` (`AAAAMMJJ`) et `corpus`,
+        une ligne par corpus : `corpus`, `n_a`, `total_a`, `freq_a`, `n_b`,
+        `total_b`, `freq_b`, `ratio`.
+      parameters:
+        - name: mot
+          in: query
+          description: Exactement deux expressions séparées par une virgule, 1 ou 2 mots chacune.
+          required: true
+          schema:
+            type: string
+          example: gaza,ukraine
+        - $ref: '#/components/parameters/FromParam'
+        - $ref: '#/components/parameters/ToParam'
+        - name: corpus
+          in: query
+          description: Corpus à comparer, séparés par des virgules. Défaut : tous les corpus.
+          required: false
+          schema:
+            type: string
+          example: mediapart,le_figaro,leparisien
+      responses:
+        "200":
+          description: Fréquences et rapport de chaque corpus (JSON)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mot_a: { type: string, example: gaza }
+                  mot_b: { type: string, example: ukraine }
+                  de: { type: integer, example: 20230101 }
+                  a: { type: integer, example: 20241231 }
+                  corpus:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        corpus: { type: string, example: mediapart }
+                        n_a: { type: integer, example: 26461 }
+                        total_a: { type: integer, example: 88433117 }
+                        freq_a: { type: number, nullable: true, example: 0.000299 }
+                        n_b: { type: integer, example: 15964 }
+                        total_b: { type: integer, example: 88433117 }
+                        freq_b: { type: number, nullable: true, example: 0.000181 }
+                        ratio: { type: number, nullable: true, example: 1.66 }
+        "400":
+          description: Paramètre invalide (autre chose que deux expressions, expression de plus de deux mots, corpus inconnu).
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "paramètre mot : deux expressions séparées par une virgule attendues"
 
   /projection:
     get:

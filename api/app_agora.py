@@ -200,6 +200,54 @@ def query():
     return Response(df.to_csv(index=False), mimetype="text/plain")
 
 
+@app.route("/ratio")
+def ratio():
+    # usage relatif de deux expressions, corpus par corpus : pour chaque base, occurrences et
+    # total de mots de la période (sommés sur les jours), fréquence de chacune et le rapport
+    # freq_a / freq_b. Le total est celui de la table de l'expression (unigram ou bigram), les
+    # deux fréquences ont donc chacune leur dénominateur. Le rapport est nul si A est absente,
+    # null si B l'est ; un corpus sans mot sur la période est aussi à null. Corpus triés par
+    # rapport décroissant, les null à la fin. Tous les corpus par défaut, ou une liste.
+    # /ratio?mot=gaza,ukraine&from=2023&to=2024[&corpus=mediapart,le_figaro]
+    cat = catalogue()
+    grams = [g.strip() for g in request.args.get("mot", "").split(",") if g.strip()]
+    if len(grams) != 2:
+        return "paramètre mot : deux expressions séparées par une virgule attendues", 400
+    tokens = [tokeniser(g) for g in grams]
+    for g, tk in zip(grams, tokens):
+        if not 1 <= len(tk) <= 2:
+            return f"« {g} » : 1 ou 2 mots attendus", 400
+    if request.args.get("corpus"):
+        noms = [c.strip() for c in request.args["corpus"].split(",") if c.strip()]
+        inconnus = [c for c in noms if c not in cat]
+        if inconnus:
+            return f"corpus inconnu : {', '.join(inconnus)} (choix : {', '.join(sorted(cat))})", 400
+    else:
+        noms = sorted(cat)
+    date_min = borne_date(request.args.get("from") or "1900", 101)
+    date_max = borne_date(request.args.get("to") or "2100", 1231)
+
+    lignes = []
+    for corpus in noms:
+        conn = sqlite3.connect(f"file:{cat[corpus]}?mode=ro", uri=True)
+        ligne = {"corpus": corpus}
+        for lettre, tk in zip("ab", tokens):
+            total = conn.execute(
+                f"SELECT COALESCE(SUM(total), 0) FROM total_{TABLE[len(tk)]} "
+                "WHERE date BETWEEN ? AND ?", (date_min, date_max)).fetchone()[0]
+            n = int(serie(conn, tk, date_min, date_max)["n"].sum())
+            ligne[f"n_{lettre}"] = n
+            ligne[f"total_{lettre}"] = int(total)
+            ligne[f"freq_{lettre}"] = n / total if total else None
+        conn.close()
+        fa, fb = ligne["freq_a"], ligne["freq_b"]
+        ligne["ratio"] = fa / fb if fa is not None and fb else None
+        lignes.append(ligne)
+    lignes.sort(key=lambda l: (l["ratio"] is None, -(l["ratio"] or 0), l["corpus"]))
+    return jsonify({"mot_a": grams[0], "mot_b": grams[1], "de": date_min, "a": date_max,
+                    "corpus": lignes})
+
+
 @app.route("/pca/catalogue")
 def pca_catalogue():
     # les 18 PCA de sauts et leurs paramètres : famille, corpus, vocabulaire, pas de la grille

@@ -1,5 +1,32 @@
 # Journal du projet
 
+## 14/09/2026 — usage relatif de deux mots, média par média
+- Nouvelle vue « Usage relatif » dans l'onglet Tests statistiques (à côté de
+  la projection et du catalogue) : deux mots, une période, et chaque média se
+  place selon le rapport fréquence de A / fréquence de B — le graphe en
+  sucettes trié que Corto avait maquetté en R (gaza / ukraine, entrecôte / tofu).
+- API (`app_agora.py`) : `/ratio?mot=A,B&from=&to=[&corpus=]`. Par base,
+  somme des occurrences et du total de mots de la période (chaque expression
+  avec le total de sa table, unigrammes ou bigrammes), fréquences et rapport ;
+  rapport 0 si A est absente, `null` si B l'est ou si le corpus n'a rien sur
+  la période ; tri décroissant, `null` en queue. Tous les corpus par défaut.
+  Testé sur sept mini-bases synthétiques (scratchpad) : 6 à 8 ms pour sept
+  bases, cas limites (un seul mot, corpus inconnu, période vide) en 400 / null.
+  Doc dans `agora_swagger.yml`, tableau des routes du README.
+- Front (`Ratio.tsx`, SVG maison comme `Projection.tsx`) : un média par ligne
+  (30 px), tige depuis zéro en accent estompé, point au rapport avec anneau de
+  surface, grille verticale à pas rond, repère pointillé « usage égal » au
+  rapport 1, survol par bande de ligne avec infobulle (rapport, fréquence pour
+  100 000 et occurrences de chaque mot). Les tiges se tirent l'une après
+  l'autre du haut vers le bas puis les points éclosent (mêmes images-clés que
+  les courbes). Sous le graphe, la note des médias sans occurrence de B ou sans
+  article sur la période, et le tableau « Voir les données » avec tous les
+  médias. La vue s'ouvre sur gaza / ukraine 2023-2025, tracé d'emblée. FR/EN,
+  clair/sombre.
+- MCP (`mcp_agora.py`) : outil `compare_usage(mot_a, mot_b, debut, fin, corpus)`
+  qui appelle `/ratio` et renvoie le JSON tel quel ; instructions du serveur
+  mises à jour, Swagger aussi.
+
 ## 08/09/2026 — le MCP à l'adresse agoragram.fr/mcp
 - Le serveur MCP tournait déjà sur l'ENS (`agora_mcp`, port 8011) et répondait
   sur `/guni/agora/mcp` ; vérifié depuis le Mac : initialize, tools/list et un
