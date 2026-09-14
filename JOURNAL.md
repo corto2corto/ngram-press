@@ -40,6 +40,10 @@
   cochables (Tous / Aucun en raccourcis), Le Monde et Le Figaro cochés à
   l'ouverture, la liste envoyée à `/ratio` par `corpus=` ; sans média coché,
   un message à la place du graphe. Front seul, l'API ne change pas.
+- Puis tracé automatique, comme dans les Courbes : cocher ou décocher un
+  média relance la comparaison (délai de 250 ms pour regrouper une rafale de
+  clics), changer une borne aussi (600 ms, le temps de taper l'année) ; seuls
+  les mots attendent « Comparer ». Les réponses dépassées sont ignorées.
 
 ## 08/09/2026 — le MCP à l'adresse agoragram.fr/mcp
 - Le serveur MCP tournait déjà sur l'ENS (`agora_mcp`, port 8011) et répondait

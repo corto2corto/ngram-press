@@ -9,9 +9,11 @@
 // égal). Les médias sans occurrence de B (rapport indéfini) ou sans article sur
 // la période sont dits sous le graphe, et figurent dans le tableau. Les médias
 // se cochent en pilules sous les champs : Le Monde et Le Figaro au départ, le
-// visiteur ajuste ensuite (Tous / Aucun en raccourcis).
+// visiteur ajuste ensuite (Tous / Aucun en raccourcis). Cocher un média ou
+// changer les bornes relance le tracé de soi-même (comme les Courbes) ; seuls
+// les mots attendent « Comparer ».
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { chargerCorpus, ErreurApi, requeteRatio, type Ratio as Resultat, type RatioCorpus } from "@/lib/api";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 
@@ -41,6 +43,8 @@ export default function Ratio({ lang }: { lang: Lang }) {
   const [motB, setMotB] = useState("ukraine");
   const [de, setDe] = useState("2023");
   const [a, setA] = useState("2025");
+  // les mots réellement comparés : ils ne bougent qu'à la validation du formulaire
+  const [motsTraces, setMotsTraces] = useState({ motA: "gaza", motB: "ukraine" });
   // la liste des médias (servie par l'API) et ceux qui sont cochés
   const [medias, setMedias] = useState<string[]>([]);
   const [coches, setCoches] = useState<string[]>(MEDIAS_DEPART);
@@ -51,42 +55,58 @@ export default function Ratio({ lang }: { lang: Lang }) {
   const [indice, setIndice] = useState<number | null>(null);
   const appel = useRef(0);
 
-  const comparer = async (formulaire: { motA: string; motB: string; de: string; a: string; corpus: string[] }) => {
-    if (!formulaire.motA.trim() || !formulaire.motB.trim()) return;
-    if (!formulaire.corpus.length) {
-      setResultat(null);
-      setMessage(t.ratio_choisir);
-      return;
-    }
-    const numero = ++appel.current;
-    setChargement(true);
-    setMessage(null);
-    try {
-      const r = await requeteRatio({ ...formulaire, motA: formulaire.motA.trim(), motB: formulaire.motB.trim() });
-      if (numero !== appel.current) return;
-      setResultat((p) => ({ r, tirage: (p?.tirage ?? 0) + 1 }));
-      setIndice(null);
-    } catch (e) {
-      if (numero !== appel.current) return;
-      setResultat(null);
-      setMessage(e instanceof ErreurApi && e.message ? e.message : t.msg_erreur);
-    } finally {
-      if (numero === appel.current) setChargement(false);
-    }
-  };
+  const comparer = useCallback(
+    async (formulaire: { motA: string; motB: string; de: string; a: string; corpus: string[] }) => {
+      if (!formulaire.motA.trim() || !formulaire.motB.trim()) return;
+      // une requête relancée rend la précédente caduque, même sans média coché
+      const numero = ++appel.current;
+      if (!formulaire.corpus.length) {
+        setChargement(false);
+        setResultat(null);
+        setMessage(t.ratio_choisir);
+        return;
+      }
+      setChargement(true);
+      setMessage(null);
+      try {
+        const r = await requeteRatio({ ...formulaire, motA: formulaire.motA.trim(), motB: formulaire.motB.trim() });
+        if (numero !== appel.current) return;
+        setResultat((p) => ({ r, tirage: (p?.tirage ?? 0) + 1 }));
+        setIndice(null);
+      } catch (e) {
+        if (numero !== appel.current) return;
+        setResultat(null);
+        setMessage(e instanceof ErreurApi && e.message ? e.message : t.msg_erreur);
+      } finally {
+        if (numero === appel.current) setChargement(false);
+      }
+    },
+    [t],
+  );
 
-  // premier tracé à l'ouverture de la vue, une seule fois ; la liste des médias
-  // arrive à côté, triée par nom d'affichage
-  const initialise = useRef(false);
+  // la liste des médias, triée par nom d'affichage
   useEffect(() => {
-    if (initialise.current) return;
-    initialise.current = true;
-    comparer({ motA: "gaza", motB: "ukraine", de: "2023", a: "2025", corpus: MEDIAS_DEPART });
     chargerCorpus().then((liste) =>
       setMedias([...liste].sort((x, y) => nomDe(x).localeCompare(nomDe(y), locale))),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locale]);
+
+  // tracé automatique : au premier rendu, puis à chaque média coché ou décoché,
+  // à chaque changement de bornes et à chaque validation des mots. Un court
+  // délai regroupe une rafale de clics sur les pilules ; les années se tapent
+  // chiffre par chiffre, on leur laisse plus de temps. Les bornes invalides
+  // (année incomplète, De après À) attendent.
+  const bornesPrecedentes = useRef({ de, a });
+  useEffect(() => {
+    if (!/^\d{4}$/.test(de) || !/^\d{4}$/.test(a) || Number(de) > Number(a)) return;
+    const dateModifiee = de !== bornesPrecedentes.current.de || a !== bornesPrecedentes.current.a;
+    bornesPrecedentes.current = { de, a };
+    const minuteur = setTimeout(
+      () => comparer({ ...motsTraces, de, a, corpus: coches }),
+      dateModifiee ? 600 : 250,
+    );
+    return () => clearTimeout(minuteur);
+  }, [motsTraces, de, a, coches, comparer]);
 
   const basculer = (c: string) =>
     setCoches((liste) => (liste.includes(c) ? liste.filter((m) => m !== c) : [...liste, c]));
@@ -147,7 +167,8 @@ export default function Ratio({ lang }: { lang: Lang }) {
         className="filtres"
         onSubmit={(ev) => {
           ev.preventDefault();
-          comparer({ motA, motB, de, a, corpus: coches });
+          // mêmes mots revalidés : un nouvel objet relance quand même le tracé
+          setMotsTraces({ motA: motA.trim(), motB: motB.trim() });
         }}
       >
         <label className="champ">
