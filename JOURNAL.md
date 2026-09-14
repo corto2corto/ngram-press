@@ -1,5 +1,21 @@
 # Journal du projet
 
+## 14/09/2026 — API figée par le flux d'écoute MCP (correctif)
+- Symptôme : le site affichait l'API indisponible et une liste de quatre médias
+  (repli statique de `chargerCorpus` dans `web/src/lib/api.ts` quand `/corpus`
+  ne répond pas). Sur l'ENS, `agora_error.log` comptait 237 « WORKER TIMEOUT »
+  depuis le 08/09, tous sur `/mcp`, l'API elle-même répondant entre deux.
+- Cause : après `initialize`, le client MCP de Claude Code ouvre un `GET /mcp`
+  (flux SSE d'écoute pour les messages à l'initiative du serveur). Notre
+  serveur MCP est sans état et répond en JSON : il n'y enverra jamais rien mais
+  garde le flux ouvert. Relayé en `stream=True` par un worker gunicorn
+  synchrone, ce GET bloquait le worker jusqu'au timeout de 120 s ; avec deux
+  workers, deux connexions suffisaient à figer toutes les routes du site, et le
+  client se reconnectait toutes les deux minutes.
+- Correctif (`app_agora.py`) : le proxy répond 405 au GET, comme la spec le
+  prévoit quand le flux n'est pas offert ; les POST (réponses JSON, quelques ms)
+  et DELETE passent comme avant. Le serveur MCP (8011) n'est pas touché.
+
 ## 14/09/2026 — usage relatif de deux mots, média par média
 - Nouvelle vue « Usage relatif » dans l'onglet Tests statistiques (à côté de
   la projection et du catalogue) : deux mots, une période, et chaque média se

@@ -146,6 +146,14 @@ def proxy_mcp():
     # même montage que gallicagram.com (app.py, routes /v2/mcp/) : le serveur
     # MCP tourne à part (api/mcp_agora.py, port 8011) et ce proxy l'expose sous
     # l'URL publique de l'API ; stream=True pour ne pas bufferiser le SSE
+    if request.method == "GET":
+        # flux d'écoute SSE que les clients ouvrent après initialize : le serveur
+        # MCP (sans état, réponses JSON) n'y enverra jamais rien mais le garde
+        # ouvert indéfiniment, et relayé par un worker gunicorn synchrone il le
+        # bloquait jusqu'au timeout (120 s) — deux clients et toute l'API était
+        # figée. La spec MCP prévoit 405 quand ce flux n'est pas offert.
+        return jsonify({"erreur": "pas de flux SSE d'écoute : envoyer les "
+                        "requêtes JSON-RPC en POST"}), 405, {"Allow": "POST, DELETE, OPTIONS"}
     try:
         reponse = requests.request(
             method=request.method, url=MCP_LOCAL, params=request.args,
