@@ -36,6 +36,10 @@
   Ouest et Le Télégramme sans « ukraine »), `/corpus` et `/projection` intacts,
   `tools/list` du MCP donne les trois outils et `compare_usage` répond. Fusion
   dans `main` (avance rapide) pour Vercel.
+- Ensuite, choix des médias : sous les champs, les 36 médias en pilules
+  cochables (Tous / Aucun en raccourcis), Le Monde et Le Figaro cochés à
+  l'ouverture, la liste envoyée à `/ratio` par `corpus=` ; sans média coché,
+  un message à la place du graphe. Front seul, l'API ne change pas.
 
 ## 08/09/2026 — le MCP à l'adresse agoragram.fr/mcp
 - Le serveur MCP tournait déjà sur l'ENS (`agora_mcp`, port 8011) et répondait

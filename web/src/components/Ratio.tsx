@@ -7,15 +7,19 @@
 // en sucettes trié, un média par ligne, dans le même SVG maison que Chart.tsx :
 // tige depuis zéro, point au rapport, repère pointillé au rapport 1 (usage
 // égal). Les médias sans occurrence de B (rapport indéfini) ou sans article sur
-// la période sont dits sous le graphe, et figurent dans le tableau.
+// la période sont dits sous le graphe, et figurent dans le tableau. Les médias
+// se cochent en pilules sous les champs : Le Monde et Le Figaro au départ, le
+// visiteur ajuste ensuite (Tous / Aucun en raccourcis).
 
 import { useEffect, useRef, useState } from "react";
-import { ErreurApi, requeteRatio, type Ratio as Resultat, type RatioCorpus } from "@/lib/api";
+import { chargerCorpus, ErreurApi, requeteRatio, type Ratio as Resultat, type RatioCorpus } from "@/lib/api";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 
 const MARGE = { haut: 30, droite: 28, bas: 40 };
 const RANG = 30; // hauteur d'une ligne (un média)
 const RAYON = 5;
+// les médias cochés à l'ouverture de la vue
+const MEDIAS_DEPART = ["le_monde", "le_figaro"];
 
 function pasArrondi(brut: number): number {
   const puissance = 10 ** Math.floor(Math.log10(brut));
@@ -37,6 +41,9 @@ export default function Ratio({ lang }: { lang: Lang }) {
   const [motB, setMotB] = useState("ukraine");
   const [de, setDe] = useState("2023");
   const [a, setA] = useState("2025");
+  // la liste des médias (servie par l'API) et ceux qui sont cochés
+  const [medias, setMedias] = useState<string[]>([]);
+  const [coches, setCoches] = useState<string[]>(MEDIAS_DEPART);
 
   const [chargement, setChargement] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -44,8 +51,13 @@ export default function Ratio({ lang }: { lang: Lang }) {
   const [indice, setIndice] = useState<number | null>(null);
   const appel = useRef(0);
 
-  const comparer = async (formulaire: { motA: string; motB: string; de: string; a: string }) => {
+  const comparer = async (formulaire: { motA: string; motB: string; de: string; a: string; corpus: string[] }) => {
     if (!formulaire.motA.trim() || !formulaire.motB.trim()) return;
+    if (!formulaire.corpus.length) {
+      setResultat(null);
+      setMessage(t.ratio_choisir);
+      return;
+    }
     const numero = ++appel.current;
     setChargement(true);
     setMessage(null);
@@ -63,14 +75,21 @@ export default function Ratio({ lang }: { lang: Lang }) {
     }
   };
 
-  // premier tracé à l'ouverture de la vue, une seule fois
+  // premier tracé à l'ouverture de la vue, une seule fois ; la liste des médias
+  // arrive à côté, triée par nom d'affichage
   const initialise = useRef(false);
   useEffect(() => {
     if (initialise.current) return;
     initialise.current = true;
-    comparer({ motA: "gaza", motB: "ukraine", de: "2023", a: "2025" });
+    comparer({ motA: "gaza", motB: "ukraine", de: "2023", a: "2025", corpus: MEDIAS_DEPART });
+    chargerCorpus().then((liste) =>
+      setMedias([...liste].sort((x, y) => nomDe(x).localeCompare(nomDe(y), locale))),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const basculer = (c: string) =>
+    setCoches((liste) => (liste.includes(c) ? liste.filter((m) => m !== c) : [...liste, c]));
 
   // largeur du graphe suivant le conteneur, comme Chart.tsx
   const zone = useRef<HTMLDivElement>(null);
@@ -128,7 +147,7 @@ export default function Ratio({ lang }: { lang: Lang }) {
         className="filtres"
         onSubmit={(ev) => {
           ev.preventDefault();
-          comparer({ motA, motB, de, a });
+          comparer({ motA, motB, de, a, corpus: coches });
         }}
       >
         <label className="champ">
@@ -150,6 +169,33 @@ export default function Ratio({ lang }: { lang: Lang }) {
         <button type="submit" className="bouton" disabled={chargement}>
           {t.btn_comparer}
         </button>
+
+        {medias.length > 0 && (
+          <fieldset className="choix-medias">
+            <legend>
+              <span>{t.lbl_medias}</span>
+              <button type="button" className="lien-medias" onClick={() => setCoches(medias)}>
+                {t.medias_tous}
+              </button>
+              <button type="button" className="lien-medias" onClick={() => setCoches([])}>
+                {t.medias_aucun}
+              </button>
+            </legend>
+            <div className="pilules pilules-medias">
+              {medias.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={coches.includes(c) ? "actif" : undefined}
+                  aria-pressed={coches.includes(c)}
+                  onClick={() => basculer(c)}
+                >
+                  {nomDe(c)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
       </form>
 
       <figure className="carte-graphe">

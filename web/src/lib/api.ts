@@ -246,11 +246,18 @@ export type Ratio = {
   corpus: RatioCorpus[];
 };
 
-export function requeteRatio(options: { motA: string; motB: string; de: string; a: string }): Promise<Ratio> {
+export function requeteRatio(options: {
+  motA: string;
+  motB: string;
+  de: string;
+  a: string;
+  corpus: string[]; // les médias à comparer (tous si vide)
+}): Promise<Ratio> {
   const params = new URLSearchParams({
     mot: `${options.motA},${options.motB}`,
     from: options.de,
     to: options.a,
   });
+  if (options.corpus.length) params.set("corpus", options.corpus.join(","));
   return lireJson<Ratio>(`/ratio?${params}`);
 }

@@ -1466,3 +1466,50 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 .tableau-ratio {
   max-height: 24rem;
 }
+
+/* le choix des médias (Ratio.tsx) : un bloc sous les champs, pleine largeur,
+   étiquette dans le style des champs, raccourcis Tous / Aucun, puis les
+   pilules cochables (aria-pressed) — plus petites que les sous-onglets */
+.choix-medias {
+  flex-basis: 100%;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.choix-medias legend {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--encre-muette);
+}
+
+.lien-medias {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--encre-muette);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--axe);
+  cursor: pointer;
+  transition: color var(--duree-courte) ease;
+}
+
+.lien-medias:hover {
+  color: var(--encre);
+}
+
+.pilules-medias button {
+  padding: 0.22rem 0.7rem;
+  font-size: 0.8rem;
+}

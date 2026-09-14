@@ -263,6 +263,10 @@ export const textes = {
     ratio_aucun: "Aucun média n'a les deux mots sur cette période.",
     ratio_bulle_ratio: "rapport",
     ratio_bulle_occ: (n: string) => `${n} occ.`,
+    lbl_medias: "Médias",
+    medias_tous: "Tous",
+    medias_aucun: "Aucun",
+    ratio_choisir: "Cochez au moins un média.",
 
     lbl_mots: "Mots (séparés par des virgules)",
     lbl_corpus: "Journal",
@@ -511,6 +515,10 @@ export const textes = {
     ratio_aucun: "No outlet has both words over this period.",
     ratio_bulle_ratio: "ratio",
     ratio_bulle_occ: (n: string) => `${n} occ.`,
+    lbl_medias: "Outlets",
+    medias_tous: "All",
+    medias_aucun: "None",
+    ratio_choisir: "Tick at least one outlet.",
 
     lbl_mots: "Words (comma-separated)",
     lbl_corpus: "Newspaper",
