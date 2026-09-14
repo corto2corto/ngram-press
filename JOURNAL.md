@@ -26,6 +26,16 @@
 - MCP (`mcp_agora.py`) : outil `compare_usage(mot_a, mot_b, debut, fin, corpus)`
   qui appelle `/ratio` et renvoie le JSON tel quel ; instructions du serveur
   mises à jour, Swagger aussi.
+- Mise en ligne le jour même : push, `git pull --ff-only origin usage-relatif`
+  sur l'ENS, relance du gunicorn agora (Ctrl+C puis même commande dans
+  `agora:0`) et du MCP. Piège : la session tmux `agora_mcp` portait la commande
+  python directement (pas de shell), le Ctrl+C l'a fermée ; recréée avec un
+  shell (`tmux new-session -d -s agora_mcp`, puis la commande), comme `agora`.
+  Vérifié sur l'URL publique : `/ratio` gaza / ukraine 2023-2025 en 3,3 s pour
+  les 36 corpus (Mediapart 4,5, Le Nouvel Obs 4,4, La Provence 3,8 … ; Sud
+  Ouest et Le Télégramme sans « ukraine »), `/corpus` et `/projection` intacts,
+  `tools/list` du MCP donne les trois outils et `compare_usage` répond. Fusion
+  dans `main` (avance rapide) pour Vercel.
 
 ## 08/09/2026 — le MCP à l'adresse agoragram.fr/mcp
 - Le serveur MCP tournait déjà sur l'ENS (`agora_mcp`, port 8011) et répondait
