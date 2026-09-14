@@ -44,6 +44,10 @@
   média relance la comparaison (délai de 250 ms pour regrouper une rafale de
   clics), changer une borne aussi (600 ms, le temps de taper l'année) ; seuls
   les mots attendent « Comparer ». Les réponses dépassées sont ignorées.
+- Catalogue des PCA, fiche des paramètres : majuscule initiale sur chaque
+  valeur (`::first-letter` sur les `dd`, les valeurs de `catalogue.csv` restent
+  en minuscules) et ligne « Fichier d'origine (stage) » retirée du front ; le
+  champ `source` reste servi par l'API. Front seul.
 
 ## 08/09/2026 — le MCP à l'adresse agoragram.fr/mcp
 - Le serveur MCP tournait déjà sur l'ENS (`agora_mcp`, port 8011) et répondait

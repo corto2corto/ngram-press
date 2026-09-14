@@ -1354,9 +1354,9 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   overflow-wrap: anywhere;
 }
 
-.params-pca code {
-  font-size: 0.85em;
-  color: var(--encre-2);
+/* valeurs du catalogue en minuscules dans catalogue.csv : majuscule initiale à l'affichage */
+.params-pca dd::first-letter {
+  text-transform: uppercase;
 }
 
 .liens-csv {

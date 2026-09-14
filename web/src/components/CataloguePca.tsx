@@ -553,10 +553,6 @@ export default function CataloguePca({ lang }: { lang: Lang }) {
                   ? t.cat_plancher_aucun
                   : t.cat_plancher_val(entier(Math.max(...pca.arch_plancher)))}
               </dd>
-              <dt>{t.cat_source}</dt>
-              <dd>
-                <code>campagne_pca/data/{pca.source}</code>
-              </dd>
             </dl>
             {csv && (
               <div className="liens-csv">
