@@ -7,9 +7,12 @@
 # Test local : NGRAM_DIR=data python -m api.app_agora  puis  http://localhost:8502/corpus
 
 import glob
+import json
+import logging
 import os
 import re
 import sqlite3
+import time
 
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
@@ -21,6 +24,8 @@ from scripts.tokenisation import tokeniser
 
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
 MCP_LOCAL = os.environ.get("AGORA_MCP", "http://127.0.0.1:8011/mcp")
+# sous gunicorn, ce logger écrit dans --error-logfile (agora_error.log)
+JOURNAL = logging.getLogger("gunicorn.error")
 TABLE = {1: "unigram", 2: "bigram"}
 # jeu d'étude des PCA de sauts (pca/README.md) : composantes gelées et fenêtres du fit
 PCA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pca")
@@ -141,31 +146,71 @@ def catalogue_detaille():
     return jsonify(infos)
 
 
+def _identite_jsonrpc(corps):
+    """(id, méthode) du message JSON-RPC d'un POST /mcp, (None, None) sinon."""
+    try:
+        message = json.loads(corps)
+        if isinstance(message, dict):
+            return message.get("id"), message.get("method")
+    except (ValueError, TypeError):
+        pass
+    return None, None
+
+
+def _erreur_jsonrpc(id_rpc, code, message, statut):
+    # même forme que le SDK MCP : erreur JSON-RPC, statut HTTP tiré du code
+    # (-32601 « méthode non trouvée » → 404)
+    return jsonify({"jsonrpc": "2.0", "id": id_rpc,
+                    "error": {"code": code, "message": message}}), statut
+
+
 @app.route("/mcp", methods=["GET", "POST", "DELETE", "OPTIONS"])
 def proxy_mcp():
     # même montage que gallicagram.com (app.py, routes /v2/mcp/) : le serveur
     # MCP tourne à part (api/mcp_agora.py, port 8011) et ce proxy l'expose sous
-    # l'URL publique de l'API ; stream=True pour ne pas bufferiser le SSE
+    # l'URL publique de l'API.
+    #
+    # Le serveur MCP est sans état et répond en JSON : aucune réponse légitime
+    # n'est un flux SSE. Or gunicorn tourne ici avec deux workers synchrones,
+    # et un flux relayé bloque son worker jusqu'au timeout (120 s) : deux
+    # flux et toutes les routes du site étaient figées (panne des 08-17/09/2026).
+    # Les flux d'écoute que les clients ouvrent après l'initialisation sont donc
+    # refusés d'emblée — le GET (protocole 2025) par un 405 prévu par la spec,
+    # le POST subscriptions/listen (protocole 2026-07-28, servi en SSE même en
+    # mode JSON) par une erreur JSON-RPC « méthode non trouvée » — et tout
+    # autre flux inattendu est coupé au lieu d'être relayé.
     if request.method == "GET":
-        # flux d'écoute SSE que les clients ouvrent après initialize : le serveur
-        # MCP (sans état, réponses JSON) n'y enverra jamais rien mais le garde
-        # ouvert indéfiniment, et relayé par un worker gunicorn synchrone il le
-        # bloquait jusqu'au timeout (120 s) — deux clients et toute l'API était
-        # figée. La spec MCP prévoit 405 quand ce flux n'est pas offert.
         return jsonify({"erreur": "pas de flux SSE d'écoute : envoyer les "
                         "requêtes JSON-RPC en POST"}), 405, {"Allow": "POST, DELETE, OPTIONS"}
+    corps = request.get_data()
+    id_rpc, methode = _identite_jsonrpc(corps) if request.method == "POST" else (None, None)
+    client = request.headers.get("User-Agent", "-")
+    protocole = request.headers.get("MCP-Protocol-Version", "-")
+    if methode == "subscriptions/listen":
+        JOURNAL.info("mcp %s refusé (flux d'écoute) client=%s protocole=%s", methode, client, protocole)
+        return _erreur_jsonrpc(id_rpc, -32601, "Method not found: subscriptions/listen "
+                               "(pas de flux d'écoute derrière ce proxy)", 404)
+    debut = time.monotonic()
     try:
         reponse = requests.request(
             method=request.method, url=MCP_LOCAL, params=request.args,
             headers={c: v for c, v in request.headers if c.lower() != "host"},
-            data=request.get_data(), timeout=60, stream=True)
+            data=corps, timeout=60, stream=True)
     except requests.exceptions.RequestException as e:
         return jsonify({"erreur": f"serveur MCP indisponible : {e}"}), 503
+    type_reponse = reponse.headers.get("Content-Type", "")
+    if "text/event-stream" in type_reponse:
+        reponse.close()
+        JOURNAL.warning("mcp %s %s coupé : réponse SSE inattendue client=%s protocole=%s",
+                        request.method, methode, client, protocole)
+        return _erreur_jsonrpc(id_rpc, -32601, "flux SSE non relayé par ce proxy", 404)
+    contenu = reponse.content
+    JOURNAL.info("mcp %s %s id=%s -> %s %s %d o en %.0f ms client=%s protocole=%s",
+                 request.method, methode, id_rpc, reponse.status_code, type_reponse or "-",
+                 len(contenu), (time.monotonic() - debut) * 1000, client, protocole)
     exclus = {"content-encoding", "content-length", "transfer-encoding", "connection"}
     entetes = [(c, v) for c, v in reponse.raw.headers.items() if c.lower() not in exclus]
-    if "text/event-stream" in reponse.headers.get("Content-Type", ""):
-        return Response(reponse.iter_content(chunk_size=1024), reponse.status_code, entetes)
-    return Response(reponse.content, reponse.status_code, entetes)
+    return Response(contenu, reponse.status_code, entetes)
 
 
 @app.route("/query")

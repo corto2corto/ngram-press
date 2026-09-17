@@ -1,5 +1,34 @@
 # Journal du projet
 
+## 17/09/2026 — API encore figée : le vrai coupable est `subscriptions/listen`
+- Le correctif du 14/09 (GET /mcp en 405) ne suffisait pas : 97 nouveaux
+  « WORKER TIMEOUT » en trois jours, tous sur des POST /mcp, et l'explorateur
+  d'agoragram.fr retombait encore sur ses 4 médias de repli (la liste des 36
+  arrive après le blocage, quand le navigateur a déjà renoncé).
+- Cause : Claude Code (2.1.270) parle le protocole MCP 2026-07-28. Dans cette
+  version il n'y a plus de GET d'écoute : le client ouvre un POST
+  `subscriptions/listen`, et le SDK serveur (mcp 2.1.1) le sert en flux SSE
+  sans fin **même en mode `json_response`** (seule méthode dans ce cas, voir
+  `_streamable_http_modern.py`). Le proxy le relayait en streaming et gardait
+  son worker gunicorn synchrone jusqu'au timeout de 120 s ; deux flux (le
+  client en ouvre par paires, puis réessaie toutes les deux minutes après le
+  500) et toute l'API était figée. Reproduit sur 8011 : `listen` répond
+  `text/event-stream` et ne se ferme jamais, `tools/list` répond en JSON.
+- Correctif (`app_agora.py`) : le proxy lit le message JSON-RPC ; un
+  `subscriptions/listen` reçoit d'emblée l'erreur JSON-RPC -32601 « méthode
+  non trouvée » (404, la forme que le SDK donne à ce code) sans toucher au
+  serveur MCP ; toute autre réponse `text/event-stream` est coupée et reçoit la
+  même erreur au lieu d'être relayée ; le GET reste en 405. Une ligne de
+  journal par requête /mcp (méthode, id, statut, durée, client, version du
+  protocole) part dans `agora_error.log` via le logger gunicorn. Testé en local
+  contre un faux serveur MCP (JSON, 202, flux sans fin) : tout répond en
+  moins de 3 ms. Rien ne change pour le serveur MCP (8011) ni pour la liste
+  des médias, que l'API a toujours servie au complet.
+- Reste fragile : deux workers synchrones. Un appel d'outil MCP passe par le
+  proxy puis rappelle l'API sur le même gunicorn ; deux appels simultanés
+  peuvent encore s'attendre. À voir avec Corto : `--threads` ou un worker de
+  plus dans la commande de lancement.
+
 ## 14/09/2026 — API figée par le flux d'écoute MCP (correctif)
 - Symptôme : le site affichait l'API indisponible et une liste de quatre médias
   (repli statique de `chargerCorpus` dans `web/src/lib/api.ts` quand `/corpus`
