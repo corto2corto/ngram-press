@@ -248,12 +248,15 @@ export const textes = {
       + "le rapport fréquence de A / fréquence de B.",
     ratio_titre: (a: string, b: string) => `Usage relatif de « ${a} » et « ${b} »`,
     ratio_sous: (de: string, a: string, n: string) => `${de} – ${a} · ${n} médias`,
-    ratio_axe: (a: string, b: string) => `fréquence de « ${a} » / fréquence de « ${b} »`,
+    ratio_axe: (a: string, b: string) => `fréquence de « ${a} » / fréquence de « ${b} », échelle log`,
     ratio_egal: "usage égal",
     ratio_col_media: "Média",
     ratio_col_n: (m: string) => `« ${m} »`,
     ratio_col_pour100k: "pour 100 000",
     ratio_col_ratio: "Rapport",
+    ratio_nuls: (n: number, a: string, liste: string) =>
+      `${n === 1 ? "Média sans" : `${n} médias sans`} occurrence de « ${a} » sur la période, `
+      + `donc au rapport nul, hors de l'échelle log : ${liste}.`,
     ratio_absents: (n: number, b: string, liste: string) =>
       `${n === 1 ? "Média sans" : `${n} médias sans`} occurrence de « ${b} » sur la période, `
       + `donc sans rapport : ${liste}.`,
@@ -499,12 +502,15 @@ export const textes = {
       + "frequency of A / frequency of B.",
     ratio_titre: (a: string, b: string) => `Relative usage of “${a}” and “${b}”`,
     ratio_sous: (de: string, a: string, n: string) => `${de} – ${a} · ${n} outlets`,
-    ratio_axe: (a: string, b: string) => `frequency of “${a}” / frequency of “${b}”`,
+    ratio_axe: (a: string, b: string) => `frequency of “${a}” / frequency of “${b}”, log scale`,
     ratio_egal: "equal usage",
     ratio_col_media: "Outlet",
     ratio_col_n: (m: string) => `“${m}”`,
     ratio_col_pour100k: "per 100,000",
     ratio_col_ratio: "Ratio",
+    ratio_nuls: (n: number, a: string, liste: string) =>
+      `${n === 1 ? "Outlet with no" : `${n} outlets with no`} occurrence of “${a}” over the period, `
+      + `hence a ratio of zero, off the log scale: ${liste}.`,
     ratio_absents: (n: number, b: string, liste: string) =>
       `${n === 1 ? "Outlet with no" : `${n} outlets with no`} occurrence of “${b}” over the period, `
       + `hence no ratio: ${liste}.`,

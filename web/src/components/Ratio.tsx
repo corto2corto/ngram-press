@@ -4,10 +4,15 @@
 // statistiques ») : on tape deux mots et une période, l'API (route /ratio de
 // api/app_agora.py) somme sur chaque base les occurrences et le total de mots
 // de la période, et renvoie le rapport fréquence de A / fréquence de B. Graphe
-// en sucettes trié, un média par ligne, dans le même SVG maison que Chart.tsx :
-// tige depuis zéro, point au rapport, repère pointillé au rapport 1 (usage
-// égal). Les médias sans occurrence de B (rapport indéfini) ou sans article sur
-// la période sont dits sous le graphe, et figurent dans le tableau. Les médias
+// en sucettes trié, un média par ligne, dans le même SVG maison que Chart.tsx.
+// L'abscisse est logarithmique : un rapport se lit en « fois », 2 et ½ sont le
+// même écart dans deux sens, et en linéaire tout le côté B (de 0 à 1)
+// s'écrasait contre le bord. Le repère du rapport 1 (usage égal) sert d'axe :
+// chaque tige part de là, vers la droite quand A domine, vers la gauche quand
+// B domine, et sa longueur dit l'ampleur. Les médias où A est absente (rapport
+// nul, hors du log), ceux sans occurrence de B (rapport indéfini) et ceux sans
+// article sur la période sont dits sous le graphe, et figurent dans le tableau.
+// Les médias
 // se cochent en pilules sous les champs : Le Monde et Le Figaro au départ, le
 // visiteur ajuste ensuite (Tous / Aucun en raccourcis). Cocher un média ou
 // changer les bornes relance le tracé de soi-même (comme les Courbes) ; seuls
@@ -23,11 +28,14 @@ const RAYON = 5;
 // les médias cochés à l'ouverture de la vue
 const MEDIAS_DEPART = ["le_monde", "le_figaro"];
 
-function pasArrondi(brut: number): number {
-  const puissance = 10 ** Math.floor(Math.log10(brut));
-  for (const m of [1, 2, 5]) if (m * puissance >= brut) return m * puissance;
+// bornes rondes de l'axe log : la suite 1, 2, 5 par décade, qui est aussi celle
+// de ses inverses (½ = 5·10⁻¹, ⅕ = 2·10⁻¹), d'où la borne basse par l'inverse
+function borneHaute(v: number): number {
+  const puissance = 10 ** Math.floor(Math.log10(v) + 1e-9);
+  for (const m of [1, 2, 5]) if (m * puissance >= v * (1 - 1e-9)) return m * puissance;
   return 10 * puissance;
 }
+const borneBasse = (v: number) => 1 / borneHaute(1 / v);
 
 const nomDe = (c: string) => corpusNoms[c] ?? c;
 
@@ -133,21 +141,32 @@ export default function Ratio({ lang }: { lang: Lang }) {
   const formaterDate = (d: number) =>
     new Date(dateIso(d)).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
-  // les trois familles de lignes : tracées, sans B (rapport indéfini), sans article
-  const tracees: RatioCorpus[] = r ? r.corpus.filter((l) => l.ratio !== null) : [];
+  // les quatre familles de lignes : tracées, sans A (rapport nul, hors du log),
+  // sans B (rapport indéfini), sans article
+  const tracees: RatioCorpus[] = r ? r.corpus.filter((l) => l.ratio !== null && l.ratio > 0) : [];
+  const sansA = r ? r.corpus.filter((l) => l.ratio === 0) : [];
   const sansB = r ? r.corpus.filter((l) => l.ratio === null && l.total_a > 0) : [];
   const sansDonnees = r ? r.corpus.filter((l) => l.total_a === 0 && l.total_b === 0) : [];
 
-  // échelles : les médias en lignes, le rapport en abscisse de 0 à un plafond rond
+  // échelles : les médias en lignes, le rapport en abscisse sur une échelle log
+  // dont les bornes rondes serrent les données et gardent toujours le rapport 1
   const margeGauche = 14 + 6.6 * Math.max(6, ...tracees.map((l) => nomDe(l.corpus).length));
   const hauteur = MARGE.haut + RANG * Math.max(1, tracees.length) + MARGE.bas;
-  const xMax = Math.max(1, ...tracees.map((l) => l.ratio ?? 0));
-  const pas = pasArrondi(xMax / 4);
-  const xHaut = pas * Math.ceil((xMax * 1.02) / pas);
-  const px = (v: number) => margeGauche + (v / xHaut) * (largeur - margeGauche - MARGE.droite);
+  const rapports = tracees.map((l) => l.ratio ?? 1);
+  const xBas = borneBasse(Math.min(1, ...rapports.map((v) => v / 1.08)));
+  const xHaut = borneHaute(Math.max(1, ...rapports.map((v) => v * 1.08)));
+  const lg = Math.log10;
+  const px = (v: number) =>
+    margeGauche + ((lg(v) - lg(xBas)) / (lg(xHaut) - lg(xBas))) * (largeur - margeGauche - MARGE.droite);
   const py = (i: number) => MARGE.haut + RANG * i + RANG / 2;
+  // graduations 1-2-5 par décade, puissances de dix seules quand l'étendue est large
+  const mantisses = lg(xHaut) - lg(xBas) <= 3 ? [1, 2, 5] : [1];
   const graduations: number[] = [];
-  for (let v = 0; v <= xHaut + 1e-9; v += pas) graduations.push(Math.round(v / pas) * pas + 0);
+  for (let k = Math.floor(lg(xBas) + 1e-9); k <= Math.ceil(lg(xHaut) - 1e-9); k++)
+    for (const m of mantisses) {
+      const v = m * 10 ** k;
+      if (v >= xBas * (1 - 1e-9) && v <= xHaut * (1 + 1e-9)) graduations.push(v);
+    }
   const pret = r !== undefined && largeur > 0 && tracees.length > 0;
 
   const surSurvol = (ev: React.PointerEvent<SVGSVGElement>) => {
@@ -157,7 +176,7 @@ export default function Ratio({ lang }: { lang: Lang }) {
     setIndice(i >= 0 && i < tracees.length ? i : null);
   };
   const survolee = indice !== null ? tracees[indice] : null;
-  const aDroite = survolee !== null && px(survolee.ratio ?? 0) < largeur / 2;
+  const aDroite = survolee !== null && px(survolee.ratio ?? 1) < largeur / 2;
 
   const listeNoms = (lignes: RatioCorpus[]) => lignes.map((l) => nomDe(l.corpus)).join(", ");
 
@@ -243,39 +262,25 @@ export default function Ratio({ lang }: { lang: Lang }) {
                     <rect x={0} y={MARGE.haut + RANG * indice} width={largeur} height={RANG} rx={6} fill="var(--grille)" />
                   )}
 
+                  {/* la grille ; le rapport 1 (usage égal) est l'axe d'où partent les tiges */}
                   {graduations.map((v) => (
                     <g key={v}>
                       <line
                         x1={px(v)}
                         x2={px(v)}
-                        y1={MARGE.haut}
+                        y1={v === 1 ? MARGE.haut - 6 : MARGE.haut}
                         y2={hauteur - MARGE.bas}
-                        stroke={v === 0 ? "var(--axe)" : "var(--grille)"}
+                        stroke={v === 1 ? "var(--axe)" : "var(--grille)"}
                         strokeWidth={1}
                       />
                       <text x={px(v)} y={hauteur - MARGE.bas + 16} textAnchor="middle" fontSize={11} fill="var(--encre-muette)">
-                        {v.toLocaleString(locale)}
+                        {v.toLocaleString(locale, { maximumSignificantDigits: 1 })}
                       </text>
                     </g>
                   ))}
-
-                  {/* le repère de l'usage égal : rapport 1 */}
-                  {xHaut > 1 && (
-                    <g>
-                      <line
-                        x1={px(1)}
-                        x2={px(1)}
-                        y1={MARGE.haut - 6}
-                        y2={hauteur - MARGE.bas}
-                        stroke="var(--encre-muette)"
-                        strokeWidth={1}
-                        strokeDasharray="3 4"
-                      />
-                      <text x={px(1)} y={MARGE.haut - 12} textAnchor="middle" fontSize={10.5} fill="var(--encre-muette)">
-                        {t.ratio_egal}
-                      </text>
-                    </g>
-                  )}
+                  <text x={px(1)} y={MARGE.haut - 12} textAnchor="middle" fontSize={10.5} fill="var(--encre-muette)">
+                    {t.ratio_egal}
+                  </text>
 
                   <text x={largeur - MARGE.droite} y={hauteur - 6} textAnchor="end" fontSize={11} fill="var(--encre-muette)">
                     {t.ratio_axe(r.mot_a, r.mot_b)}
@@ -297,20 +302,23 @@ export default function Ratio({ lang }: { lang: Lang }) {
                   {/* les sucettes : la clé de tirage rejoue l'animation à chaque comparaison */}
                   <g className="sucettes" key={resultat.tirage}>
                     {tracees.map((l, i) => {
-                      const v = l.ratio ?? 0;
+                      const xUn = px(1);
+                      const xv = px(l.ratio ?? 1);
+                      // la tige part du rapport 1 et s'arrête au bord du point, de quelque côté qu'il soit
+                      const bout = xv >= xUn ? Math.max(xUn, xv - RAYON) : Math.min(xUn, xv + RAYON);
                       const part = i / Math.max(1, tracees.length - 1);
                       return (
                         <g key={l.corpus} className="sucette" style={{ "--part": part } as React.CSSProperties}>
                           <path
                             className="tige"
                             pathLength={1}
-                            d={`M${px(0)},${py(i)}H${Math.max(px(0), px(v) - RAYON)}`}
+                            d={`M${xUn},${py(i)}H${bout}`}
                             fill="none"
                             stroke="var(--serie-1)"
                             strokeWidth={1.6}
                             strokeOpacity={0.6}
                           />
-                          <circle className="point" cx={px(v)} cy={py(i)} r={RAYON} fill="var(--serie-1)" stroke="var(--surface)" strokeWidth={2} />
+                          <circle className="point" cx={xv} cy={py(i)} r={RAYON} fill="var(--serie-1)" stroke="var(--surface)" strokeWidth={2} />
                         </g>
                       );
                     })}
@@ -323,8 +331,8 @@ export default function Ratio({ lang }: { lang: Lang }) {
                   className="infobulle"
                   style={{
                     top: MARGE.haut + RANG * (indice ?? 0) - 6,
-                    left: aDroite ? px(survolee.ratio ?? 0) + 14 : undefined,
-                    right: aDroite ? undefined : largeur - px(survolee.ratio ?? 0) + 14,
+                    left: aDroite ? px(survolee.ratio ?? 1) + 14 : undefined,
+                    right: aDroite ? undefined : largeur - px(survolee.ratio ?? 1) + 14,
                   }}
                 >
                   <div className="quand">{nomDe(survolee.corpus)}</div>
@@ -350,11 +358,15 @@ export default function Ratio({ lang }: { lang: Lang }) {
               {tracees.length === 0 && <p className="etat-projection">{t.ratio_aucun}</p>}
             </div>
 
-            {(sansB.length > 0 || sansDonnees.length > 0) && (
+            {(sansA.length > 0 || sansB.length > 0 || sansDonnees.length > 0) && (
               <p className="note-ratio">
-                {sansB.length > 0 && t.ratio_absents(sansB.length, r.mot_b, listeNoms(sansB))}
-                {sansB.length > 0 && sansDonnees.length > 0 && " "}
-                {sansDonnees.length > 0 && t.ratio_sans_donnees(sansDonnees.length, listeNoms(sansDonnees))}
+                {[
+                  sansA.length > 0 && t.ratio_nuls(sansA.length, r.mot_a, listeNoms(sansA)),
+                  sansB.length > 0 && t.ratio_absents(sansB.length, r.mot_b, listeNoms(sansB)),
+                  sansDonnees.length > 0 && t.ratio_sans_donnees(sansDonnees.length, listeNoms(sansDonnees)),
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               </p>
             )}
 

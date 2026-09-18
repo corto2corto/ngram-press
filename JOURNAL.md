@@ -1,5 +1,21 @@
 # Journal du projet
 
+## 18/09/2026 — usage relatif : l'abscisse passe en log
+- Remarque reçue sur la vue « Usage relatif » : « passe le x-axis log ». Un
+  rapport de fréquences se lit en « fois » : 2 (A deux fois plus fréquente) et
+  ½ (B deux fois plus fréquente) sont le même écart dans deux sens. En
+  linéaire, tout le côté B tenait entre 0 et 1, illisible, un seul média à 40
+  tassait les autres contre le bord, et la tige depuis zéro faisait lire un
+  rapport de 0,1 comme un petit effet.
+- `Ratio.tsx` : abscisse logarithmique, bornes rondes de la suite 1-2-5 qui
+  serrent les données en gardant toujours le rapport 1 ; graduations 1-2-5
+  jusqu'à trois décades, puissances de dix seules au-delà. Le repère
+  « usage égal » devient l'axe : chaque tige part de 1, vers la droite quand A
+  domine, vers la gauche quand B domine, et sa longueur dit l'ampleur. Les
+  médias où A est absente (rapport 0, hors du log) rejoignent la note sous le
+  graphe, avec ceux sans B et ceux sans article ; ils restent dans le tableau.
+  Libellé d'axe « échelle log » (FR/EN), rien ne change côté API.
+
 ## 17/09/2026 — API encore figée : le vrai coupable est `subscriptions/listen`
 - Le correctif du 14/09 (GET /mcp en 405) ne suffisait pas : 97 nouveaux
   « WORKER TIMEOUT » en trois jours, tous sur des POST /mcp, et l'explorateur

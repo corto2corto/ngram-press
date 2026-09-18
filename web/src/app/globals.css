@@ -1421,7 +1421,8 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 
 /* ---- usage relatif de deux mots, média par média (Ratio.tsx) : graphe en
    sucettes dans la carte du graphe, la hauteur suit le nombre de médias.
-   Chaque tige se tire depuis zéro (mêmes images-clés que les courbes, A6),
+   Chaque tige se tire depuis le repère du rapport 1, vers la droite ou la
+   gauche selon le mot qui domine (mêmes images-clés que les courbes, A6),
    les lignes partent l'une après l'autre du haut vers le bas (--part, le rang
    de la ligne de 0 à 1), puis le point éclôt au bout de sa tige. */
 
