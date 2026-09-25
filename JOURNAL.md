@@ -1,5 +1,16 @@
 # Journal du projet
 
+## 25/09/2026 — ménage des copies venues de stage-mids
+- Règle posée dans `.claude/CLAUDE.md` : un seul dépôt propriétaire par outil.
+  Seules copies restantes : `scripts/tokenisation.py` (à l'identique) et
+  `rupture/pca.py` (extrait), toutes deux propriété de stage-mids ;
+  `scripts/top_ngram.py` en suspens jusqu'aux tops du site.
+- Retirés : `front/` (remplacé par `web/`), l'ancienne API `api/app.py` +
+  `api/index.html` (jamais servie sur gram, où tourne `app_agora.py`),
+  `rupture/{extraire,pics,serie}.py` (utilisés seulement par `app.py`),
+  `scripts/ngram_1gram.py` (la construction des bases appartient à stage-mids).
+- README : table des routes ramenée à celles d'`app_agora.py`.
+
 ## 18/09/2026 — usage relatif : l'abscisse passe en log
 - Remarque reçue sur la vue « Usage relatif » : « passe le x-axis log ». Un
   rapport de fréquences se lit en « fois » : 2 (A deux fois plus fréquente) et

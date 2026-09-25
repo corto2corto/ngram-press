@@ -11,23 +11,24 @@ l'impact des rachats de journaux sur le contenu éditorial.
 
 | Route | Rôle |
 |---|---|
-| `/query?mot=inflation&corpus=lemonde` | série temporelle d'un ou plusieurs mots (CSV) |
-| `/top?corpus=lemonde&periode=2023` | ngrams les plus fréquents d'une période |
-| `/evolution?avant=2018&apres=2023` | ce qui monte / descend entre deux périodes |
-| `/fiche?mot=guerre&corpus=lemonde` | fiche statistique : ajustements Poisson / binomiale négative, pics, moments (JSON) |
-| `/ratio?mot=gaza,ukraine&from=2023&to=2024` | usage relatif de deux expressions, corpus par corpus : occurrences, fréquences et rapport freq_a / freq_b sur la période, triés (JSON) — `api/app_agora.py` |
-| `/projection?mot=guerre&from=2022&to=2022&pca=unifie1j&seuil=6` | projection du pic le plus surprenant de la période (jeu d'étude du corpus unifié, voir [pca/README.md](pca/README.md)) sur les 4 composantes d'une PCA gelée (JSON) — route de `api/app_agora.py`, l'API du site |
-| `/pca/catalogue` | les 18 PCA de sauts du mémoire et leurs paramètres (JSON) — `api/app_agora.py` |
-| `/pca/etendu1j` | tout le contenu du fichier gelé d'une PCA : composantes, tranches de projection, fenêtres archétypes (JSON, voir [pca/README.md](pca/README.md)) — `api/app_agora.py` |
+Toutes les routes sont servies par `api/app_agora.py`, l'API du site.
 
-Lancement local : `python -m api.app` puis http://localhost:8501/.
+| Route | Rôle |
+|---|---|
+| `/query?mot=inflation&corpus=lemonde` | série temporelle d'un ou plusieurs mots (CSV) |
+| `/ratio?mot=gaza,ukraine&from=2023&to=2024` | usage relatif de deux expressions, corpus par corpus : occurrences, fréquences et rapport freq_a / freq_b sur la période, triés (JSON) |
+| `/projection?mot=guerre&from=2022&to=2022&pca=unifie1j&seuil=6` | projection du pic le plus surprenant de la période (jeu d'étude du corpus unifié, voir [pca/README.md](pca/README.md)) sur les 4 composantes d'une PCA gelée (JSON) |
+| `/pca/catalogue` | les 18 PCA de sauts du mémoire et leurs paramètres (JSON) |
+| `/pca/etendu1j` | tout le contenu du fichier gelé d'une PCA : composantes, tranches de projection, fenêtres archétypes (JSON, voir [pca/README.md](pca/README.md)) |
+
+Lancement local : `NGRAM_DIR=data python -m api.app_agora` puis http://localhost:8502/corpus.
 La variable d'environnement `NGRAM_DIR` indique le dossier des bases
 `<corpus>_ngram.db` (SQLite).
 
 ## Provenance du code
 
-`api/`, `scripts/tokenisation.py` et `rupture/{extraire,pics,serie}.py` sont
-copiés à l'identique depuis le dépôt de travail du stage (`stage-mids`).
+`scripts/tokenisation.py` est copié à l'identique depuis le dépôt de travail du
+stage (`stage-mids`), qui en reste propriétaire.
 `rupture/pca.py` en est une copie réduite : les fonctions `normaliser` et `pca`
 mot pour mot, sans les figures (qui tiraient matplotlib).
 Les composantes gelées de `pca/` viennent du même dépôt (voir `pca/README.md`).
