@@ -49,16 +49,6 @@ export const corpusNoms: Record<string, string> = {
   voiles_et_voiliers: "Voiles et Voiliers",
 };
 
-// L'article de recherche cité dans « Le projet ». Titre et auteurs restent en
-// anglais dans les deux langues : c'est la langue du papier.
-export const papier = {
-  titre:
-    "The shape of attention: detecting and classifying anomalous lexical "
-    + "activity in eighty years of the daily press",
-  auteurs: "Elias Echikr · Benoît de Courson · Simon Coste",
-  pdf: "/article-shape-of-attention.pdf",
-};
-
 export const MAX_SERIES = 4;
 
 /* Les deux encadrants du mémoire, cités dans « Le projet ». Le paragraphe est
@@ -318,8 +308,6 @@ export const textes = {
       ", qui rend le corpus des 36 titres de presse (et bientôt davantage) explorable par le "
       + "grand public.",
     // la fiche de l'article, sous les deux paragraphes
-    papier_etiquette: "L'article de recherche",
-    papier_lire: "Lire l'article",
 
     // contact
     contact_etiquette: "À propos de l'auteur",
@@ -566,8 +554,6 @@ export const textes = {
     projet_p2_gallicagram: "Gallicagram",
     projet_p2_fin:
       ", which opens the corpus of 36 news outlets (more to come) to a wider audience.",
-    papier_etiquette: "The research paper",
-    papier_lire: "Read the paper",
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",

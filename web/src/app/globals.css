@@ -1035,55 +1035,6 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   text-underline-offset: 3px;
 }
 
-/* la fiche de l'article : une référence bibliographique sous le texte du
-   projet, filet d'accent à gauche comme une citation */
-
-.papier-ref {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: 45rem;
-  margin-top: 1.9rem;
-  padding: 1.25rem 1.5rem;
-  background: var(--surface);
-  border: 1px solid var(--bord);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 16px 16px 0;
-}
-
-.papier-ref p {
-  margin: 0;
-}
-
-.papier-etiquette {
-  font-size: 0.78rem;
-  font-weight: 550;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--encre-muette);
-}
-
-/* Le titre reste en italique (c'est une référence), mais pas celui d'EB
-   Garamond, trop penché pour rester lisible à cette taille : l'italique de
-   Georgia est presque droit et bien dessiné. Corps réduit en conséquence,
-   Georgia ayant un œil bien plus grand que le Garamond. */
-.papier-titre cite {
-  font-family: Georgia, serif;
-  font-style: italic;
-  font-size: 1.13rem;
-  line-height: 1.45;
-}
-
-.papier-auteurs {
-  font-size: 0.95rem;
-  color: var(--encre-2);
-}
-
-.bouton-papier {
-  align-self: flex-start;
-  margin-top: 0.5rem;
-}
-
 /* ---- bandeau contact */
 
 .contact {

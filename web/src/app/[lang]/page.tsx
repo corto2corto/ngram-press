@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Explorer from "@/components/Explorer";
 import FaitAvec from "@/components/FaitAvec";
-import { ENCADRANTS, GALLICAGRAM, hasLang, papier, textes } from "@/lib/i18n";
+import { ENCADRANTS, GALLICAGRAM, hasLang, textes } from "@/lib/i18n";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -87,24 +87,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
             {t.projet_p2_fin}
           </p>
         </div>
-        {/* La fiche de l'article : une référence bibliographique posée sous le
-            texte. Titre, auteurs et chemin du PDF viennent de `papier`
-            (i18n.ts). */}
-        <aside className="papier-ref" aria-label={t.papier_etiquette}>
-          <p className="papier-etiquette">{t.papier_etiquette}</p>
-          <p className="papier-titre">
-            <cite>{papier.titre}</cite>
-          </p>
-          <p className="papier-auteurs">{papier.auteurs}</p>
-          <a
-            className="bouton bouton-petit bouton-papier"
-            href={papier.pdf}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t.papier_lire}
-          </a>
-        </aside>
       </section>
 
       <section className="contact" id="contact">
