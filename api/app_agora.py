@@ -3,6 +3,10 @@
 # unigram et bigram ensemble, pas de trigrammes) découvertes automatiquement
 # dans NGRAM_DIR — un corpus apparaît dès que sa base est construite, sans
 # redémarrage ni liste en dur.
+# Mise à jour continue (stage-mids, maj_bdd/bdd_ngram.qmd) : si BASES_DIR contient un
+# version.json, chaque corpus y est une grosse base + des tampons, lus ensemble dans une
+# même connexion et additionnés jour par jour ; le fichier est relu à chaque requête.
+# Sans version.json, ancien fonctionnement : une base <corpus>_ngram.db par corpus.
 # Lancement (serveur) : venv_agora/bin/gunicorn --bind 127.0.0.1:8010 api.app_agora:app
 # Test local : NGRAM_DIR=data python -m api.app_agora  puis  http://localhost:8502/corpus
 
@@ -23,6 +27,7 @@ import requests
 from scripts.tokenisation import tokeniser
 
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
+BASES_DIR = os.environ.get("BASES_DIR", "/opt/bazoulay/stage-mids/bases")
 MCP_LOCAL = os.environ.get("AGORA_MCP", "http://127.0.0.1:8011/mcp")
 # sous gunicorn, ce logger écrit dans --error-logfile (agora_error.log)
 JOURNAL = logging.getLogger("gunicorn.error")
@@ -88,9 +93,36 @@ CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
 
 
 def catalogue():
-    # {corpus: chemin} d'après les fichiers présents dans DOSSIER
-    return {os.path.basename(chemin)[:-len("_ngram.db")]: chemin
+    # {corpus: [grosse base, tampons…]} d'après version.json, sinon d'après les fichiers
+    # *_ngram.db présents dans DOSSIER (une base par corpus)
+    chemin = os.path.join(BASES_DIR, "version.json")
+    if os.path.exists(chemin):
+        with open(chemin) as f:
+            version = json.load(f)
+        return {corpus: [os.path.join(BASES_DIR, b) for b in [e["grosse"], *e["tampons"]]]
+                for corpus, e in version.items()}
+    return {os.path.basename(chemin)[:-len("_ngram.db")]: [chemin]
             for chemin in glob.glob(os.path.join(DOSSIER, "*_ngram.db"))}
+
+
+def ouvrir(bases):
+    # grosse base + tampons en lecture seule dans une même connexion -> (conn, schémas)
+    conn = sqlite3.connect(f"file:{bases[0]}?mode=ro", uri=True)
+    for k, b in enumerate(bases[1:]):
+        conn.execute(f"ATTACH ? AS t{k}", (f"file:{b}?mode=ro",))
+    return conn, ["main"] + [f"t{k}" for k in range(len(bases) - 1)]
+
+
+def union(schemas, requete):
+    # la même requête sur chaque base, mises bout à bout (sommées ensuite par jour)
+    return " UNION ALL ".join(requete.format(s=s) for s in schemas)
+
+
+def totaux(conn, schemas, table, date_min, date_max):
+    return pd.read_sql_query(
+        f"SELECT date, SUM(total) AS total FROM ("
+        + union(schemas, f"SELECT date, total FROM {{s}}.total_{table} WHERE date BETWEEN ? AND ?")
+        + ") GROUP BY date", conn, params=[date_min, date_max] * len(schemas))
 
 
 def borne_date(texte, complement):
@@ -103,18 +135,25 @@ def borne_date(texte, complement):
     return int(chiffres) * 10000 + complement
 
 
-def serie(conn, tokens, date_min, date_max):
-    # id des mots d'abord (jamais de jointure sur token : scan complet sinon)
+def serie(conn, schemas, tokens, date_min, date_max):
+    # id des mots d'abord (jamais de jointure sur token : scan complet sinon), cherché dans
+    # chaque base : un mot apparu depuis la dernière fusion n'est que dans le tampon. Les
+    # numéros viennent du registre commun, un mot a donc le même dans toutes les bases.
     ids = []
     for t in tokens:
-        ligne = conn.execute("SELECT id FROM token WHERE word = ?", (t,)).fetchone()
-        if ligne is None:  # mot inconnu de la base -> série à zéro
+        for s in schemas:
+            ligne = conn.execute(f"SELECT id FROM {s}.token WHERE word = ?", (t,)).fetchone()
+            if ligne is not None:
+                break
+        if ligne is None:  # mot inconnu de toutes les bases -> série à zéro
             return pd.DataFrame({"date": [], "n": []})
         ids.append(ligne[0])
     conditions = " AND ".join(f"w{i} = ?" for i in range(1, len(tokens) + 1))
     return pd.read_sql_query(
-        f"SELECT date, n FROM {TABLE[len(tokens)]} WHERE {conditions} AND date BETWEEN ? AND ?",
-        conn, params=ids + [date_min, date_max])
+        "SELECT date, SUM(n) AS n FROM ("
+        + union(schemas, f"SELECT date, n FROM {{s}}.{TABLE[len(tokens)]} "
+                         f"WHERE {conditions} AND date BETWEEN ? AND ?")
+        + ") GROUP BY date", conn, params=(ids + [date_min, date_max]) * len(schemas))
 
 
 @app.route("/")
@@ -135,10 +174,13 @@ def catalogue_detaille():
     # lues dans total_unigram (une ligne par jour, MIN/MAX immédiats)
     iso = lambda d: f"{d // 10000:04d}-{d // 100 % 100:02d}-{d % 100:02d}"
     infos = []
-    for corpus, chemin in sorted(catalogue().items()):
-        conn = sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
-        d0, d1 = conn.execute("SELECT MIN(date), MAX(date) FROM total_unigram").fetchone()
+    for corpus, bases in sorted(catalogue().items()):
+        conn, schemas = ouvrir(bases)
+        bornes = [conn.execute(f"SELECT MIN(date), MAX(date) FROM {s}.total_unigram").fetchone()
+                  for s in schemas]
         conn.close()
+        d0 = min((b[0] for b in bornes if b[0]), default=None)
+        d1 = max((b[1] for b in bornes if b[1]), default=None)
         infos.append({"corpus": corpus,
                       "debut": iso(d0) if d0 else None,
                       "fin": iso(d1) if d1 else None,
@@ -228,11 +270,9 @@ def query():
         tokens = tokeniser(gram)
         if not 1 <= len(tokens) <= 2:
             return f"« {gram.strip()} » : 1 ou 2 mots attendus", 400
-        conn = sqlite3.connect(f"file:{cat[corpus]}?mode=ro", uri=True)
-        totaux = pd.read_sql_query(
-            f"SELECT date, total FROM total_{TABLE[len(tokens)]} WHERE date BETWEEN ? AND ?",
-            conn, params=[date_min, date_max])
-        df = totaux.merge(serie(conn, tokens, date_min, date_max), on="date", how="left")
+        conn, schemas = ouvrir(cat[corpus])
+        df = totaux(conn, schemas, TABLE[len(tokens)], date_min, date_max).merge(
+            serie(conn, schemas, tokens, date_min, date_max), on="date", how="left")
         conn.close()
         df["n"] = df["n"].fillna(0).astype(int)
         df["gram"] = gram.strip()
@@ -282,13 +322,11 @@ def ratio():
 
     lignes = []
     for corpus in noms:
-        conn = sqlite3.connect(f"file:{cat[corpus]}?mode=ro", uri=True)
+        conn, schemas = ouvrir(cat[corpus])
         ligne = {"corpus": corpus}
         for lettre, tk in zip("ab", tokens):
-            total = conn.execute(
-                f"SELECT COALESCE(SUM(total), 0) FROM total_{TABLE[len(tk)]} "
-                "WHERE date BETWEEN ? AND ?", (date_min, date_max)).fetchone()[0]
-            n = int(serie(conn, tk, date_min, date_max)["n"].sum())
+            total = int(totaux(conn, schemas, TABLE[len(tk)], date_min, date_max)["total"].sum())
+            n = int(serie(conn, schemas, tk, date_min, date_max)["n"].sum())
             ligne[f"n_{lettre}"] = n
             ligne[f"total_{lettre}"] = int(total)
             ligne[f"freq_{lettre}"] = n / total if total else None
