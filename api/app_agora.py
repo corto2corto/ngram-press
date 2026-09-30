@@ -110,6 +110,9 @@ def ouvrir(bases):
     conn = sqlite3.connect(f"file:{bases[0]}?mode=ro", uri=True)
     for k, b in enumerate(bases[1:]):
         conn.execute(f"ATTACH ? AS t{k}", (f"file:{b}?mode=ro",))
+    # une seule transaction de lecture : totaux et comptes d'une même requête voient le même
+    # état des bases, même si un ajout dans le tampon est validé entre les deux (mode WAL)
+    conn.execute("BEGIN")
     return conn, ["main"] + [f"t{k}" for k in range(len(bases) - 1)]
 
 
