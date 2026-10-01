@@ -38,7 +38,7 @@ export const corpusNoms: Record<string, string> = {
   mediapart: "Mediapart",
   midilibre: "Midi Libre",
   nice_matin: "Nice-Matin",
-  ouest_france2: "Ouest-France",
+  ouest_france: "Ouest-France",
   paris_match: "Paris Match",
   paris_normandie: "Paris-Normandie",
   presse_ocean: "Presse Océan",

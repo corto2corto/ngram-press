@@ -24,6 +24,13 @@ info:
                 "?corpus=leparisien&mot=inflation&resolution=annee")
     ```
 
+    ### 🕐 Mise à jour en continu
+    Les nouveaux articles sont ajoutés aux bases au fil de la journée. Le jour en
+    cours est donc servi tel quel : `n` et `total` sont ceux de l'instant de la
+    requête et augmentent jusqu'à la fin de la journée (de même pour le mois ou
+    l'année en cours). La fréquence `n / total` est déjà juste, seuls les volumes
+    sont provisoires.
+
     ### 🔤 Tokenisation
     Les expressions sont mises en minuscules, les apostrophes typographiques
     normalisées, et la ponctuation retirée. Un mot absent de la base renvoie une
@@ -152,7 +159,7 @@ paths:
                       example: "1944-12-18"
                     fin:
                       type: string
-                      description: Dernière date disponible (`AAAA-MM-JJ`).
+                      description: Dernière date disponible (`AAAA-MM-JJ`) ; ce jour peut être encore en cours de remplissage.
                       example: "2025-06-30"
                     avec_2gram:
                       type: boolean

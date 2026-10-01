@@ -1,5 +1,19 @@
 # Journal du projet
 
+## 01/10/2026 — l'API lit les grosses bases et les tampons de la mise à jour continue
+- Branche `api-daily` : `app_agora.py` lit `version.json` (dossier `BASES_DIR`) à
+  chaque requête ; par corpus, grosse base + tampons ouverts ensemble (`ATTACH`, lecture
+  seule, une seule transaction de lecture), numéro du mot cherché dans chaque base,
+  comptes et totaux additionnés jour par jour. Sans `version.json`, ancien fonctionnement.
+- Défaut trouvé à l'essai (stage-mids, `maj_bdd/essai/essai_tampon.py`) : totaux et
+  comptes lus en deux transactions donnaient une réponse mêlée pendant un ajout au
+  tampon ; corrigé par la transaction unique. Coût du tampon : +2 à +10 ms par courbe.
+- 01/10 : les 35 bases reconstruites (CSV dédoublonnés) sont en service sur gram ;
+  Ouest-France et journal_des_debats absents de `version.json` pour l'instant.
+- Le jour en cours est servi tel quel (totaux de l'instant), documenté dans le README
+  et la page Swagger. Nettoyage : plus d'avertissement pandas pour un mot inconnu.
+  Libellé du site : `ouest_france` (au lieu de `ouest_france2`).
+
 ## 25/09/2026 — ménage des copies venues de stage-mids
 - Règle posée dans `.claude/CLAUDE.md` : un seul dépôt propriétaire par outil.
   Seules copies restantes : `scripts/tokenisation.py` (à l'identique) et

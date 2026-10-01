@@ -148,15 +148,17 @@ def serie(conn, schemas, tokens, date_min, date_max):
             ligne = conn.execute(f"SELECT id FROM {s}.token WHERE word = ?", (t,)).fetchone()
             if ligne is not None:
                 break
-        if ligne is None:  # mot inconnu de toutes les bases -> série à zéro
-            return pd.DataFrame({"date": [], "n": []})
+        if ligne is None:  # mot inconnu de toutes les bases -> série à zéro (colonnes entières :
+            # une série vide sans type ferait passer n en objet, avertissement de pandas au fillna)
+            return pd.DataFrame({"date": pd.Series(dtype="int64"), "n": pd.Series(dtype="int64")})
         ids.append(ligne[0])
     conditions = " AND ".join(f"w{i} = ?" for i in range(1, len(tokens) + 1))
     return pd.read_sql_query(
         "SELECT date, SUM(n) AS n FROM ("
         + union(schemas, f"SELECT date, n FROM {{s}}.{TABLE[len(tokens)]} "
                          f"WHERE {conditions} AND date BETWEEN ? AND ?")
-        + ") GROUP BY date", conn, params=(ids + [date_min, date_max]) * len(schemas))
+        + ") GROUP BY date", conn, params=(ids + [date_min, date_max]) * len(schemas)
+    ).astype({"date": "int64", "n": "int64"})   # résultat vide : colonnes sans type sinon
 
 
 @app.route("/")
