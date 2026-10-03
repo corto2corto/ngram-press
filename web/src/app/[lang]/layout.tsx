@@ -79,29 +79,6 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
 
         <footer className="pied">
           <div className="pied-colonnes">
-            <div className="pied-marque">
-              <span className="marque">
-                <span className="marque-signe">
-                  <Spirale taille={34} trait={9} />
-                </span>
-                Agora
-              </span>
-              <span>{t.pied_texte}</span>
-            </div>
-            <div>
-              <h3>{t.nav_explorer}</h3>
-              <ul>
-                <li>
-                  <a href="#explorer">{t.e1_cat}</a>
-                </li>
-                <li className="estompe">
-                  {t.e2_cat} · {t.avenir}
-                </li>
-                <li className="estompe">
-                  {t.e3_cat} · {t.avenir}
-                </li>
-              </ul>
-            </div>
             <div>
               <h3>{t.nav_projet}</h3>
               <ul>

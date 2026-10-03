@@ -51,18 +51,6 @@ export const corpusNoms: Record<string, string> = {
 
 export const MAX_SERIES = 4;
 
-/* Les deux encadrants du mémoire, cités dans « Le projet ». Le paragraphe est
-   découpé autour d'eux (projet_p2_avant / _et / _apres) pour que leurs noms
-   soient des liens vers leurs pages personnelles. */
-export const ENCADRANTS = [
-  { nom: "Simon Coste", url: "https://scoste.fr/" },
-  { nom: "Benoît de Courson", url: "https://regicid.github.io/" },
-] as const;
-
-/* Gallicagram, dont Agora est la petite sœur : le paragraphe est de nouveau
-   découpé (projet_p2_apres / _fin) pour que le nom soit un lien. */
-export const GALLICAGRAM = "https://www.gallicagram.com/";
-
 export const textes = {
   fr: {
     // navigation et en-tête
@@ -74,26 +62,14 @@ export const textes = {
     // hero
     tagline: "Les tendances de la presse française, jour par jour.",
     intro:
-      "Agora est un outil qui permet de mesurer l'évolution du vocabulaire de la presse "
-      + "française à partir d'un grand corpus d'articles collectés quotidiennement. Tapez un ou "
-      + "plusieurs mots, comparez les courbes, repérez les émergences et les disparitions.",
-    hero_cta: "Explorer les courbes",
+      "Agora est un outil qui permet de mesurer de la presse française à partir d'un grand "
+      + "corpus d'articles collectés quotidiennement. Tapez un ou plusieurs mots, comparez les "
+      + "courbes, repérez les émergences et les disparitions.",
 
     // lien vers le bloc « Le projet », utilisé dans le pied de page
     mission_lien: "Lire la méthodologie",
 
-    // cartes d'entrée
-    entrees_etiquette: "Explorer le corpus",
-    e1_cat: "Courbes",
-    e1_titre: "Suivre un mot dans le temps",
-    e1_p: "Jusqu'à quatre mots comparés, par mois ou par année, journal par journal.",
-    e1_lien: "Ouvrir l'explorateur",
-    e2_cat: "Palmarès",
-    e2_titre: "Les mots d'une période",
-    e2_p: "Les n-grammes les plus fréquents d'une année, d'un mois ou d'un jour.",
-    e3_cat: "Évolutions",
-    e3_titre: "Ce qui monte, ce qui descend",
-    e3_p: "Les hausses et les baisses de fréquence entre deux périodes.",
+    // badge des modes pas encore branchés (explorateur, pied de page)
     avenir: "À venir",
 
     // explorateur — onglets (maquette bêta v3 : soulignés, pictogrammes,
@@ -104,9 +80,11 @@ export const textes = {
     ong_palmares: "Palmarès",
     ong_evolutions: "Évolutions",
     ong_tests: "Tests statistiques",
+    // l'aide d'un formulaire (Aide.tsx) : le « ? » à côté du bouton ouvre un
+    // panneau avec la description du mode et, pour les Courbes, les astuces
+    aide_aria: "Aide sur ce mode",
+    aide_fermer: "Fermer l'aide",
     ong_desc_courbes: "Permet de suivre des mots dans le temps.",
-    ong_desc_palmares: "Permet de classer les mots les plus fréquents d'une période.",
-    ong_desc_evolutions: "Permet de repérer ce qui monte et ce qui descend entre deux périodes.",
     ong_desc_tests:
       "Projette un pic du jeu d'étude (corpus unifié des 36 médias, 2008-2026, 10 000 mots) "
       + "sur les quatre premières composantes d'une analyse en composantes principales des "
@@ -261,6 +239,11 @@ export const textes = {
     ratio_choisir: "Cochez au moins un média.",
 
     lbl_mots: "Mots (séparés par des virgules)",
+    // astuces de syntaxe du panneau d'aide des Courbes : l'exemple est
+    // cliquable (Explorer.tsx, ASTUCES), le texte dit ce qu'il montre
+    astuce_virgule: "une virgule compare jusqu'à quatre mots",
+    astuce_expression: "deux mots suivent une expression",
+    astuce_casse: "majuscules ou minuscules, c'est pareil",
     lbl_corpus: "Journal",
     lbl_de: "De",
     lbl_a: "À",
@@ -288,26 +271,12 @@ export const textes = {
     col_periode: "Période",
     voir_donnees: "Voir les données",
 
-    // fait avec — la pile technique en pictogrammes (FaitAvec.tsx)
-    fait_etiquette: "Fait avec",
-
     // le projet (méthodologie)
     projet_titre: "Le projet",
     projet_p1:
       "Certains mots explosent dans la presse en quelques jours puis retombent, d'autres "
       + "s'installent lentement. Ce mémoire cherche à mesurer ces mouvements d'attention et à "
       + "comprendre ce qui les déclenche.",
-    projet_p2_avant: "Encadré par ",
-    projet_p2_et: " et ",
-    projet_p2_apres:
-      ", le mémoire se divise en deux branches. Un article de recherche qui détecte "
-      + "statistiquement les pics d'activité d'un mot et en classe les formes. Et Agora, petite "
-      + "sœur de ",
-    projet_p2_gallicagram: "Gallicagram",
-    projet_p2_fin:
-      ", qui rend le corpus des 36 titres de presse (et bientôt davantage) explorable par le "
-      + "grand public.",
-    // la fiche de l'article, sous les deux paragraphes
 
     // contact
     contact_etiquette: "À propos de l'auteur",
@@ -322,7 +291,6 @@ export const textes = {
 
     // pied de page
     pied_api: "API et documentation",
-    pied_texte: "Agora — mémoire de master, 2026",
   },
   en: {
     nav_explorer: "Explore",
@@ -332,24 +300,12 @@ export const textes = {
 
     tagline: "Trends in the French press, day by day.",
     intro:
-      "Agora is a tool for measuring how the vocabulary of the French press evolves, drawn "
-      + "from a large corpus of articles collected daily. Type one or more words, compare their "
-      + "curves, spot what emerges and what fades.",
-    hero_cta: "Explore the curves",
+      "Agora is a tool for measuring the French press, drawn from a large corpus of articles "
+      + "collected daily. Type one or more words, compare their curves, spot what emerges and "
+      + "what fades.",
 
     mission_lien: "Read the methodology",
 
-    entrees_etiquette: "Explore the corpus",
-    e1_cat: "Curves",
-    e1_titre: "Follow a word through time",
-    e1_p: "Up to four words compared, by month or by year, newspaper by newspaper.",
-    e1_lien: "Open the explorer",
-    e2_cat: "Rankings",
-    e2_titre: "The words of a period",
-    e2_p: "The most frequent n-grams of a year, a month or a day.",
-    e3_cat: "Trends",
-    e3_titre: "What rises, what falls",
-    e3_p: "Frequency gains and losses between two periods.",
     avenir: "Coming soon",
 
     demo_titre: "The explorer",
@@ -358,9 +314,9 @@ export const textes = {
     ong_palmares: "Rankings",
     ong_evolutions: "Trends",
     ong_tests: "Statistical tests",
+    aide_aria: "Help on this mode",
+    aide_fermer: "Close the help",
     ong_desc_courbes: "Follow words through time.",
-    ong_desc_palmares: "Rank the most frequent words of a period.",
-    ong_desc_evolutions: "Spot what rises and what falls between two periods.",
     ong_desc_tests:
       "Project a peak from the study set (unified corpus of 36 outlets, 2008-2026, 10,000 words) "
       + "onto the first four components of a principal component analysis of peak shapes.",
@@ -513,6 +469,9 @@ export const textes = {
     ratio_choisir: "Tick at least one outlet.",
 
     lbl_mots: "Words (comma-separated)",
+    astuce_virgule: "a comma compares up to four words",
+    astuce_expression: "two words follow a phrase",
+    astuce_casse: "upper or lower case, same thing",
     lbl_corpus: "Newspaper",
     lbl_de: "From",
     lbl_a: "To",
@@ -539,21 +498,11 @@ export const textes = {
     col_periode: "Period",
     voir_donnees: "View the data",
 
-    fait_etiquette: "Made with",
-
     projet_titre: "The project",
     projet_p1:
       "Some words explode in the press within a few days, then fade; others settle in slowly. "
       + "This master's thesis sets out to measure those movements of attention and to understand "
       + "what sets them off.",
-    projet_p2_avant: "Supervised by ",
-    projet_p2_et: " and ",
-    projet_p2_apres:
-      ", it splits into two branches. A research paper that statistically detects the activity "
-      + "spikes of a word and classifies their shapes. And Agora, the little sister of ",
-    projet_p2_gallicagram: "Gallicagram",
-    projet_p2_fin:
-      ", which opens the corpus of 36 news outlets (more to come) to a wider audience.",
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",
@@ -566,7 +515,6 @@ export const textes = {
     contact_ecrire: "Write to me",
 
     pied_api: "API and documentation",
-    pied_texte: "Agora — master's thesis, 2026",
   },
 } satisfies Record<Lang, unknown>;
 

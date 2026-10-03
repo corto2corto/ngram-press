@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ErreurApi, requeteProjection, type Projection as Resultat } from "@/lib/api";
 import { localeDe, textes, type Lang } from "@/lib/i18n";
+import Aide from "@/components/Aide";
 
 const MARGE = { haut: 20, droite: 16, bas: 30, gauche: 44 };
 const HAUTEUR = 300;
@@ -154,6 +155,7 @@ export default function Projection({ lang }: { lang: Lang }) {
         <button type="submit" className="bouton" disabled={chargement}>
           {t.btn_projeter}
         </button>
+        <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.ong_desc_tests} />
       </form>
 
       <figure className="carte-graphe">

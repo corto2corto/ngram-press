@@ -23,6 +23,6 @@ export const DEFILE: ConfigDefile[] = [
   { mots: "climat", corpus: "mediapart", resolution: "annee", de: "2008", a: "2026" },
 ];
 
-// une configuration toutes les 10 s ; la première interaction du visiteur avec
+// une configuration toutes les 13 s ; la première interaction du visiteur avec
 // l'explorateur arrête le défilement pour de bon (Explorer.tsx, arreterDefile)
-export const DUREE_ETAPE = 10_000;
+export const DUREE_ETAPE = 13_000;

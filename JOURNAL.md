@@ -15,6 +15,37 @@
 - Swagger et descriptions MCP complétés. Testé sur une mini base au schéma des
   bases (client de test Flask), puis sur gram avant/après.
 
+## 03/10/2026 — page d'accueil : fond blanc, l'explorateur tout de suite
+- Le papier ivoire laisse place au blanc (`--fond`, `--surface` : #ffffff) ;
+  les gris de structure (grille, axes, bords, ombre) deviennent neutres. Le mode
+  sombre et la feuille de contact ne bougent pas.
+- Le hero se resserre (marges, corps du texte) et perd son lien « Explorer les
+  courbes ↓ » : l'explorateur vient juste dessous. La section « Explorer le
+  corpus » (trois cartes Courbes / Palmarès / Évolutions) est retirée, avec ses
+  textes i18n et son CSS ; le pied de page nomme les modes d'après les onglets.
+- À la place, des astuces de syntaxe sous le formulaire des Courbes
+  (`Explorer.tsx`, `ASTUCES`) : un exemple cliquable en italique serif qui
+  remplit le champ et trace (« retraites, grève », « gilets jaunes »,
+  « Macron ») suivi de ce qu'il montre (virgule, expression, casse). Inspiré
+  des pastilles d'opérateurs de Gallicagram, ramené à ce que l'API accepte
+  réellement (1 ou 2 mots par série, minuscules forcées par `tokeniser`).
+- Deuxième passe : la phrase sous les onglets (« Permet de… ») disparaît ; les
+  phrases des Palmarès et des Évolutions sont supprimées. Un composant `Aide.tsx`
+  (bouton « ? » rond + panneau) se pose à côté du bouton de chaque formulaire :
+  Tracer (description + les astuces, qui quittent le formulaire), Projeter,
+  Comparer, et le menu du catalogue des PCA. Le panneau s'ouvre vers la droite,
+  ou vers la gauche près du bord de l'écran ; fermeture par Échap, clic dehors
+  ou choix d'un exemple. Défilement des exemples ralenti : 13 s par
+  configuration au lieu de 10 (`DUREE_ETAPE`).
+- Troisième passe : le panneau s'ouvre aussi au survol de la souris (le temps
+  du survol, un pont invisible couvre le vide entre bouton et panneau) ; le
+  clic l'épingle et fait paraître une croix. Texte d'intro du hero remplacé
+  par celui dicté (FR et EN).
+- Retirés : la section « Fait avec » (`FaitAvec.tsx` supprimé, CSS A12), le
+  paragraphe sur l'encadrement du mémoire (`ENCADRANTS`, `GALLICAGRAM`,
+  jeton `--lien`), et dans le pied de page le bloc de marque et la colonne
+  « Explorer » : restent « Le projet » et « Contact ».
+
 ## 03/10/2026 — le défilement d'exemples ne reprend plus
 - Signalé sur agoragram.fr : un visiteur qui tape sa requête puis lit sa courbe
   voyait, au bout d'une minute, le défilement automatique repartir et écraser

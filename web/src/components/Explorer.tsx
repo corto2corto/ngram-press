@@ -15,6 +15,7 @@ import { chargerCorpus, requeteSeries, type Resolution, type Serie } from "@/lib
 import { DEFILE, DUREE_ETAPE } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
+import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
 import Projection from "@/components/Projection";
@@ -32,6 +33,15 @@ const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
 // média par média
 type VueTests = "projection" | "catalogue" | "ratio";
 const VUES_TESTS: VueTests[] = ["projection", "catalogue", "ratio"];
+
+// astuces de syntaxe du panneau d'aide des Courbes : un exemple cliquable (il
+// remplit le champ des mots et trace, journal et bornes inchangés) et la clé
+// i18n de ce qu'il montre. Les exemples restent en français : le corpus l'est.
+const ASTUCES: { exemple: string; cle: "virgule" | "expression" | "casse" }[] = [
+  { exemple: "retraites, grève", cle: "virgule" },
+  { exemple: "gilets jaunes", cle: "expression" },
+  { exemple: "Macron", cle: "casse" },
+];
 
 // pictogrammes des onglets (traits 1.8, 16 px)
 const ICONES: Record<Mode, ReactElement> = {
@@ -236,6 +246,18 @@ export default function Explorer({ lang }: { lang: Lang }) {
     window.clearInterval(d.frappeur);
   }, []);
 
+  // un exemple d'astuce (panneau d'aide des Courbes) : le champ des mots prend
+  // l'exemple et la courbe se trace, comme une validation du formulaire
+  const essayer = useCallback(
+    (exemple: string) => {
+      arreterDefile();
+      setMots(exemple);
+      setMotsTraces(exemple);
+      setDemande((n) => n + 1);
+    },
+    [arreterDefile],
+  );
+
   // changer d'onglet compte comme une interaction : le défilement s'arrête
   const choisirMode = useCallback(
     (m: Mode) => {
@@ -268,11 +290,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
           </button>
         ))}
       </nav>
-      {/* la clé rejoue l'animation de la mention à chaque bascule (de mode, ou
-          de vue dans les Tests) */}
-      <p className="desc-mode" key={mode === "tests" ? `tests-${vueTests}` : mode}>
-        {mode === "tests" && vueTests !== "projection" ? t[`ong_desc_${vueTests}`] : t[`ong_desc_${mode}`]}
-      </p>
 
       <div hidden={mode !== "courbes"}>
         <form
@@ -344,6 +361,12 @@ export default function Explorer({ lang }: { lang: Lang }) {
           <button type="submit" className="bouton">
             {t.btn_tracer}
           </button>
+          <Aide
+            aria={t.aide_aria} fermer={t.aide_fermer}
+            texte={t.ong_desc_courbes}
+            exemples={ASTUCES.map(({ exemple, cle }) => ({ exemple, texte: t[`astuce_${cle}`] }))}
+            onExemple={essayer}
+          />
         </form>
 
         <figure className={`carte-graphe${enDefile ? " trace-defile" : ""}`}>

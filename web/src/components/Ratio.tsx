@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chargerCorpus, ErreurApi, requeteRatio, type Ratio as Resultat, type RatioCorpus } from "@/lib/api";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+import Aide from "@/components/Aide";
 
 const MARGE = { haut: 30, droite: 28, bas: 40 };
 const RANG = 30; // hauteur d'une ligne (un média)
@@ -209,6 +210,7 @@ export default function Ratio({ lang }: { lang: Lang }) {
         <button type="submit" className="bouton" disabled={chargement}>
           {t.btn_comparer}
         </button>
+        <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.ong_desc_ratio} />
 
         {medias.length > 0 && (
           <fieldset className="choix-medias">

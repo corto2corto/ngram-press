@@ -1,28 +1,27 @@
-/* ngram-press — direction « Ivoire » : papier chaud, encre, accent argile,
-   titres en EB Garamond (variable --police-serif posée par next/font).
+/* ngram-press — page blanche, encre, accent argile, titres en EB Garamond
+   (variable --police-serif posée par next/font). Les gris de structure
+   (grille, axes, bords) sont neutres : rien ne tire vers le beige.
    Couleurs de séries : palette catégorielle validée (CVD + contraste), pas
    sombres recalés pour la surface sombre. */
 
 :root {
   color-scheme: light;
-  --fond: #faf9f5;
-  --surface: #fffdf8;
+  --fond: #ffffff;
+  --surface: #ffffff;
   --encre: #191917;
   --encre-2: #62605b;
   --encre-muette: #93908a;
   --encre-logo: #47453f;
-  --grille: #f0ede4;
-  --axe: #dedad0;
-  --bord: #e8e5dc;
+  --grille: #f0f0ee;
+  --axe: #dcdcd9;
+  --bord: #e6e6e3;
   --accent: #b8653f;
   --serie-1: #b8653f;
   --serie-2: #2a78d6;
   --serie-3: #1baf7a;
   --serie-4: #eda100;
-  --ombre: rgba(20, 18, 12, 0.10);
+  --ombre: rgba(0, 0, 0, 0.08);
   --anneau: rgba(184, 101, 63, 0.22);
-  /* liens sortants cités dans le texte : bleu foncé, distinct de l'accent argile */
-  --lien: #1c4e8a;
 
   /* mouvement : deux durées de réaction, une durée de tracé, trois courbes.
      Tout le site s'y tient — voir le banc d'essai des animations. */
@@ -53,8 +52,6 @@
     --serie-4: #c98500;
     --ombre: rgba(0, 0, 0, 0.5);
     --anneau: rgba(201, 122, 85, 0.28);
-    /* sur fond sombre le bleu s'éclaircit, sinon il n'est plus lisible */
-    --lien: #8ab8ea;
   }
 }
 
@@ -132,10 +129,6 @@ main > section,
 @supports not (height: 1cap) {
   .entete .marque-signe svg {
     height: 52px;
-  }
-
-  .pied .marque-signe svg {
-    height: 36px;
   }
 }
 
@@ -278,16 +271,16 @@ main > section,
   text-underline-offset: 3px;
 }
 
-/* ---- hero */
+/* ---- hero : court, l'explorateur vient juste après (pas d'appel à cliquer) */
 
 .hero {
-  padding-block: clamp(3.05rem, 7.65vw, 5.75rem) clamp(2.1rem, 5vw, 3.4rem);
+  padding-block: clamp(2.2rem, 5.5vw, 3.6rem) clamp(1.1rem, 2.5vw, 1.6rem);
 }
 
 .hero h1 {
   margin: 0;
   max-width: 24ch;
-  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -295,18 +288,10 @@ main > section,
 }
 
 .sous-titre {
-  max-width: 45rem;
-  margin: 1.6rem 0 0;
-  font-size: 1.15rem;
+  max-width: 42rem;
+  margin: 1rem 0 0;
+  font-size: 1.05rem;
   color: var(--encre-2);
-}
-
-/* le lien d'appel suit directement le sous-titre : il porte lui-même son
-   espacement (inline-block, une marge ne prendrait pas sur un lien en ligne) */
-
-.hero .lien-accent {
-  display: inline-block;
-  margin-top: 1.8rem;
 }
 
 /* ---- étiquettes de section */
@@ -320,55 +305,7 @@ main > section,
   color: var(--encre-2);
 }
 
-/* ---- cartes d'entrée (grille de trois) */
-
-.entrees {
-  padding-block: 0.85rem 3rem;
-}
-
-.entrees-grille {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.1rem;
-}
-
-.carte-entree {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  background: var(--surface);
-  border: 1px solid var(--bord);
-  border-radius: 16px;
-  padding: 1.6rem 1.7rem 1.5rem;
-  text-decoration: none;
-}
-
-.carte-entree .categorie {
-  font-size: 0.82rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.carte-entree h3 {
-  margin: 0;
-  font-family: var(--police-serif), Georgia, serif;
-  font-size: 1.35rem;
-  font-weight: 550;
-  line-height: 1.25;
-}
-
-.carte-entree p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--encre-2);
-}
-
-.carte-entree .pied-carte {
-  margin-top: auto;
-  padding-top: 0.9rem;
-  font-size: 0.9rem;
-}
+/* ---- badge « À venir » des modes pas encore branchés */
 
 .badge-avenir {
   width: fit-content;
@@ -379,45 +316,22 @@ main > section,
   padding: 0.15rem 0.6rem;
 }
 
-/* A5 — au survol, la carte se précise et se soulève de 2 px ; la flèche avance.
-   Vaut pour les trois cartes, y compris les « À venir » non cliquables. */
-.carte-entree {
-  transition:
-    border-color var(--duree-survol) ease,
-    box-shadow var(--duree-survol) ease,
-    transform var(--duree-survol) var(--doux);
-}
-
-.carte-entree:hover {
-  border-color: var(--axe);
-  box-shadow: 0 6px 22px var(--ombre);
-  transform: translateY(-2px);
-}
-
-.carte-entree .fleche {
-  display: inline-block;
-  transition: transform var(--duree-survol) var(--doux);
-}
-
-.carte-entree:hover .fleche {
-  transform: translateX(4px);
-}
-
 /* ---- explorateur */
 
 .demo {
-  padding-block: 1.7rem 3rem;
+  padding-block: 1.4rem 3rem;
   scroll-margin-top: 2rem;
 }
 
 /* ---- onglets des modes : soulignés, pictogramme qui prend l'accent quand son
-   mode est actif, mention d'usage sous la rangée (maquette bêta v3) */
+   mode est actif (maquette bêta v3) */
 
 .rang-onglets {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.2rem 1.9rem;
+  margin-bottom: 1.2rem;
   border-bottom: 1px solid var(--bord);
 }
 
@@ -477,13 +391,177 @@ main > section,
   box-shadow: 0 0 0 3px var(--anneau);
 }
 
-/* la mention : à quoi sert le mode actif — rejouée à chaque bascule (clé React) */
-.desc-mode {
-  margin: 0.65rem 0 1.4rem;
+/* ---- l'aide d'un formulaire (Aide.tsx) : un « ? » rond à côté du bouton de
+   validation, centré sur sa hauteur. Un panneau se pose sous le bouton (vers
+   la droite, ou vers la gauche près du bord de l'écran) : à quoi sert le mode,
+   puis (pour les Courbes) les astuces de syntaxe. Il s'ouvre au survol, le
+   temps du survol ; au clic il reste, avec une croix, jusqu'à un clic dehors,
+   Échap, la croix ou le choix d'un exemple. */
+
+.aide {
+  position: relative;
+  align-self: flex-end;
+  /* (hauteur du bouton de validation − hauteur du « ? ») / 2 */
+  margin-bottom: 0.68rem;
+}
+
+/* dans le catalogue des PCA, pas de bouton : le « ? » se centre sur le menu */
+.filtres-pca .aide {
+  margin-bottom: 0.52rem;
+}
+
+.aide-bouton {
+  display: inline-grid;
+  place-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  background: none;
+  border: 1px solid var(--axe);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 550;
+  line-height: 1;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition:
+    border-color var(--duree-courte) ease,
+    background-color var(--duree-courte) ease,
+    color var(--duree-courte) ease;
+}
+
+.aide-bouton:hover {
+  border-color: var(--encre-muette);
+  color: var(--encre);
+}
+
+.aide-bouton.actif {
+  background: var(--encre);
+  border-color: var(--encre);
+  color: var(--fond);
+}
+
+.aide-bouton:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.aide-panneau {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 5;
+  /* 30 rem = 480 px, la largeur que Aide.tsx suppose pour choisir le côté */
+  width: min(30rem, calc(100vw - 2rem));
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px var(--ombre);
+  padding: 0.95rem 1.15rem 1.05rem;
   font-size: 0.92rem;
   line-height: 1.5;
   color: var(--encre-2);
-  animation: pose-mode 380ms var(--sortie) both;
+  animation: pose-mode 300ms var(--sortie) both;
+}
+
+.aide-panneau.droite {
+  left: auto;
+  right: 0;
+}
+
+/* le vide entre le bouton et le panneau fait partie du panneau : la souris
+   peut y passer sans refermer l'aide */
+.aide-panneau::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 0.7rem;
+}
+
+/* la croix du panneau épinglé, dans le coin ; le texte lui laisse la place */
+.aide-panneau.epingle {
+  padding-right: 2.4rem;
+}
+
+.aide-fermer {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-grid;
+  place-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  color: var(--encre-muette);
+  cursor: pointer;
+  transition:
+    color var(--duree-courte) ease,
+    background-color var(--duree-courte) ease;
+}
+
+.aide-fermer:hover {
+  color: var(--encre);
+  background: var(--grille);
+}
+
+.aide-fermer:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.aide-panneau p {
+  margin: 0;
+}
+
+/* les astuces : un exemple cliquable (il remplit le champ des mots et trace)
+   en italique serif, comme une citation, suivi de ce qu'il montre */
+.astuces {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--encre-muette);
+}
+
+.astuces li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.exemple {
+  background: none;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  padding: 0.1rem 0.65rem;
+  font-family: var(--police-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition:
+    border-color var(--duree-courte) ease,
+    color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
+}
+
+.exemple:hover {
+  border-color: var(--accent);
+  color: var(--encre);
+}
+
+.exemple:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
 }
 
 @keyframes pose-mode {
@@ -932,66 +1010,6 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   color: var(--encre-muette);
 }
 
-/* ---- fait avec */
-
-.fait-avec {
-  padding-block: 0 3.8rem;
-}
-
-.fait-avec-grille {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 1.6rem clamp(2rem, 6vw, 4.25rem);
-}
-
-/* Les pictogrammes portent une encre à eux, un cran plus dense que
-   --encre-2 : à ce niveau de détail, le trait fin des logos demandait un peu
-   plus de corps pour tenir la page. En mode sombre, même intention lue à
-   l'envers — un cran plus clair que --encre-2. */
-.logo-tech {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.55rem;
-  color: var(--encre-logo);
-  transition: color var(--duree-survol) ease;
-}
-
-.logo-tech:hover {
-  color: var(--accent);
-}
-
-.logo-tech .nom {
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
-  color: var(--encre-muette);
-  transition: color var(--duree-survol) ease;
-}
-
-.logo-tech:hover .nom {
-  color: var(--encre-2);
-}
-
-/* A12 — à l'entrée de la section dans le viewport (FaitAvec.tsx pose la
-   classe « visible »), chaque pictogramme se dessine à son tour : le contour
-   se trace, puis les détails pleins (yeux, curseur, bulles) et le nom
-   paraissent. Même grammaire que le logo de l'en-tête (A1). Le décalage entre
-   logos vient de --retard-logo, posé en ligne par le composant. Sans la
-   classe, aucun état caché : les logos restent affichés (principe du
-   pointillé, cf. A1). */
-.fait-avec.visible .motif {
-  animation: trace 750ms var(--trace) var(--retard-logo, 0ms) both;
-}
-
-.fait-avec.visible .oeil {
-  animation: paraitre 300ms ease calc(var(--retard-logo, 0ms) + 680ms) both;
-}
-
-.fait-avec.visible .logo-tech .nom {
-  animation: paraitre 700ms var(--sortie) calc(var(--retard-logo, 0ms) + 480ms) both;
-}
-
 /* ---- le projet */
 
 .projet {
@@ -1021,18 +1039,6 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 
 .projet-corps p {
   margin: 0;
-}
-
-/* noms cités dans le paragraphe : encadrants et Gallicagram, liens sortants */
-
-.lien-encadrant {
-  color: var(--lien);
-  text-decoration: none;
-}
-
-.lien-encadrant:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 /* ---- bandeau contact */
@@ -1125,7 +1131,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   margin-left: auto;
 }
 
-/* ---- pied de page en colonnes */
+/* ---- pied de page : deux colonnes, Le projet et Contact */
 
 .pied {
   border-top: 1px solid var(--bord);
@@ -1133,21 +1139,10 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 }
 
 .pied-colonnes {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 2rem;
-  font-size: 0.88rem;
-}
-
-.pied-marque {
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  color: var(--encre-muette);
-}
-
-.pied-marque .marque {
-  font-size: 2.16rem;
+  flex-wrap: wrap;
+  gap: 2rem clamp(3rem, 8vw, 6rem);
+  font-size: 0.88rem;
 }
 
 .pied h3 {
@@ -1177,24 +1172,11 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   color: var(--encre);
 }
 
-.pied .estompe {
-  color: var(--encre-muette);
-}
-
 /* ---- réactif */
 
 @media (max-width: 900px) {
   .menu {
     display: none;
-  }
-
-
-  .entrees-grille {
-    grid-template-columns: 1fr;
-  }
-
-  .pied-colonnes {
-    grid-template-columns: 1fr 1fr;
   }
 }
 

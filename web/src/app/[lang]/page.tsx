@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Explorer from "@/components/Explorer";
-import FaitAvec from "@/components/FaitAvec";
-import { ENCADRANTS, GALLICAGRAM, hasLang, textes } from "@/lib/i18n";
+import { hasLang, textes } from "@/lib/i18n";
 
 export default async function Page({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -10,42 +9,11 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
 
   return (
     <>
+      {/* le hero est court et l'explorateur vient juste dessous : on arrive
+          sur l'outil sans passer par des cartes de présentation */}
       <section className="hero">
         <h1>{t.tagline}</h1>
         <p className="sous-titre">{t.intro}</p>
-        <a className="lien-accent" href="#explorer">
-          {t.hero_cta} ↓
-        </a>
-      </section>
-
-      <section className="entrees">
-        <p className="etiquette">{t.entrees_etiquette}</p>
-        <div className="entrees-grille">
-          <a className="carte-entree" href="#explorer">
-            <span className="categorie">{t.e1_cat}</span>
-            <h3>{t.e1_titre}</h3>
-            <p>{t.e1_p}</p>
-            <span className="pied-carte lien-accent">
-              {t.e1_lien} <span className="fleche">→</span>
-            </span>
-          </a>
-          <div className="carte-entree">
-            <span className="categorie">{t.e2_cat}</span>
-            <h3>{t.e2_titre}</h3>
-            <p>{t.e2_p}</p>
-            <span className="pied-carte">
-              <span className="badge-avenir">{t.avenir}</span>
-            </span>
-          </div>
-          <div className="carte-entree">
-            <span className="categorie">{t.e3_cat}</span>
-            <h3>{t.e3_titre}</h3>
-            <p>{t.e3_p}</p>
-            <span className="pied-carte">
-              <span className="badge-avenir">{t.avenir}</span>
-            </span>
-          </div>
-        </div>
       </section>
 
       <section className="demo" id="explorer">
@@ -57,35 +25,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <h2>{t.projet_titre}</h2>
         <div className="projet-corps">
           <p>{t.projet_p1}</p>
-          {/* Les deux encadrants et Gallicagram sont des liens : le paragraphe
-              est découpé autour de ces noms (voir ENCADRANTS et GALLICAGRAM
-              dans i18n.ts). */}
-          <p>
-            {t.projet_p2_avant}
-            {ENCADRANTS.map((e, i) => (
-              <span key={e.url}>
-                {i > 0 && t.projet_p2_et}
-                <a
-                  className="lien-encadrant"
-                  href={e.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {e.nom}
-                </a>
-              </span>
-            ))}
-            {t.projet_p2_apres}
-            <a
-              className="lien-encadrant"
-              href={GALLICAGRAM}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t.projet_p2_gallicagram}
-            </a>
-            {t.projet_p2_fin}
-          </p>
         </div>
       </section>
 
@@ -147,8 +86,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
           </a>
         </div>
       </section>
-
-      <FaitAvec etiquette={t.fait_etiquette} />
     </>
   );
 }

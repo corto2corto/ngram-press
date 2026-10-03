@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chargerCataloguePca, chargerPca, type PcaCatalogue, type PcaFichier } from "@/lib/api";
 import { localeDe, textes, type Dict, type Lang } from "@/lib/i18n";
+import Aide from "@/components/Aide";
 
 // en dessous d'une largeur minimale par colonne le SVG ne rétrécit plus : la zone défile
 const LARGEUR_COLONNE = 136;
@@ -521,6 +522,7 @@ export default function CataloguePca({ lang }: { lang: Lang }) {
             )}
           </select>
         </label>
+        <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.ong_desc_catalogue} />
       </form>
 
       {pca && commun ? (
