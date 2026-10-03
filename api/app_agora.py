@@ -138,7 +138,32 @@ def borne_date(texte, complement):
     return int(chiffres) * 10000 + complement
 
 
+# Élisions : dans les bases, « l'économie » est un token distinct de « économie ». Chercher un mot
+# qui commence par une voyelle ou un h additionne donc ses formes élidées (mesuré sur Le Monde
+# 2020-2024 : la forme nue ne pèse que 18 à 45 % du total d'un nom, l' et d' font le reste).
+# Seules les particules qui ne changent pas le sens : article, préposition, négation. Pas les
+# pronoms (« s'agit » n'est pas « agit »). Un mot tapé élidé (« l'économie ») n'est pas étendu.
+ELISIONS = ("l'", "d'", "n'")
+_VOYELLE = re.compile(r"^[aeiouyhàâäéèêëîïôöùûüÿœæ]")
+
+
+def variantes(tokens):
+    # formes à additionner : l'expression, puis chaque mot élidable remplacé par ses formes
+    # élidées, un mot à la fois (« pouvoir achat » -> « pouvoir d'achat », pas les deux mots)
+    formes = [tokens]
+    for i, t in enumerate(tokens):
+        if _VOYELLE.match(t):
+            formes += [tokens[:i] + [e + t] + tokens[i + 1:] for e in ELISIONS]
+    return formes
+
+
 def serie(conn, schemas, tokens, date_min, date_max):
+    # somme jour par jour des formes de l'expression (élisions comprises)
+    df = pd.concat([serie_forme(conn, schemas, f, date_min, date_max) for f in variantes(tokens)])
+    return df.groupby("date", as_index=False)["n"].sum().astype({"date": "int64", "n": "int64"})
+
+
+def serie_forme(conn, schemas, tokens, date_min, date_max):
     # id des mots d'abord (jamais de jointure sur token : scan complet sinon), cherché dans
     # chaque base : un mot apparu depuis la dernière fusion n'est que dans le tampon. Les
     # numéros viennent du registre commun, un mot a donc le même dans toutes les bases.

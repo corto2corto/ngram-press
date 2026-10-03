@@ -1,5 +1,20 @@
 # Journal du projet
 
+## 03/10/2026 — API : les élisions comptent avec le mot
+- Signalé par Benoît : « l'économie » est un token distinct de « économie »
+  dans les bases, la recherche d'un mot à initiale vocalique ratait donc ses
+  formes élidées. Mesuré sur Le Monde 2020-2024 : la forme nue ne pèse que 18 à
+  45 % du total d'un nom (économie 7 954 contre 28 261 en l' et 3 076 en d' ;
+  otan 878 contre 9 567 en l'). Issues stage-mids #34 (#33 doublon, #23 lié).
+- `variantes()` dans `api/app_agora.py` : pour chaque mot qui commence par une
+  voyelle ou un h, les formes l', d', n' sont ajoutées, un mot à la fois pour un
+  bigramme (« pouvoir achat » trouve « pouvoir d'achat »). `serie()` additionne
+  les formes jour par jour, `query` et `ratio` en héritent ; `projection` ne lit
+  pas les bases. Pas les pronoms : « s'agit » pèse vingt fois « agit » et n'a pas
+  le même sens ; qu' mesuré négligeable. Un mot tapé élidé n'est pas étendu.
+- Swagger et descriptions MCP complétés. Testé sur une mini base au schéma des
+  bases (client de test Flask), puis sur gram avant/après.
+
 ## 03/10/2026 — le défilement d'exemples ne reprend plus
 - Signalé sur agoragram.fr : un visiteur qui tape sa requête puis lit sa courbe
   voyait, au bout d'une minute, le défilement automatique repartir et écraser

@@ -65,6 +65,10 @@ def query_frequency(mot: str, corpus: str, debut: str = "1900",
       (`inflation,chômage,pouvoir achat`), 5 au maximum.
     - Les expressions sont tokenisées (minuscules, ponctuation retirée) ; un mot
       absent du corpus renvoie une série à zéro, pas une erreur.
+    - Les élisions sont gérées : un mot qui commence par une voyelle ou un h
+      additionne ses formes en l', d' et n' (`économie` compte aussi
+      `l'économie` et `d'économie`, `pouvoir achat` compte `pouvoir d'achat`).
+      Un mot tapé élidé (`l'économie`) n'est pas étendu.
 
     ### Paramètres temporels :
     - `debut` / `fin` : bornes incluses, au format AAAA, AAAA-MM ou AAAA-MM-JJ.
@@ -110,7 +114,7 @@ def compare_usage(mot_a: str, mot_b: str, debut: str = "1900", fin: str = "2100"
 
     ### Paramètres :
     - `mot_a`, `mot_b` : une expression chacun (1 ou 2 mots, tokenisée comme
-      dans `query_frequency`).
+      dans `query_frequency`, élisions l', d', n' additionnées de même).
     - `debut` / `fin` : bornes incluses, au format AAAA, AAAA-MM ou AAAA-MM-JJ.
     - `corpus` : identifiants séparés par des virgules (voir `list_corpora`) ;
       vide = tous les corpus.
