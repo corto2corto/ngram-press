@@ -1,5 +1,15 @@
 # Journal du projet
 
+## 03/10/2026 — le défilement d'exemples ne reprend plus
+- Signalé sur agoragram.fr : un visiteur qui tape sa requête puis lit sa courbe
+  voyait, au bout d'une minute, le défilement automatique repartir et écraser
+  ses mots (`REPRISE_APRES` dans `web/src/lib/defilement.ts`).
+- Corrigé dans `web/src/components/Explorer.tsx` : la première interaction avec
+  l'explorateur (clic ou touche dans le formulaire, changement d'onglet, tableau
+  de données) arrête le défilement pour de bon (`arreterDefile`) ; plus de
+  reprise, constante retirée. L'événement `input` est écouté en plus du pointeur
+  et du clavier (dictée, collage par menu, remplissage automatique).
+
 ## 01/10/2026 — l'API lit les grosses bases et les tampons de la mise à jour continue
 - Branche `api-daily` : `app_agora.py` lit `version.json` (dossier `BASES_DIR`) à
   chaque requête ; par corpus, grosse base + tampons ouverts ensemble (`ATTACH`, lecture

@@ -6,12 +6,13 @@
 // d'eux-mêmes ; seuls les mots attendent la validation du formulaire.
 // À l'arrivée, un défilement automatique (lib/defilement.ts) joue les
 // configurations en boucle : le mot se tape au clavier, le formulaire bascule,
-// la courbe se trace. Toucher au formulaire le suspend ; il se relance de
-// lui-même après une minute sans interaction. Le survol du graphe est sans effet.
+// la courbe se trace. Dès que le visiteur touche à l'explorateur (formulaire,
+// onglets, tableau de données), il s'arrête pour de bon : rien ne doit venir
+// écraser sa requête. Le survol du graphe est sans effet.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { chargerCorpus, requeteSeries, type Resolution, type Serie } from "@/lib/api";
-import { DEFILE, DUREE_ETAPE, REPRISE_APRES } from "@/lib/defilement";
+import { DEFILE, DUREE_ETAPE } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import Chart from "@/components/Chart";
@@ -166,7 +167,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
     position: -1,
     minuteur: 0,
     frappeur: 0,
-    reprise: 0,
     etape: () => {},
   });
 
@@ -220,40 +220,29 @@ export default function Explorer({ lang }: { lang: Lang }) {
     return () => {
       window.clearTimeout(d.minuteur);
       window.clearInterval(d.frappeur);
-      window.clearTimeout(d.reprise);
       d.position = -1;
     };
   }, [pret]);
 
-  // toute interaction réelle avec le formulaire (ou le tableau de données)
-  // suspend le défilement et repousse sa reprise ; les changements posés par le
-  // défilement lui-même passent hors événements DOM et ne repassent pas par ici
-  const suspendreDefile = useCallback(() => {
+  // toute interaction réelle avec l'explorateur (formulaire, onglets, tableau
+  // de données) arrête le défilement, sans reprise : une requête en cours de
+  // frappe ou une courbe qu'on lit ne doivent jamais être écrasées. Les
+  // changements posés par le défilement lui-même passent hors événements DOM
+  // et ne repassent pas par ici.
+  const arreterDefile = useCallback(() => {
     setEnDefile(false);
     const d = defile.current;
     window.clearTimeout(d.minuteur);
     window.clearInterval(d.frappeur);
-    window.clearTimeout(d.reprise);
-    d.reprise = window.setTimeout(() => d.etape(), REPRISE_APRES);
   }, []);
 
-  // changer d'onglet : hors des Courbes le défilement s'arrête tout à fait
-  // (pas de reprise qui taperait dans un formulaire masqué) ; au retour sur
-  // les Courbes il redémarre après le délai habituel d'inactivité
+  // changer d'onglet compte comme une interaction : le défilement s'arrête
   const choisirMode = useCallback(
     (m: Mode) => {
       setMode(m);
-      if (m === "courbes") {
-        suspendreDefile();
-      } else {
-        setEnDefile(false);
-        const d = defile.current;
-        window.clearTimeout(d.minuteur);
-        window.clearInterval(d.frappeur);
-        window.clearTimeout(d.reprise);
-      }
+      arreterDefile();
     },
-    [suspendreDefile],
+    [arreterDefile],
   );
 
   // options de journal, partagées par tous les formulaires
@@ -288,8 +277,9 @@ export default function Explorer({ lang }: { lang: Lang }) {
       <div hidden={mode !== "courbes"}>
         <form
           className="filtres"
-          onPointerDownCapture={suspendreDefile}
-          onKeyDownCapture={suspendreDefile}
+          onPointerDownCapture={arreterDefile}
+          onKeyDownCapture={arreterDefile}
+          onInputCapture={arreterDefile}
           onSubmit={(ev) => {
             ev.preventDefault();
             setMotsTraces(mots);
@@ -373,7 +363,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
             tirage={resultat?.tirage ?? 0}
           />
           {resultat && (
-            <details className="tableau-conteneur" onPointerDownCapture={suspendreDefile}>
+            <details className="tableau-conteneur" onPointerDownCapture={arreterDefile}>
               <summary>{t.voir_donnees}</summary>
               <DataTable series={resultat.series} lang={lang} metrique={metrique} />
             </details>
