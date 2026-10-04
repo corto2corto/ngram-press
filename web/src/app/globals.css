@@ -1022,9 +1022,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
    noir. D'où les couleurs en dur plutôt qu'en jetons. */
 
 .feuille-contact {
-  /* Plusieurs teintes de blanc plutôt qu'un aplat : blanc pur en haut,
-     la feuille se réchauffe doucement vers le bas. */
-  background: linear-gradient(to bottom, #ffffff 0%, #ffffff 55%, #fefdfa 75%, #f8f5ee 100%);
+  background: #ffffff;
   color: #26251f;
   border: 1px solid rgba(25, 25, 23, 0.08);
   border-radius: 6px;

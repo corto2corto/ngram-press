@@ -7,6 +7,8 @@
   FR/EN et son CSS. Plus rien ne pointait vers elle : le lien « Le projet » du
   menu et « Lire la méthodologie » du pied de page partent avec. La colonne
   « Le projet » du pied de page garde GitHub et l'API.
+- La feuille de contact perd son dégradé de blancs (blanc pur qui se réchauffait
+  vers le bas) : un aplat `#ffffff`, accordé au fond blanc de la page.
 
 ## 03/10/2026 — API : les élisions comptent avec le mot
 - Signalé par Benoît : « l'économie » est un token distinct de « économie »
