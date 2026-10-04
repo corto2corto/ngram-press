@@ -53,7 +53,6 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           </Link>
           <nav className="menu">
             <a href="#explorer">{t.nav_explorer}</a>
-            <a href="#projet">{t.nav_projet}</a>
             <a href="#contact">{t.nav_contact}</a>
           </nav>
           <div className="entete-actions">
@@ -82,9 +81,6 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             <div>
               <h3>{t.nav_projet}</h3>
               <ul>
-                <li>
-                  <a href="#projet">{t.mission_lien}</a>
-                </li>
                 <li>
                   <a href="https://github.com/corto2corto/ngram-press">GitHub</a>
                 </li>

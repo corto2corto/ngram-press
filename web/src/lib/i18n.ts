@@ -66,9 +66,6 @@ export const textes = {
       + "corpus d'articles collectés quotidiennement. Tapez un ou plusieurs mots, comparez les "
       + "courbes, repérez les émergences et les disparitions.",
 
-    // lien vers le bloc « Le projet », utilisé dans le pied de page
-    mission_lien: "Lire la méthodologie",
-
     // badge des modes pas encore branchés (explorateur, pied de page)
     avenir: "À venir",
 
@@ -271,13 +268,6 @@ export const textes = {
     col_periode: "Période",
     voir_donnees: "Voir les données",
 
-    // le projet (méthodologie)
-    projet_titre: "Le projet",
-    projet_p1:
-      "Certains mots explosent dans la presse en quelques jours puis retombent, d'autres "
-      + "s'installent lentement. Ce mémoire cherche à mesurer ces mouvements d'attention et à "
-      + "comprendre ce qui les déclenche.",
-
     // contact
     contact_etiquette: "À propos de l'auteur",
     contact_nom: "Corto",
@@ -303,8 +293,6 @@ export const textes = {
       "Agora is a tool for measuring the French press, drawn from a large corpus of articles "
       + "collected daily. Type one or more words, compare their curves, spot what emerges and "
       + "what fades.",
-
-    mission_lien: "Read the methodology",
 
     avenir: "Coming soon",
 
@@ -497,12 +485,6 @@ export const textes = {
       `“${mot}” in ${corpus} — ${mesure}`,
     col_periode: "Period",
     voir_donnees: "View the data",
-
-    projet_titre: "The project",
-    projet_p1:
-      "Some words explode in the press within a few days, then fade; others settle in slowly. "
-      + "This master's thesis sets out to measure those movements of attention and to understand "
-      + "what sets them off.",
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",

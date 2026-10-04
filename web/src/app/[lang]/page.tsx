@@ -21,13 +21,6 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
         <Explorer lang={lang} />
       </section>
 
-      <section className="projet" id="projet">
-        <h2>{t.projet_titre}</h2>
-        <div className="projet-corps">
-          <p>{t.projet_p1}</p>
-        </div>
-      </section>
-
       <section className="contact" id="contact">
         <p className="etiquette">{t.contact_etiquette}</p>
         {/* La feuille : un papier blanc posé sur la page, identique dans les

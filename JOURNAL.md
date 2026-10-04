@@ -1,5 +1,13 @@
 # Journal du projet
 
+## 04/10/2026 — défilement plus lent, section « Le projet » retirée
+- `DUREE_ETAPE` (`web/src/lib/defilement.ts`) passe de 13 à 15 s par
+  configuration. La vitesse de frappe et le tracé (1 700 ms) ne changent pas.
+- La section « Le projet » de la page d'accueil est retirée, avec ses textes
+  FR/EN et son CSS. Plus rien ne pointait vers elle : le lien « Le projet » du
+  menu et « Lire la méthodologie » du pied de page partent avec. La colonne
+  « Le projet » du pied de page garde GitHub et l'API.
+
 ## 03/10/2026 — API : les élisions comptent avec le mot
 - Signalé par Benoît : « l'économie » est un token distinct de « économie »
   dans les bases, la recherche d'un mot à initiale vocalique ratait donc ses
