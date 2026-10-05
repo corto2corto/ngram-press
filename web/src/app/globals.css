@@ -767,6 +767,192 @@ main > section,
   width: 5.5rem;
 }
 
+/* ---- le formulaire des Courbes, en deux rangs : mots, journal, mesure ;
+   puis la période (Periode.tsx) et le bouton. Le second rang s'aligne en haut,
+   la période descendant plus bas que les champs (graduations, note). */
+
+.filtres-rangs {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.9rem;
+}
+
+.filtres .rang {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.9rem 1.1rem;
+}
+
+.filtres .rang-periode {
+  align-items: flex-start;
+}
+
+/* hauteur de l'étiquette d'un champ (0,75 rem × 1,6) et de l'écart dessous :
+   le bouton et le « ? » s'alignent sur les champs de date, pas sur l'étiquette */
+.rang-periode .bouton {
+  margin-top: 1.55rem;
+}
+
+.rang-periode .aide {
+  align-self: flex-start;
+  margin-top: calc(1.55rem + 0.68rem);
+  margin-bottom: 0;
+}
+
+.champ-periode {
+  flex: 1 1 26rem;
+}
+
+/* champ de début — curseur — champ de fin */
+.bornes {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.2rem 0.6rem;
+}
+
+.champ input.date {
+  width: calc(10ch + 1.6rem);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.champ input.date[aria-invalid="true"] {
+  border-color: var(--accent);
+  background: var(--anneau);
+}
+
+.champ-periode .note {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--encre-2);
+}
+
+.champ-periode .note.erreur {
+  color: var(--accent);
+}
+
+.curseur {
+  position: relative;
+  padding: 1.2rem 0.7rem 0.2rem;
+  min-width: 0;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.piste {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--axe);
+}
+
+.piste .plein {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.pouce {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 3px var(--ombre);
+  cursor: grab;
+}
+
+.pouce:active {
+  cursor: grabbing;
+}
+
+.pouce:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+/* la piste zoome sur la période : au lâcher, poignées et remplissage glissent
+   vers leur nouvelle place ; pendant le geste, aucune transition */
+.curseur:not(.glisse) .pouce,
+.curseur:not(.glisse) .plein {
+  transition:
+    left 260ms var(--sortie),
+    width 260ms var(--sortie);
+}
+
+.graduation {
+  position: relative;
+  height: 1.55rem;
+  margin-top: 0.35rem;
+}
+
+.graduation .tic {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--axe);
+}
+
+.graduation .tic.fort {
+  height: 8px;
+  background: var(--encre-muette);
+}
+
+.graduation .etq {
+  position: absolute;
+  top: 0.55rem;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--encre-muette);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* sur téléphone, les champs se posent au-dessus de la piste */
+@media (max-width: 560px) {
+  .bornes {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "de . a"
+      "c c c";
+  }
+
+  .bornes > .de {
+    grid-area: de;
+  }
+
+  .bornes > .a {
+    grid-area: a;
+  }
+
+  .bornes > .curseur {
+    grid-area: c;
+  }
+
+  .rang-periode .bouton {
+    margin-top: 0;
+  }
+
+  .rang-periode .aide {
+    align-self: flex-end;
+    margin-top: 0;
+    margin-bottom: 0.68rem;
+  }
+}
+
 /* ---- carte du graphe */
 
 .carte-graphe {

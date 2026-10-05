@@ -2,8 +2,10 @@
 
 // Formulaire d'exploration + requête /query : porte le comportement du front
 // statique (front/app.js) en composant React. Les séries restent affichées,
-// estompées, pendant un rechargement. Journal, bornes et pas relancent le tracé
-// d'eux-mêmes ; seuls les mots attendent la validation du formulaire.
+// estompées, pendant un rechargement. Journal et bornes relancent le tracé
+// d'eux-mêmes ; seuls les mots attendent la validation du formulaire. Les
+// bornes se règlent au jour près (Periode.tsx) et le pas d'agrégation se
+// déduit de l'étendue (lib/dates.ts, resolutionAuto) : il n'y a plus de menu.
 // À l'arrivée, un défilement automatique (lib/defilement.ts) joue les
 // configurations en boucle : le mot se tape au clavier, le formulaire bascule,
 // la courbe se trace. Dès que le visiteur touche à l'explorateur (formulaire,
@@ -13,13 +15,15 @@
 // sans passer en plein écran : Échap ou le même bouton le rendent à la page.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { chargerCorpus, requeteSeries, type Resolution, type Serie } from "@/lib/api";
-import { DEFILE, DUREE_ETAPE } from "@/lib/defilement";
+import { chargerCatalogue, requeteSeries, type Serie } from "@/lib/api";
+import { deIso, iso, jour, resolutionAuto } from "@/lib/dates";
+import { DEFILE, DUREE_ETAPE, type ConfigDefile } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
+import Periode, { type Fonds } from "@/components/Periode";
 import Projection from "@/components/Projection";
 import CataloguePca from "@/components/CataloguePca";
 import Ratio from "@/components/Ratio";
@@ -44,6 +48,9 @@ const ASTUCES: { exemple: string; cle: "virgule" | "expression" | "casse" }[] = 
   { exemple: "gilets jaunes", cle: "expression" },
   { exemple: "Macron", cle: "casse" },
 ];
+
+// bornes d'un journal dont le catalogue ne dit rien (API absente)
+const FONDS_DEFAUT: Fonds = { lo: jour(2008, 1, 1), hi: jour(2026, 12, 31) };
 
 // pictogrammes des onglets (traits 1.8, 16 px)
 const ICONES: Record<Mode, ReactElement> = {
@@ -93,12 +100,33 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // l'état de départ est la première configuration du défilement ; le champ des
   // mots part vide, la frappe automatique l'écrira.
   const [corpusListe, setCorpusListe] = useState(["leparisien", "mediapart", "le_figaro", "les_echos"]);
+  // premier et dernier jour servis par journal (route /catalogue)
+  const [fondsParCorpus, setFondsParCorpus] = useState<Record<string, Fonds>>({});
   const [mots, setMots] = useState("");
   const [motsTraces, setMotsTraces] = useState(""); // mots réellement tracés
   const [corpus, setCorpus] = useState(DEFILE[0].corpus);
-  const [de, setDe] = useState(DEFILE[0].de);
-  const [a, setA] = useState(DEFILE[0].a);
-  const [resolution, setResolution] = useState<Resolution>(DEFILE[0].resolution);
+  // bornes en jours (lib/dates.ts) ; le défilement les pose depuis ses années
+  const [de, setDe] = useState(jour(DEFILE[0].de, 1, 1));
+  const [a, setA] = useState(jour(DEFILE[0].a, 12, 31));
+  const fonds = fondsParCorpus[corpus] ?? FONDS_DEFAUT;
+  // bornes d'une configuration du défilement, dans le fonds de son journal
+  const bornesDe = useCallback(
+    (config: ConfigDefile) => {
+      const f = fondsParCorpus[config.corpus] ?? FONDS_DEFAUT;
+      return {
+        de: Math.max(f.lo, jour(config.de, 1, 1)),
+        a: Math.min(f.hi, jour(config.a, 12, 31)),
+      };
+    },
+    [fondsParCorpus],
+  );
+  // changer de journal ramène les bornes dans son fonds
+  const choisirCorpus = (nom: string) => {
+    const f = fondsParCorpus[nom] ?? FONDS_DEFAUT;
+    setCorpus(nom);
+    setDe((v) => Math.max(f.lo, Math.min(f.hi, v)));
+    setA((v) => Math.max(f.lo, Math.min(f.hi, v)));
+  };
   // métrique d'affichage : purement locale au rendu, ne relance aucune requête
   const [metrique, setMetrique] = useState<Metrique>("pour100k");
   const [demande, setDemande] = useState(0); // incrémenté à chaque validation
@@ -144,14 +172,17 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // numéro de la requête en cours : les réponses dépassées sont ignorées
   const appel = useRef(0);
 
+  // paramètres d'une requête : bornes en ISO au jour près, pas déduit de l'étendue
+  const parametres = (q: { mots: string[]; corpus: string; de: number; a: number }) => ({
+    mots: q.mots,
+    corpus: q.corpus,
+    resolution: resolutionAuto(q.de, q.a),
+    de: iso(q.de, "jour"),
+    a: iso(q.a, "jour"),
+  });
+
   const tracer = useCallback(
-    async (formulaire: {
-      mots: string;
-      corpus: string;
-      de: string;
-      a: string;
-      resolution: Resolution;
-    }) => {
+    async (formulaire: { mots: string; corpus: string; de: number; a: number }) => {
       const liste = formulaire.mots.split(",").map((m) => m.trim()).filter(Boolean);
       if (!liste.length) return;
       if (liste.length > MAX_SERIES) {
@@ -162,7 +193,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
       setChargement(true);
       setMessage("chargement");
       try {
-        const series = await requeteSeries({ ...formulaire, mots: liste });
+        const series = await requeteSeries(parametres({ ...formulaire, mots: liste }));
         if (numero !== appel.current) return;
         if (!series.length) {
           setMessage("vide");
@@ -183,35 +214,39 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [],
   );
 
-  // au premier rendu : liste des corpus (si l'API la sert). Le premier tracé
-  // viendra du défilement, lancé une fois le corpus retenu connu.
+  // au premier rendu : catalogue des corpus (noms et bornes, si l'API le sert).
+  // Le premier tracé viendra du défilement, lancé une fois le corpus retenu connu.
   const initialise = useRef(false);
   const [pret, setPret] = useState(false);
   useEffect(() => {
     if (initialise.current) return;
     initialise.current = true;
-    chargerCorpus().then((liste) => {
+    chargerCatalogue().then((catalogue) => {
+      const liste = catalogue.map((c) => c.corpus);
       setCorpusListe(liste);
+      setFondsParCorpus(
+        Object.fromEntries(catalogue.map((c) => [c.corpus, { lo: deIso(c.debut), hi: deIso(c.fin) }])),
+      );
       setCorpus(liste.includes(DEFILE[0].corpus) ? DEFILE[0].corpus : liste[0]);
       setPret(true);
     });
   }, []);
 
-  // relance automatique : changer de journal, de bornes ou de pas suffit. Les
-  // années se tapent chiffre par chiffre, on leur laisse le temps d'être finies ;
-  // un menu déroulant ou un « Tracer », eux, partent tout de suite.
+  // relance automatique : changer de journal ou de bornes suffit. Les dates se
+  // tapent chiffre par chiffre et les poignées se glissent, on leur laisse le
+  // temps d'être finies ; un menu déroulant ou un « Tracer », eux, partent
+  // tout de suite.
   const bornesPrecedentes = useRef({ de, a });
   useEffect(() => {
-    if (!pret) return;
-    if (!/^\d{4}$/.test(de) || !/^\d{4}$/.test(a) || Number(de) > Number(a)) return;
+    if (!pret || de > a) return;
     const dateModifiee = de !== bornesPrecedentes.current.de || a !== bornesPrecedentes.current.a;
     bornesPrecedentes.current = { de, a };
     const minuteur = setTimeout(
-      () => tracer({ mots: motsTraces, corpus, de, a, resolution }),
+      () => tracer({ mots: motsTraces, corpus, de, a }),
       dateModifiee ? 600 : 0,
     );
     return () => clearTimeout(minuteur);
-  }, [pret, motsTraces, corpus, de, a, resolution, demande, tracer]);
+  }, [pret, motsTraces, corpus, de, a, demande, tracer]);
 
   // ---- défilement automatique : position dans la liste, minuteurs, et la
   // fonction d'étape rangée dans la ref pour se re-planifier elle-même.
@@ -228,26 +263,26 @@ export default function Explorer({ lang }: { lang: Lang }) {
     d.etape = () => {
       d.position = (d.position + 1) % DEFILE.length;
       const config = DEFILE[d.position];
+      const bornes = bornesDe(config);
       // la requête part dès le début de la frappe : le mot posé, la courbe est
       // prête (ou presque) — le cache de lib/api.ts partage la promesse
-      requeteSeries({
-        mots: config.mots.split(",").map((m) => m.trim()),
-        corpus: config.corpus,
-        resolution: config.resolution,
-        de: config.de,
-        a: config.a,
-      }).catch(() => {});
+      requeteSeries(
+        parametres({
+          mots: config.mots.split(",").map((m) => m.trim()),
+          corpus: config.corpus,
+          ...bornes,
+        }),
+      ).catch(() => {});
       // le reste du formulaire bascule d'un coup à la fin de la frappe, pour ne
       // déclencher qu'une seule requête
       const poser = () => {
         setEnDefile(true);
         // les bornes posées ici sont déjà « vues » : pas du clavier, donc pas
-        // du délai laissé aux années tapées chiffre par chiffre
-        bornesPrecedentes.current = { de: config.de, a: config.a };
+        // du délai laissé aux dates tapées chiffre par chiffre
+        bornesPrecedentes.current = bornes;
         setCorpus(config.corpus);
-        setDe(config.de);
-        setA(config.a);
-        setResolution(config.resolution);
+        setDe(bornes.de);
+        setA(bornes.a);
         setMotsTraces(config.mots);
       };
       window.clearInterval(d.frappeur);
@@ -274,6 +309,8 @@ export default function Explorer({ lang }: { lang: Lang }) {
       window.clearInterval(d.frappeur);
       d.position = -1;
     };
+    // bornesDe ne change qu'avec le catalogue, chargé avant `pret`
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pret]);
 
   // toute interaction réelle avec l'explorateur (formulaire, onglets, tableau
@@ -349,7 +386,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
 
       <div hidden={mode !== "courbes"}>
         <form
-          className="filtres"
+          className="filtres filtres-rangs"
           onPointerDownCapture={arreterDefile}
           onKeyDownCapture={arreterDefile}
           onInputCapture={arreterDefile}
@@ -359,70 +396,53 @@ export default function Explorer({ lang }: { lang: Lang }) {
             setDemande((n) => n + 1);
           }}
         >
-          <label className="champ champ-mot">
-            <span>{t.lbl_mots}</span>
-            <input
-              type="text"
-              value={mots}
-              onChange={(ev) => setMots(ev.target.value)}
-              autoComplete="off"
-              spellCheck={false}
+          <div className="rang">
+            <label className="champ champ-mot">
+              <span>{t.lbl_mots}</span>
+              <input
+                type="text"
+                value={mots}
+                onChange={(ev) => setMots(ev.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <label className="champ">
+              <span>{t.lbl_corpus}</span>
+              <select value={corpus} onChange={(ev) => choisirCorpus(ev.target.value)}>
+                {optionsCorpus}
+              </select>
+            </label>
+            <label className="champ">
+              <span>{t.lbl_mesure}</span>
+              <select value={metrique} onChange={(ev) => setMetrique(ev.target.value as Metrique)}>
+                <option value="pour100k">{t.mes_pour100k}</option>
+                <option value="freq">{t.mes_freq}</option>
+                <option value="brut">{t.mes_brut}</option>
+              </select>
+            </label>
+          </div>
+          <div className="rang rang-periode">
+            <Periode
+              de={de}
+              a={a}
+              fonds={fonds}
+              lang={lang}
+              onChange={(nouveauDe, nouveauA) => {
+                setDe(nouveauDe);
+                setA(nouveauA);
+              }}
             />
-          </label>
-          <label className="champ">
-            <span>{t.lbl_corpus}</span>
-            <select value={corpus} onChange={(ev) => setCorpus(ev.target.value)}>
-              {optionsCorpus}
-            </select>
-          </label>
-          <label className="champ">
-            <span>{t.lbl_de}</span>
-            <input
-              type="number"
-              min={1990}
-              max={2026}
-              value={de}
-              onChange={(ev) => setDe(ev.target.value)}
+            <button type="submit" className="bouton">
+              {t.btn_tracer}
+            </button>
+            <Aide
+              aria={t.aide_aria} fermer={t.aide_fermer}
+              texte={t.ong_desc_courbes}
+              exemples={ASTUCES.map(({ exemple, cle }) => ({ exemple, texte: t[`astuce_${cle}`] }))}
+              onExemple={essayer}
             />
-          </label>
-          <label className="champ">
-            <span>{t.lbl_a}</span>
-            <input
-              type="number"
-              min={1990}
-              max={2026}
-              value={a}
-              onChange={(ev) => setA(ev.target.value)}
-            />
-          </label>
-          <label className="champ">
-            <span>{t.lbl_resolution}</span>
-            <select
-              value={resolution}
-              onChange={(ev) => setResolution(ev.target.value as Resolution)}
-            >
-              <option value="jour">{t.res_jour}</option>
-              <option value="mois">{t.res_mois}</option>
-              <option value="annee">{t.res_annee}</option>
-            </select>
-          </label>
-          <label className="champ">
-            <span>{t.lbl_mesure}</span>
-            <select value={metrique} onChange={(ev) => setMetrique(ev.target.value as Metrique)}>
-              <option value="pour100k">{t.mes_pour100k}</option>
-              <option value="freq">{t.mes_freq}</option>
-              <option value="brut">{t.mes_brut}</option>
-            </select>
-          </label>
-          <button type="submit" className="bouton">
-            {t.btn_tracer}
-          </button>
-          <Aide
-            aria={t.aide_aria} fermer={t.aide_fermer}
-            texte={t.ong_desc_courbes}
-            exemples={ASTUCES.map(({ exemple, cle }) => ({ exemple, texte: t[`astuce_${cle}`] }))}
-            onExemple={essayer}
-          />
+          </div>
         </form>
 
         <figure className={`carte-graphe${enDefile ? " trace-defile" : ""}`}>

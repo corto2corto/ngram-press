@@ -166,10 +166,44 @@ export default function Chart({
   const epaisseur = Math.min(BARRE_MAX, (creneau - nSeries * jour) / nSeries);
   const groupe = nSeries * (epaisseur + jour) - jour;
 
-  const graduationsX: number[] = [];
+  // graduations de l'axe X selon l'étendue : des années, sinon des mois,
+  // sinon des jours — à chaque fois une étiquette sur `saut`, pour en garder
+  // six à huit. Les positions sont en années décimales, comme les points.
+  const graduationsX: { x: number; texte: string }[] = [];
   if (pret) {
-    const saut = Math.max(1, Math.ceil((xMax - xMin) / 6));
-    for (let an = Math.ceil(xMin); an <= xMax; an += saut) graduationsX.push(an);
+    const etendue = xMax - xMin;
+    const moisCourt = (m: number) =>
+      new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" })
+        .format(new Date(Date.UTC(2000, m - 1, 1)))
+        .replace(/\.$/, "");
+    if (etendue >= 2) {
+      const saut = Math.max(1, Math.ceil(etendue / 6));
+      for (let an = Math.ceil(xMin); an <= xMax; an += saut) graduationsX.push({ x: an, texte: String(an) });
+    } else if (etendue * 12 >= 2) {
+      const saut = Math.max(1, Math.ceil((etendue * 12) / 8));
+      const premier = Math.ceil(xMin * 12);
+      for (let i = premier; i <= xMax * 12; i++) {
+        if ((i - premier) % saut) continue;
+        const an = Math.floor(i / 12);
+        const m = (i % 12) + 1;
+        graduationsX.push({ x: i / 12, texte: m === 1 || i === premier ? `${moisCourt(m)} ${an}` : moisCourt(m) });
+      }
+    } else {
+      const an = Math.floor(xMin);
+      const debut = Date.UTC(an, 0, 1);
+      const duree = Date.UTC(an + 1, 0, 1) - debut;
+      const premier = Math.ceil((xMin - an) * duree / 86_400_000);
+      const dernier = Math.floor((xMax - an) * duree / 86_400_000);
+      const saut = Math.max(1, Math.ceil((dernier - premier) / 8));
+      for (let j = premier; j <= dernier; j += saut) {
+        const d = new Date(debut + j * 86_400_000);
+        const jourDuMois = d.getUTCDate();
+        const texte = jourDuMois === 1 || j === premier
+          ? `${jourDuMois} ${moisCourt(d.getUTCMonth() + 1)}`
+          : String(jourDuMois);
+        graduationsX.push({ x: an + (j * 86_400_000) / duree, texte });
+      }
+    }
   }
 
   // réticule : position (en x) la plus proche du pointeur parmi la 1re série
@@ -352,16 +386,16 @@ export default function Chart({
                   </text>
                 </g>
               ))}
-              {graduationsX.map((an) => (
+              {graduationsX.map((g) => (
                 <text
-                  key={an}
-                  x={px(an)}
+                  key={g.x}
+                  x={px(g.x)}
                   y={hauteur - 8}
                   textAnchor="middle"
                   fontSize={11}
                   fill="var(--encre-muette)"
                 >
-                  {an}
+                  {g.texte}
                 </text>
               ))}
               <text x={margeGauche - 40} y={12} fontSize={11} fill="var(--encre-muette)">

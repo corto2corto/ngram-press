@@ -34,6 +34,25 @@ export async function chargerCorpus(): Promise<string[]> {
   return ["leparisien", "mediapart", "le_figaro", "les_echos"];
 }
 
+// bornes de dates de chaque corpus (route /catalogue : premier et dernier jour
+// servis, en ISO), pour la piste de la période ; sans la route, la liste de
+// /corpus avec des bornes larges
+export type Catalogue = { corpus: string; debut: string; fin: string }[];
+
+export async function chargerCatalogue(): Promise<Catalogue> {
+  try {
+    const r = await fetch(`${API}/catalogue`);
+    if (r.ok) {
+      const infos = (await r.json()) as { corpus: string; debut: string | null; fin: string | null }[];
+      return infos.map((i) => ({ corpus: i.corpus, debut: i.debut ?? "2008-01-01", fin: i.fin ?? "2026-12-31" }));
+    }
+  } catch {
+    /* route absente : repli */
+  }
+  const noms = await chargerCorpus();
+  return noms.map((corpus) => ({ corpus, debut: "2008-01-01", fin: "2026-12-31" }));
+}
+
 // mémoire de session : une même requête (clé = paramètres) n'est lancée qu'une
 // fois — le défilement précharge pendant la frappe puis reboucle sans coût
 // serveur. La promesse est partagée, donc préchargement et tracé n'ouvrent

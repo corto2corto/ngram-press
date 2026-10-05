@@ -1,5 +1,38 @@
 # Journal du projet
 
+## 05/10/2026 — la période des Courbes : champs, curseur, bornes au jour près
+- Le formulaire des Courbes passe en deux rangs : mots, journal, mesure ; puis
+  la période et « Tracer ». Les deux champs numériques « De / À » et le menu
+  « Résolution » disparaissent au profit d'un composant `Periode.tsx` : un
+  champ de début, un curseur à deux poignées, un champ de fin. Les bornes se
+  comptent en jours (`lib/dates.ts`) et se tapent au jour près : « 14/03/2020 »,
+  « 03/2020 », « 2020 », « mars 2020 »… Une date hors du fonds est ramenée à son
+  bord ; si le début dépasse la fin, la fin est repoussée plutôt que de bloquer ;
+  flèches haut/bas dans un champ : un jour de plus ou de moins.
+- La piste du curseur zoome sur la période : elle la couvre avec 60 % de marge
+  de chaque côté, dans le fonds du journal, et ses graduations suivent l'étendue
+  affichée (années, mois, lundis, jours — une étiquette sur n pour garder 30 px
+  entre deux). Les poignées s'accrochent à l'unité de la piste (année au-delà
+  de sept ans, mois au-delà de deux ans et demi, jour en dessous). Pendant un
+  glissé la piste ne bouge pas, elle se recadre au lâcher (transition de 260 ms)
+  et s'élargit quand on tire au-delà d'un bord ; au clavier (flèches, Page,
+  Début, Fin) elle attend 450 ms d'immobilité.
+- Le pas d'agrégation n'est plus un choix : `resolutionAuto` prend des jours
+  jusqu'à 200 jours, des mois jusqu'à dix ans, des années au-delà. L'API reçoit
+  `from`/`to` en ISO au jour près (`borne_date` les acceptait déjà) et la
+  relance automatique attend 600 ms après la dernière frappe ou le dernier
+  glissé, comme avant pour les années.
+- Les bornes de chaque journal viennent de la route `/catalogue`
+  (`chargerCatalogue` dans `api.ts`, repli sur `/corpus` et des bornes larges).
+  Changer de journal ramène les bornes dans son fonds. Le défilement
+  (`defilement.ts`) ne porte plus que des années, converties dans le fonds du
+  journal ; « canicule » part de 2017 pour rester au pas mensuel.
+- `Chart.tsx` gradue l'axe X en mois ou en jours quand l'étendue est courte
+  (noms de mois selon la langue), là où il n'écrivait que des années.
+  Libellés FR/EN `periode_*` dans `i18n.ts` ; `lbl_resolution` et `res_*`
+  retirés. Maquette validée au préalable dans un artifact (sept propositions,
+  puis trois combinaisons champs + curseur, puis la version retenue).
+
 ## 05/10/2026 — explorateur agrandi à toute la fenêtre
 - Un petit bouton carré (deux coins en diagonale) se pose en haut à droite de
   l'explorateur, au bout de la ligne du titre « L'explorateur », que
