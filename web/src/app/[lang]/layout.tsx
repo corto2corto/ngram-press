@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { EB_Garamond, IM_Fell_English_SC } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Onglets from "@/components/Onglets";
 import Spirale from "@/components/Spirale";
 import { hasLang, langs, textes } from "@/lib/i18n";
 import "../globals.css";
@@ -57,9 +58,11 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             </span>
             <span className="mot-marque">Agora</span>
           </Link>
+          {/* les ancres visent la page de l'outil : depuis un autre onglet,
+              le lien ramène d'abord à la racine */}
           <nav className="menu">
-            <a href="#explorer">{t.nav_explorer}</a>
-            <a href="#contact">{t.nav_contact}</a>
+            <Link href={`/${lang}#explorer`}>{t.nav_explorer}</Link>
+            <Link href={`/${lang}#contact`}>{t.nav_contact}</Link>
           </nav>
           <div className="entete-actions">
             <nav className="langues" aria-label={lang === "fr" ? "Langue" : "Language"}>
@@ -74,11 +77,20 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                 </Link>
               ))}
             </nav>
-            <a className="bouton bouton-petit" href="#explorer">
+            <Link className="bouton bouton-petit" href={`/${lang}#explorer`}>
               {t.cta_header}
-            </a>
+            </Link>
           </div>
         </header>
+
+        <Onglets
+          lang={lang}
+          aria={t.onglets_aria}
+          onglets={[
+            { href: `/${lang}`, libelle: t.onglet_outil },
+            { href: `/${lang}/presidentielle-2027`, libelle: t.onglet_2027 },
+          ]}
+        />
 
         <main>{children}</main>
 
@@ -102,7 +114,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                   <a href="mailto:kalice.ecr@gmail.com">kalice.ecr@gmail.com</a>
                 </li>
                 <li>
-                  <a href="#contact">{t.contact_cv}</a>
+                  <Link href={`/${lang}#contact`}>{t.contact_cv}</Link>
                 </li>
               </ul>
             </div>

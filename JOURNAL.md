@@ -1,5 +1,52 @@
 # Journal du projet
 
+## 05/10/2026 — explorateur agrandi à toute la fenêtre
+- Un petit bouton carré (deux coins en diagonale) se pose en haut à droite de
+  l'explorateur, au bout de la ligne du titre « L'explorateur », que
+  `Explorer.tsx` affiche désormais lui-même. Un clic étend l'explorateur à toute la fenêtre : il
+  passe en `position: fixed` sur le fond blanc, au-dessus de l'en-tête. Ce
+  n'est pas le plein écran du navigateur. La page dessous ne défile plus.
+  L'icône s'inverse (coins vers l'intérieur). Le même bouton ou Échap le
+  rendent à la page ; une aide épinglée se ferme d'abord.
+- Agrandi, le graphe des Courbes prend la hauteur libérée : nouvelle prop
+  `hauteur` de `Chart.tsx`, au moins 380 px, sinon la hauteur de la fenêtre
+  moins 360 px. Elle se recalcule au redimensionnement. Le défilement
+  automatique continue. Libellés FR/EN dans `i18n.ts`
+  (`explorateur_agrandir`, `explorateur_reduire`).
+
+## 05/10/2026 — page d'entrée à la première visite
+- Nouvelle page `/bienvenue/fr` et `/bienvenue/en`
+  (`web/src/app/bienvenue/[lang]/`), hors du gabarit du site : layout
+  autonome sans en-tête, onglets ni pied de page, et sans `globals.css`. On y
+  voit le logotype qui se dessine, une accroche, trois lignes sur le corpus et
+  le bouton « Essayer l'outil », qui mène à `/<lang>`. Couleurs et polices du
+  site, toujours en clair. Textes FR/EN dans `i18n.ts` (`bienvenue_*`).
+- Cookie `agora_accueil=vu` (`web/src/lib/accueil.ts`), posé par le bouton
+  (`BoutonEssayer.tsx`) : 13 mois, `Path=/`, `SameSite=Lax`, `Secure` en
+  https. Il ne sert qu'à sauter la page d'entrée : pas de suivi, donc pas de
+  bandeau de consentement (exemption CNIL). Une ligne en bas de la page
+  l'annonce.
+- `proxy.ts` : `/` mène à `/bienvenue/<lang>` sans le cookie, à `/<lang>` avec.
+  `/bienvenue` mène à `/bienvenue/<lang>`. Les liens directs vers `/fr` et
+  `/en` ne changent pas : on arrive toujours sur l'outil.
+
+## 05/10/2026 — onglets du site sous l'en-tête
+- Le site cesse d'être une seule page qui défile : une rangée d'onglets
+  (`web/src/components/Onglets.tsx`) s'affiche sous la barre, un onglet par
+  page de premier niveau. Deux pour l'instant : « Outil » (`/fr`, l'explorateur
+  et le contact, inchangés) et « Présidentielle 2027 »
+  (`/fr/presidentielle-2027`, nouvelle page : hero et badge « À venir », le
+  contenu reste à écrire). Libellés FR/EN dans `i18n.ts`.
+- L'onglet actif se lit dans l'URL (`usePathname`, composant client). Style
+  retenu parmi six maquettes : la glissière, un rail gris clair où l'onglet
+  actif ressort en blanc avec une ombre légère. Les onglets soulignés, d'abord
+  posés, se confondaient avec les modes de l'explorateur juste dessous. Le rail
+  court sur toute la largeur de la colonne, les onglets restent calés à gauche
+  à leur taille. Sur mobile il défile à l'horizontale si besoin.
+- Les ancres de l'en-tête et du pied (« Explorer », « Contact », le bouton
+  « Explorer les courbes », « CV ») visent désormais `/<lang>#explorer` et
+  `/<lang>#contact` : depuis l'autre onglet elles ramènent d'abord à l'outil.
+
 ## 05/10/2026 — site toujours en clair, mobile compris
 - Un téléphone en mode sombre affichait le site en noir : `globals.css` suivait
   `prefers-color-scheme: dark`. Les deux blocs sombres (palette et `--pic`) sont

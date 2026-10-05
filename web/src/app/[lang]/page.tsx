@@ -17,7 +17,8 @@ export default async function Page({ params }: PageProps<"/[lang]">) {
       </section>
 
       <section className="demo" id="explorer">
-        <p className="etiquette">{t.demo_titre}</p>
+        {/* le titre « L'explorateur » est posé par Explorer, avec son
+            bouton d'agrandissement */}
         <Explorer lang={lang} />
       </section>
 

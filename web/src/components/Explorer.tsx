@@ -9,6 +9,8 @@
 // la courbe se trace. Dès que le visiteur touche à l'explorateur (formulaire,
 // onglets, tableau de données), il s'arrête pour de bon : rien ne doit venir
 // écraser sa requête. Le survol du graphe est sans effet.
+// Le bouton en tête (à droite, au bout de la ligne du titre) étend l'explorateur à toute la fenêtre,
+// sans passer en plein écran : Échap ou le même bouton le rendent à la page.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { chargerCorpus, requeteSeries, type Resolution, type Serie } from "@/lib/api";
@@ -67,6 +69,19 @@ const ICONES: Record<Mode, ReactElement> = {
   ),
 };
 
+// les deux coins du bouton d'agrandissement : vers l'extérieur pour étendre,
+// vers l'intérieur pour revenir à la page
+const ICONE_AGRANDIR = (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M9.5 2.5h4v4M6.5 13.5h-4v-4" />
+  </svg>
+);
+const ICONE_REDUIRE = (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M13.5 6.5h-4v-4M2.5 9.5h4v4" />
+  </svg>
+);
+
 export default function Explorer({ lang }: { lang: Lang }) {
   const t = textes[lang];
 
@@ -98,6 +113,33 @@ export default function Explorer({ lang }: { lang: Lang }) {
     corpus: string;
     tirage: number;
   } | null>(null);
+
+  // explorateur étendu à toute la fenêtre : la page dessous ne défile plus,
+  // Échap le referme (sauf si une aide épinglée attend, elle part d'abord), et
+  // le graphe des Courbes prend la hauteur libérée
+  const [agrandi, setAgrandi] = useState(false);
+  const [hauteurFenetre, setHauteurFenetre] = useState(0);
+  const hauteurGraphe = agrandi ? Math.max(380, hauteurFenetre - 360) : undefined;
+  const basculerAgrandi = () => {
+    setHauteurFenetre(window.innerHeight);
+    setAgrandi((v) => !v);
+  };
+  useEffect(() => {
+    if (!agrandi) return;
+    const mesurer = () => setHauteurFenetre(window.innerHeight);
+    const clavier = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape" && !document.querySelector(".aide-panneau.epingle")) setAgrandi(false);
+    };
+    window.addEventListener("resize", mesurer);
+    document.addEventListener("keydown", clavier);
+    const debordement = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("resize", mesurer);
+      document.removeEventListener("keydown", clavier);
+      document.documentElement.style.overflow = debordement;
+    };
+  }, [agrandi]);
 
   // numéro de la requête en cours : les réponses dépassées sont ignorées
   const appel = useRef(0);
@@ -275,7 +317,21 @@ export default function Explorer({ lang }: { lang: Lang }) {
   ));
 
   return (
-    <>
+    <div className={`explorateur${agrandi ? " agrandi" : ""}`}>
+      <div className="tete-explorateur">
+        <p className="etiquette">{t.demo_titre}</p>
+        <button
+          type="button"
+          className="bouton-agrandir"
+          aria-pressed={agrandi}
+          aria-label={agrandi ? t.explorateur_reduire : t.explorateur_agrandir}
+          title={agrandi ? t.explorateur_reduire : t.explorateur_agrandir}
+          onClick={basculerAgrandi}
+        >
+          {agrandi ? ICONE_REDUIRE : ICONE_AGRANDIR}
+        </button>
+      </div>
+
       <nav className="rang-onglets" aria-label={t.ong_aria}>
         {MODES.map((m) => (
           <button
@@ -384,6 +440,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
                 : null
             }
             tirage={resultat?.tirage ?? 0}
+            hauteur={hauteurGraphe}
           />
           {resultat && (
             <details className="tableau-conteneur" onPointerDownCapture={arreterDefile}>
@@ -491,6 +548,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

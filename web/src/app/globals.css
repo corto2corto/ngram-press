@@ -65,6 +65,7 @@ h2 {
 /* ---- structure de page */
 
 .entete,
+.onglets-site-rang,
 main > section,
 .pied {
   max-width: 72rem;
@@ -202,6 +203,71 @@ main > section,
   box-shadow: inset 0 0 0 1px var(--bord);
 }
 
+/* ---- onglets du site (Onglets.tsx) : une glissière, rail gris clair où
+   l'onglet actif ressort en blanc avec une ombre légère. Forme choisie pour se
+   distinguer des trois autres motifs voisins : les modes soulignés de
+   l'explorateur, les pastilles FR/EN et le bouton d'action noir. Le rail
+   court sur toute la colonne de page, les onglets gardent leur largeur et
+   restent calés à gauche. Sur un écran trop étroit, le rail défile à
+   l'horizontale. */
+
+.onglets-site-rang {
+  padding-block: 0.1rem 0.3rem;
+}
+
+.onglets-site-rail {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--grille);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.onglets-site-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.onglet-site {
+  flex: none;
+  padding: 0.38rem 1.15rem;
+  border-radius: 9px;
+  font-size: 0.95rem;
+  color: var(--encre-2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color var(--duree-courte) ease,
+    background-color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
+}
+
+.onglet-site:hover {
+  color: var(--encre);
+}
+
+.onglet-site.actif {
+  background: var(--fond);
+  color: var(--encre);
+  font-weight: 550;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px var(--bord);
+}
+
+.onglet-site:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.onglet-site.actif:focus-visible {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 0 0 0.5px var(--bord),
+    0 0 0 3px var(--anneau);
+}
+
 /* ---- boutons et liens d'action */
 
 .bouton {
@@ -272,6 +338,12 @@ main > section,
   color: var(--encre-2);
 }
 
+/* badge « À venir » posé sous le hero d'une page pas encore écrite */
+.hero-badge {
+  display: inline-block;
+  margin-top: 1.4rem;
+}
+
 /* ---- étiquettes de section */
 
 .etiquette {
@@ -299,6 +371,60 @@ main > section,
 .demo {
   padding-block: 1.4rem 3rem;
   scroll-margin-top: 2rem;
+}
+
+/* tête de l'explorateur : le titre à gauche, le bouton d'agrandissement tout
+   à droite */
+.tete-explorateur {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.4rem;
+}
+
+.tete-explorateur .etiquette {
+  margin: 0;
+}
+
+.bouton-agrandir {
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-left: auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition:
+    color var(--duree-courte) ease,
+    border-color var(--duree-courte) ease;
+}
+
+.bouton-agrandir:hover {
+  color: var(--encre);
+  border-color: var(--axe);
+}
+
+.bouton-agrandir:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+/* explorateur agrandi : il couvre la fenêtre (pas le plein écran du
+   navigateur), sur le fond de la page, et défile seul si besoin */
+.explorateur.agrandi {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  background: var(--fond);
+  padding: clamp(1rem, 2.5vw, 1.8rem) clamp(1.25rem, 4vw, 3rem) 2rem;
+  animation: paraitre var(--duree-survol) var(--sortie) both;
 }
 
 /* ---- onglets des modes : soulignés, pictogramme qui prend l'accent quand son

@@ -78,6 +78,7 @@ export default function Chart({
   chargement,
   message,
   tirage,
+  hauteur = HAUTEUR,
 }: {
   series: Serie[];
   corpus: string;
@@ -89,6 +90,8 @@ export default function Chart({
   // remonte les <path> et que l'animation de tracé (globals.css, A6) rejoue,
   // même si l'on redemande exactement le même mot.
   tirage: number;
+  // hauteur du tracé en px : plus grande quand l'explorateur prend la page
+  hauteur?: number;
 }) {
   const t = textes[lang];
   const locale = localeDe(lang);
@@ -153,7 +156,7 @@ export default function Chart({
   const creneau = enBarres ? largeurTrace / nPeriodes : 0;
   const px = (x: number) =>
     margeGauche + creneau / 2 + ((x - xMin) / (xMax - xMin || 1)) * (largeurTrace - creneau);
-  const py = (y: number) => HAUTEUR - MARGE.bas - (y / yHaut) * (HAUTEUR - MARGE.haut - MARGE.bas);
+  const py = (y: number) => hauteur - MARGE.bas - (y / yHaut) * (hauteur - MARGE.haut - MARGE.bas);
 
   // géométrie des barres : les séries d'une même période se rangent côte à
   // côte au centre du créneau, un jour de surface entre elles et entre
@@ -311,7 +314,8 @@ export default function Chart({
       <div className={`zone-graphe${chargement ? " charge" : ""}`} ref={zone}>
         <svg
           role="img"
-          viewBox={`0 0 ${largeur || 1} ${HAUTEUR}`}
+          viewBox={`0 0 ${largeur || 1} ${hauteur}`}
+          style={{ height: hauteur }}
           onPointerMove={surSurvol}
           onPointerLeave={() => setIndice(null)}
         >
@@ -322,7 +326,7 @@ export default function Chart({
                   x={px(xSurvol) - creneau / 2}
                   y={MARGE.haut}
                   width={creneau}
-                  height={HAUTEUR - MARGE.haut - MARGE.bas}
+                  height={hauteur - MARGE.haut - MARGE.bas}
                   fill="var(--grille)"
                 />
               )}
@@ -352,7 +356,7 @@ export default function Chart({
                 <text
                   key={an}
                   x={px(an)}
-                  y={HAUTEUR - 8}
+                  y={hauteur - 8}
                   textAnchor="middle"
                   fontSize={11}
                   fill="var(--encre-muette)"
@@ -369,7 +373,7 @@ export default function Chart({
                   x1={px(xSurvol)}
                   x2={px(xSurvol)}
                   y1={MARGE.haut}
-                  y2={HAUTEUR - MARGE.bas}
+                  y2={hauteur - MARGE.bas}
                   stroke="var(--axe)"
                   strokeWidth={1}
                 />

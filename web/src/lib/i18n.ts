@@ -59,6 +59,17 @@ export const textes = {
     nav_contact: "Contact",
     cta_header: "Explorer les courbes",
 
+    // onglets du site, sous l'en-tête (Onglets.tsx) : une page par onglet
+    onglets_aria: "Pages du site",
+    onglet_outil: "Outil",
+    onglet_2027: "Présidentielle 2027",
+
+    // page « Présidentielle 2027 », pas encore écrite
+    p27_titre: "Présidentielle 2027",
+    p27_intro:
+      "Cette page arrive bientôt : l'onglet est posé, le suivi de la campagne dans la "
+      + "presse suit.",
+
     // hero
     tagline: "Les tendances de la presse française, jour par jour.",
     intro:
@@ -72,6 +83,9 @@ export const textes = {
     // explorateur — onglets (maquette bêta v3 : soulignés, pictogrammes,
     // mention d'usage sous la rangée)
     demo_titre: "L'explorateur",
+    // bouton en tête de l'explorateur : l'étendre à toute la fenêtre, ou l'y rendre
+    explorateur_agrandir: "Agrandir l'explorateur",
+    explorateur_reduire: "Réduire l'explorateur",
     ong_aria: "Modes de l'explorateur",
     ong_courbes: "Courbes",
     ong_palmares: "Palmarès",
@@ -281,12 +295,30 @@ export const textes = {
 
     // pied de page
     pied_api: "API et documentation",
+
+    // page d'entrée (bienvenue/[lang]) : vue une seule fois, hors du gabarit du site
+    bienvenue_accroche: "Ce dont parle la presse française, mesuré jour après jour.",
+    bienvenue_texte:
+      "Agora compte les mots publiés chaque jour par 36 médias français, du Monde à BFM TV, "
+      + "de Mediapart à Voici, depuis 2008. Tapez un mot : sa courbe montre quand un sujet "
+      + "apparaît, culmine, puis s'efface.",
+    bienvenue_essayer: "Essayer l'outil",
+    bienvenue_auteur: "Un projet de Corto",
+    bienvenue_cookie: "Un seul cookie, sans suivi, pour ne pas revoir cette page.",
   },
   en: {
     nav_explorer: "Explore",
     nav_projet: "The project",
     nav_contact: "Contact",
     cta_header: "Explore the curves",
+
+    onglets_aria: "Site pages",
+    onglet_outil: "Tool",
+    onglet_2027: "Presidential 2027",
+
+    p27_titre: "Presidential 2027",
+    p27_intro:
+      "This page is coming soon: the tab is in place, the campaign's press coverage follows.",
 
     tagline: "Trends in the French press, day by day.",
     intro:
@@ -297,6 +329,8 @@ export const textes = {
     avenir: "Coming soon",
 
     demo_titre: "The explorer",
+    explorateur_agrandir: "Expand the explorer",
+    explorateur_reduire: "Collapse the explorer",
     ong_aria: "Explorer modes",
     ong_courbes: "Curves",
     ong_palmares: "Rankings",
@@ -497,6 +531,15 @@ export const textes = {
     contact_ecrire: "Write to me",
 
     pied_api: "API and documentation",
+
+    bienvenue_accroche: "What the French press talks about, measured day after day.",
+    bienvenue_texte:
+      "Agora counts the words published every day by 36 French media outlets, from Le Monde "
+      + "to BFM TV, from Mediapart to Voici, since 2008. Type a word: its curve shows when a "
+      + "topic emerges, peaks, then fades.",
+    bienvenue_essayer: "Try the tool",
+    bienvenue_auteur: "A project by Corto",
+    bienvenue_cookie: "A single cookie, no tracking, so you don't see this page again.",
   },
 } satisfies Record<Lang, unknown>;
 
