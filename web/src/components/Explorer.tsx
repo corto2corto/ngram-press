@@ -355,8 +355,21 @@ export default function Explorer({ lang }: { lang: Lang }) {
 
   return (
     <div className={`explorateur${agrandi ? " agrandi" : ""}`}>
-      <div className="tete-explorateur">
-        <p className="etiquette">{t.demo_titre}</p>
+      <div className="tete-onglets">
+        <nav className="rang-onglets" aria-label={t.ong_aria}>
+          {MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={mode === m ? "actif" : undefined}
+              aria-pressed={mode === m}
+              onClick={() => choisirMode(m)}
+            >
+              {ICONES[m]}
+              <span>{t[`ong_${m}`]}</span>
+            </button>
+          ))}
+        </nav>
         <button
           type="button"
           className="bouton-agrandir"
@@ -368,21 +381,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
           {agrandi ? ICONE_REDUIRE : ICONE_AGRANDIR}
         </button>
       </div>
-
-      <nav className="rang-onglets" aria-label={t.ong_aria}>
-        {MODES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            className={mode === m ? "actif" : undefined}
-            aria-pressed={mode === m}
-            onClick={() => choisirMode(m)}
-          >
-            {ICONES[m]}
-            <span>{t[`ong_${m}`]}</span>
-          </button>
-        ))}
-      </nav>
 
       <div hidden={mode !== "courbes"}>
         <form

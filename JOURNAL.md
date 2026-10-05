@@ -1,5 +1,14 @@
 # Journal du projet
 
+## 05/10/2026 — en-tête et explorateur allégés
+- L'en-tête perd son menu (« Explorer », « Contact ») : la marque à gauche, les
+  langues et « Explorer les courbes » à droite (`margin-left: auto` sur
+  `.entete-actions`). Le contact reste joignable par l'onglet du site et le pied.
+- L'explorateur perd sa mention « L'explorateur » ; le bouton d'agrandissement
+  descend au bout de la ligne des onglets (Courbes, Palmarès…), centré sur leur
+  hauteur, le filet passant sous les deux (`.tete-onglets`).
+- Le rail des onglets du site s'éclaircit : `--grille` à 55 % sur transparent.
+
 ## 05/10/2026 — onglet « Contact »
 - La feuille « À propos de l'auteur » quitte le bas de l'accueil pour une page
   à elle, `/[lang]/contact`, troisième onglet du site après « Outil » et

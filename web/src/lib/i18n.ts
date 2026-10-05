@@ -54,7 +54,6 @@ export const MAX_SERIES = 4;
 export const textes = {
   fr: {
     // navigation et en-tête
-    nav_explorer: "Explorer",
     nav_projet: "Le projet",
     nav_contact: "Contact",
     cta_header: "Explorer les courbes",
@@ -83,8 +82,7 @@ export const textes = {
 
     // explorateur — onglets (maquette bêta v3 : soulignés, pictogrammes,
     // mention d'usage sous la rangée)
-    demo_titre: "L'explorateur",
-    // bouton en tête de l'explorateur : l'étendre à toute la fenêtre, ou l'y rendre
+    // bouton au bout des onglets de l'explorateur : l'étendre à toute la fenêtre, ou l'y rendre
     explorateur_agrandir: "Agrandir l'explorateur",
     explorateur_reduire: "Réduire l'explorateur",
     ong_aria: "Modes de l'explorateur",
@@ -313,7 +311,6 @@ export const textes = {
     bienvenue_cookie: "Un seul cookie, sans suivi, pour ne pas revoir cette page.",
   },
   en: {
-    nav_explorer: "Explore",
     nav_projet: "The project",
     nav_contact: "Contact",
     cta_header: "Explore the curves",
@@ -335,7 +332,6 @@ export const textes = {
 
     avenir: "Coming soon",
 
-    demo_titre: "The explorer",
     explorateur_agrandir: "Expand the explorer",
     explorateur_reduire: "Collapse the explorer",
     ong_aria: "Explorer modes",

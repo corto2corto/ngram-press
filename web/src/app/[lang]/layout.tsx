@@ -58,12 +58,6 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             </span>
             <span className="mot-marque">Agora</span>
           </Link>
-          {/* l'ancre vise la page de l'outil : depuis un autre onglet, le lien
-              ramène d'abord à la racine ; le contact a sa propre page */}
-          <nav className="menu">
-            <Link href={`/${lang}#explorer`}>{t.nav_explorer}</Link>
-            <Link href={`/${lang}/contact`}>{t.nav_contact}</Link>
-          </nav>
           <div className="entete-actions">
             <nav className="langues" aria-label={lang === "fr" ? "Langue" : "Language"}>
               {langs.map((code) => (
