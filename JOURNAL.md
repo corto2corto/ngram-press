@@ -1,5 +1,12 @@
 # Journal du projet
 
+## 05/10/2026 — site toujours en clair, mobile compris
+- Un téléphone en mode sombre affichait le site en noir : `globals.css` suivait
+  `prefers-color-scheme: dark`. Les deux blocs sombres (palette et `--pic`) sont
+  retirés, `color-scheme: light` reste seul.
+- `viewport` dans `web/src/app/[lang]/layout.tsx` : `colorScheme: "light"` et
+  `themeColor: "#ffffff"`, pour que la barre du navigateur mobile reste blanche.
+
 ## 04/10/2026 — défilement plus lent, section « Le projet » retirée
 - `DUREE_ETAPE` (`web/src/lib/defilement.ts`) passe de 13 à 15 s par
   configuration. La vitesse de frappe et le tracé (1 700 ms) ne changent pas.

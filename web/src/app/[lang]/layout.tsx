@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { EB_Garamond, IM_Fell_English_SC } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,6 +19,12 @@ const fell = IM_Fell_English_SC({
   weight: "400",
   variable: "--police-marque",
 });
+
+// Toujours en clair, y compris la barre du navigateur sur mobile en mode sombre.
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#ffffff",
+};
 
 export const dynamicParams = false;
 

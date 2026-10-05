@@ -1,8 +1,8 @@
 /* ngram-press — page blanche, encre, accent argile, titres en EB Garamond
    (variable --police-serif posée par next/font). Les gris de structure
    (grille, axes, bords) sont neutres : rien ne tire vers le beige.
-   Couleurs de séries : palette catégorielle validée (CVD + contraste), pas
-   sombres recalés pour la surface sombre. */
+   Couleurs de séries : palette catégorielle validée (CVD + contraste).
+   Toujours en clair, même quand le téléphone est en mode sombre. */
 
 :root {
   color-scheme: light;
@@ -31,28 +31,6 @@
   --sortie: cubic-bezier(0.16, 1, 0.3, 1);
   --doux: cubic-bezier(0.22, 1, 0.36, 1);
   --trace: cubic-bezier(0.37, 0.15, 0.28, 0.94);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --fond: #161512;
-    --surface: #201f1c;
-    --encre: #f5f4ee;
-    --encre-2: #c9c6bd;
-    --encre-muette: #8f8c83;
-    --encre-logo: #e0ddd4;
-    --grille: #2b2a26;
-    --axe: #3a3833;
-    --bord: rgba(245, 244, 238, 0.14);
-    --accent: #c97a55;
-    --serie-1: #c97a55;
-    --serie-2: #3987e5;
-    --serie-3: #199e70;
-    --serie-4: #c98500;
-    --ombre: rgba(0, 0, 0, 0.5);
-    --anneau: rgba(201, 122, 85, 0.28);
-  }
 }
 
 * {
@@ -1172,15 +1150,9 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
    rappel des paramètres, trois cartes de figures en SVG, bascules en pilules */
 
 /* la couleur du point du pic (archétypes) : un rouge franc, distinct de l'accent
-   argile et des séries, lisible sur les deux surfaces */
+   argile et des séries */
 :root {
   --pic: #e34948;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --pic: #f06b69;
-  }
 }
 
 .pilules {
