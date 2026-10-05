@@ -1300,11 +1300,10 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   color: var(--encre-muette);
 }
 
-/* ---- bandeau contact */
+/* ---- page contact : la feuille ouvre la page, d'où la marge haute du hero */
 
 .contact {
-  padding-block: 0 3.8rem;
-  scroll-margin-top: 2rem;
+  padding-block: clamp(2.2rem, 5.5vw, 3.6rem) 3.8rem;
 }
 
 /* La feuille de contact est un objet en papier : son blanc et son encre ne

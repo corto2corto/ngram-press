@@ -63,6 +63,7 @@ export const textes = {
     onglets_aria: "Pages du site",
     onglet_outil: "Outil",
     onglet_2027: "Présidentielle 2027",
+    onglet_contact: "Contact",
 
     // page « Présidentielle 2027 », pas encore écrite
     p27_titre: "Présidentielle 2027",
@@ -320,6 +321,7 @@ export const textes = {
     onglets_aria: "Site pages",
     onglet_outil: "Tool",
     onglet_2027: "Presidential 2027",
+    onglet_contact: "Contact",
 
     p27_titre: "Presidential 2027",
     p27_intro:

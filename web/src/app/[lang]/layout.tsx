@@ -58,11 +58,11 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             </span>
             <span className="mot-marque">Agora</span>
           </Link>
-          {/* les ancres visent la page de l'outil : depuis un autre onglet,
-              le lien ramène d'abord à la racine */}
+          {/* l'ancre vise la page de l'outil : depuis un autre onglet, le lien
+              ramène d'abord à la racine ; le contact a sa propre page */}
           <nav className="menu">
             <Link href={`/${lang}#explorer`}>{t.nav_explorer}</Link>
-            <Link href={`/${lang}#contact`}>{t.nav_contact}</Link>
+            <Link href={`/${lang}/contact`}>{t.nav_contact}</Link>
           </nav>
           <div className="entete-actions">
             <nav className="langues" aria-label={lang === "fr" ? "Langue" : "Language"}>
@@ -89,6 +89,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           onglets={[
             { href: `/${lang}`, libelle: t.onglet_outil },
             { href: `/${lang}/presidentielle-2027`, libelle: t.onglet_2027 },
+            { href: `/${lang}/contact`, libelle: t.onglet_contact },
           ]}
         />
 
@@ -114,7 +115,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                   <a href="mailto:kalice.ecr@gmail.com">kalice.ecr@gmail.com</a>
                 </li>
                 <li>
-                  <Link href={`/${lang}#contact`}>{t.contact_cv}</Link>
+                  <Link href={`/${lang}/contact`}>{t.contact_cv}</Link>
                 </li>
               </ul>
             </div>

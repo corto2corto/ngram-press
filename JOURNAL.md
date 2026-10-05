@@ -1,5 +1,14 @@
 # Journal du projet
 
+## 05/10/2026 — onglet « Contact »
+- La feuille « À propos de l'auteur » quitte le bas de l'accueil pour une page
+  à elle, `/[lang]/contact`, troisième onglet du site après « Outil » et
+  « Présidentielle 2027 » (`onglet_contact` dans `i18n.ts`, FR/EN). Le
+  balisage de la feuille est repris tel quel ; la section perd son ancre
+  `#contact` et prend la marge haute du hero puisqu'elle ouvre la page.
+- Les liens qui visaient l'ancre (menu de l'en-tête, « Voir le CV » du pied)
+  pointent sur la page. L'accueil se réduit au hero et à l'explorateur.
+
 ## 05/10/2026 — la période des Courbes : champs, curseur, bornes au jour près
 - Le formulaire des Courbes passe en deux rangs : mots, journal, mesure ; puis
   la période et « Tracer ». Les deux champs numériques « De / À » et le menu
