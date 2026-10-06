@@ -63,6 +63,11 @@ def query_frequency(mot: str, corpus: str, debut: str = "1900",
       si le corpus dispose de bigrammes (voir `avec_2gram` dans `list_corpora`).
     - Plusieurs expressions séparées par des virgules pour comparer des séries
       (`inflation,chômage,pouvoir achat`), 5 au maximum.
+    - Le signe `+` additionne des variantes en une seule série
+      (`grève+grèves`, `migrant+migrants+réfugié+réfugiés`).
+    - Jokers : `*` (zéro ou plusieurs lettres) et `?` (une lettre) dans un mot
+      (`grèv*` additionne grève, grèves, grévistes…), `_` à la place d'un mot
+      entier (`guerre _`). Le premier mot doit être fixé.
     - Les expressions sont tokenisées (minuscules, ponctuation retirée) ; un mot
       absent du corpus renvoie une série à zéro, pas une erreur.
     - Les élisions sont gérées : un mot qui commence par une voyelle ou un h

@@ -77,6 +77,12 @@ paths:
         seule série (`mot=grève+grèves`), nommée comme saisie dans `gram`. Les
         variantes d'une même série doivent avoir le même nombre de mots.
 
+        **Jokers :** `*` (zéro ou plusieurs lettres) et `?` (une lettre) dans un
+        mot (`grèv*` additionne grève, grèves, grévistes… en une série), `_` à
+        la place d'un mot entier (`guerre _`). Le premier mot doit être fixé
+        (ni `_`, ni motif commençant par `*` ou `?`) et un motif ne peut couvrir
+        plus de 100 000 formes : la recherche parcourrait toute la base.
+
         **Compatibilité Gallicagram :** la même route répond aussi sous
         `/query_ngram`, avec les mêmes paramètres et le même format que la route
         `/query_ngram` de l'API Gallicagram (le paramètre `elias` de celle-ci est
@@ -203,7 +209,7 @@ paths:
       parameters:
         - name: mot
           in: query
-          description: Exactement deux expressions séparées par une virgule, 1 ou 2 mots chacune.
+          description: Exactement deux expressions séparées par une virgule, 1 ou 2 mots chacune ; `+` et jokers acceptés comme sur `/query`.
           required: true
           schema:
             type: string
@@ -249,6 +255,118 @@ paths:
               schema:
                 type: string
                 example: "paramètre mot : deux expressions séparées par une virgule attendues"
+
+  /joker_ngram:
+    get:
+      summary: Mots qui suivent le plus souvent un mot
+      description: |
+        Même route que `/joker_ngram` de l'API Gallicagram : les bigrammes qui
+        commencent par `mot`, classés par occurrences décroissantes sur la
+        période (`pouvoir` → `pouvoir d'achat`, `pouvoir de`…). `_` peut aussi
+        être placé dans `mot` (`pouvoir _`). Seul `after=True` est disponible :
+        chercher ce qui précède un mot parcourrait toute la base.
+
+        **CSV retourné :** `tot` (occurrences sur la période), `gram`.
+      parameters:
+        - $ref: '#/components/parameters/CorpusParam'
+        - name: mot
+          in: query
+          required: true
+          description: Un mot (les bases vont jusqu'au bigramme).
+          schema: { type: string }
+          example: pouvoir
+        - $ref: '#/components/parameters/FromParam'
+        - $ref: '#/components/parameters/ToParam'
+        - $ref: '#/components/parameters/NJokerParam'
+        - $ref: '#/components/parameters/StopwordsParam'
+      responses:
+        "200":
+          description: CSV des bigrammes classés
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "tot,gram\n941,pouvoir d'achat\n927,pouvoir de"
+        "400":
+          description: Paramètre invalide (corpus inconnu, `after=False`, `n_joker` ou `stopwords` non entiers).
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /wildcard_ngram:
+    get:
+      summary: Formes correspondant à un motif à jokers
+      description: |
+        Même route que `/wildcard_ngram` de l'API Gallicagram : les mots ou
+        bigrammes qui correspondent au motif, classés par occurrences
+        décroissantes sur la période. `*` vaut zéro ou plusieurs lettres, `?`
+        une lettre, `_` un mot entier (`inflat*` → inflation, inflationniste… ;
+        `grève _` → grève des, grève du…). Le premier mot doit être fixé et un
+        motif ne peut couvrir plus de 100 000 formes.
+
+        **CSV retourné :** `tot`, `gram`.
+      parameters:
+        - $ref: '#/components/parameters/CorpusParam'
+        - name: mot
+          in: query
+          required: true
+          description: Motif de 1 ou 2 mots, avec `*`, `?` ou `_`.
+          schema: { type: string }
+          example: inflat*
+        - $ref: '#/components/parameters/FromParam'
+        - $ref: '#/components/parameters/ToParam'
+        - $ref: '#/components/parameters/NJokerParam'
+        - $ref: '#/components/parameters/StopwordsParam'
+      responses:
+        "200":
+          description: CSV des formes classées
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "tot,gram\n871,inflation\n210,inflationniste\n69,inflationnistes"
+        "400":
+          description: Paramètre invalide (premier mot non fixé, motif trop large, corpus inconnu).
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /associated_ngram:
+    get:
+      summary: Mots les plus fréquents juste après un mot
+      description: |
+        Même route que `/associated_ngram` de l'API Gallicagram, limitée à
+        `side=after` et `length=2` (les bases vont jusqu'au bigramme) : les mots
+        qui suivent `mot`, classés par occurrences décroissantes, sans
+        ponctuation ni nombres. `stopwords=k` écarte les `k` mots les plus
+        fréquents (liste de Gallicagram, 1 000 mots).
+
+        **CSV retourné :** `gram`, `tot`.
+      parameters:
+        - $ref: '#/components/parameters/CorpusParam'
+        - name: mot
+          in: query
+          required: true
+          description: Un seul mot.
+          schema: { type: string }
+          example: inflation
+        - $ref: '#/components/parameters/FromParam'
+        - $ref: '#/components/parameters/ToParam'
+        - $ref: '#/components/parameters/NJokerParam'
+        - $ref: '#/components/parameters/StopwordsParam'
+      responses:
+        "200":
+          description: CSV des mots voisins classés
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "gram,tot\ngalopante,36\npersistante,14"
+        "400":
+          description: Paramètre invalide (plus d'un mot, `side` ou `length` autres que after / 2, corpus inconnu).
+          content:
+            text/plain:
+              schema: { type: string }
 
   /projection:
     get:
@@ -531,6 +649,22 @@ components:
       schema:
         $ref: '#/components/schemas/Date'
       example: "2024"
+
+    NJokerParam:
+      name: n_joker
+      in: query
+      required: false
+      description: Nombre de lignes renvoyées (entier) ou `all` pour toutes. Défaut 50.
+      schema: { type: string }
+      example: "50"
+
+    StopwordsParam:
+      name: stopwords
+      in: query
+      required: false
+      description: "Nombre de mots vides écartés aux positions libres : les k premiers de la liste des 1 000 mots les plus fréquents de Gallicagram. Défaut 0."
+      schema: { type: integer }
+      example: 200
 
   schemas:
     Date:

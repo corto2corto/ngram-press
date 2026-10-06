@@ -147,12 +147,56 @@ ELISIONS = ("l'", "d'", "n'")
 _VOYELLE = re.compile(r"^[aeiouyhàâäéèêëîïôöùûüÿœæ]")
 
 
+# Jokers, comme /query_ngram de Gallicagram : « _ » remplace un mot entier, « * » (zéro ou
+# plusieurs lettres) et « ? » (une lettre) complètent un mot (« grèv* », « *isme »). Un mot
+# à joker additionne toutes ses formes. Le premier mot doit être fixé : « _ crise » ou
+# « *isme crise » obligerait à relire toute la table (clé primaire w1, w2, date).
+JOKERS = "*?"
+MAX_FORMES = 100000   # formes qu'un motif peut couvrir ; « d* » en couvre des millions
+# mots vides pour stopwords=k (k premiers de la liste) : celle de Gallicagram si elle est là
+# (1 000 mots les plus fréquents des livres de Gallica), sinon les mots outils du stage
+STOPWORDS = os.environ.get("STOPWORDS", "/opt/bazoulay/docker_gallicagram/gallicagram/stopwords.csv")
+
+
+class Refus(ValueError):
+    """paramètre refusé : le message est renvoyé tel quel en 400"""
+
+
+def decouper(expression):
+    # mots d'une expression : un mot à joker ou « _ » est gardé tel quel (tokeniser l'effacerait),
+    # les autres passent par tokeniser (minuscules, apostrophe droite, ponctuation)
+    mots = []
+    for m in expression.lower().replace("’", "'").split():
+        if m == "_" or any(j in m for j in JOKERS):
+            mots.append(m)
+        else:
+            mots += tokeniser(m)
+    return mots
+
+
+def analyser_serie(gram):
+    # « grève+grèves » -> [["grève"], ["grèves"]] ; Refus si une variante n'a pas 1 ou 2 mots,
+    # si les variantes n'ont pas la même longueur, ou si un motif n'a que des « _ »
+    expressions = []
+    for v in gram.split("+"):
+        mots = decouper(v)
+        if not 1 <= len(mots) <= 2:
+            raise Refus(f"« {v.strip()} » : 1 ou 2 mots attendus")
+        if all(m == "_" for m in mots):
+            raise Refus(f"« {v.strip()} » : au moins un mot autre que _ attendu")
+        expressions.append(mots)
+    if len({len(m) for m in expressions}) > 1:
+        raise Refus(f"« {gram.strip()} » : les variantes d'une même série (+) doivent avoir le même nombre de mots")
+    return expressions
+
+
 def variantes(tokens):
     # formes à additionner : l'expression, puis chaque mot élidable remplacé par ses formes
-    # élidées, un mot à la fois (« pouvoir achat » -> « pouvoir d'achat », pas les deux mots)
+    # élidées, un mot à la fois (« pouvoir achat » -> « pouvoir d'achat », pas les deux mots).
+    # Un mot à joker n'est pas élidé : « é*» couvre déjà ce qu'il couvre.
     formes = [tokens]
     for i, t in enumerate(tokens):
-        if _VOYELLE.match(t):
+        if _VOYELLE.match(t) and not any(j in t for j in JOKERS):
             formes += [tokens[:i] + [e + t] + tokens[i + 1:] for e in ELISIONS]
     return formes
 
@@ -167,27 +211,128 @@ def serie(conn, schemas, expressions, date_min, date_max):
     return df.groupby("date", as_index=False)["n"].sum().astype({"date": "int64", "n": "int64"})
 
 
-def serie_forme(conn, schemas, tokens, date_min, date_max):
-    # id des mots d'abord (jamais de jointure sur token : scan complet sinon), cherché dans
-    # chaque base : un mot apparu depuis la dernière fusion n'est que dans le tampon. Les
-    # numéros viennent du registre commun, un mot a donc le même dans toutes les bases.
-    ids = []
-    for t in tokens:
-        for s in schemas:
-            ligne = conn.execute(f"SELECT id FROM {s}.token WHERE word = ?", (t,)).fetchone()
-            if ligne is not None:
-                break
-        if ligne is None:  # mot inconnu de toutes les bases -> série à zéro (colonnes entières :
-            # une série vide sans type ferait passer n en objet, avertissement de pandas au fillna)
-            return pd.DataFrame({"date": pd.Series(dtype="int64"), "n": pd.Series(dtype="int64")})
-        ids.append(ligne[0])
-    conditions = " AND ".join(f"w{i} = ?" for i in range(1, len(tokens) + 1))
+def id_mot(conn, schemas, mot):
+    # id d'un mot, cherché dans chaque base : un mot apparu depuis la dernière fusion n'est que
+    # dans le tampon. Les numéros viennent du registre commun, un mot a donc le même partout.
+    for s in schemas:
+        ligne = conn.execute(f"SELECT id FROM {s}.token WHERE word = ?", (mot,)).fetchone()
+        if ligne is not None:
+            return ligne[0]
+    return None
+
+
+def conditions_mots(conn, schemas, mots):
+    # conditions SQL (avec {s} pour la base) et paramètres d'un motif : mot exact par son id
+    # (jamais de jointure sur token : scan complet sinon), motif glob par sous-requête sur
+    # token, rien pour « _ ». None si un mot exact est inconnu de toutes les bases.
+    if mots[0] == "_" or mots[0][0] in JOKERS:
+        raise Refus("le premier mot doit être fixé : ni « _ », ni motif commençant par * ou ?")
+    conditions, params = [], []
+    for i, m in enumerate(mots, 1):
+        if m == "_":
+            continue
+        if any(j in m for j in JOKERS):
+            formes = max(conn.execute(f"SELECT count(*) FROM (SELECT 1 FROM {s}.token WHERE word GLOB ? LIMIT ?)",
+                                      (m, MAX_FORMES + 1)).fetchone()[0] for s in schemas)
+            if formes > MAX_FORMES:
+                raise Refus(f"« {m} » correspond à plus de {MAX_FORMES} formes, préciser le motif")
+            conditions.append(f"w{i} IN (SELECT id FROM {{s}}.token WHERE word GLOB ?)")
+            params.append(m)
+        else:
+            id_ = id_mot(conn, schemas, m)
+            if id_ is None:
+                return None, None
+            conditions.append(f"w{i} = ?")
+            params.append(id_)
+    return conditions, params
+
+
+def serie_forme(conn, schemas, mots, date_min, date_max):
+    conditions, params = conditions_mots(conn, schemas, mots)
+    if conditions is None:  # mot inconnu -> série à zéro (colonnes entières : une série vide
+        # sans type ferait passer n en objet, avertissement de pandas au fillna)
+        return pd.DataFrame({"date": pd.Series(dtype="int64"), "n": pd.Series(dtype="int64")})
+    ou = " AND ".join(conditions + ["date BETWEEN ? AND ?"])
     return pd.read_sql_query(
         "SELECT date, SUM(n) AS n FROM ("
-        + union(schemas, f"SELECT date, n FROM {{s}}.{TABLE[len(tokens)]} "
-                         f"WHERE {conditions} AND date BETWEEN ? AND ?")
-        + ") GROUP BY date", conn, params=(ids + [date_min, date_max]) * len(schemas)
+        + union(schemas, f"SELECT date, n FROM {{s}}.{TABLE[len(mots)]} WHERE {ou}")
+        + ") GROUP BY date", conn, params=(params + [date_min, date_max]) * len(schemas)
     ).astype({"date": "int64", "n": "int64"})   # résultat vide : colonnes sans type sinon
+
+
+def mots_vides(conn, schemas, k):
+    # ids des k premiers mots vides (voir STOPWORDS)
+    if k <= 0:
+        return []
+    if os.path.exists(STOPWORDS):
+        liste = list(pd.read_csv(STOPWORDS)["monogram"].astype(str))[:k]
+    else:
+        from scripts.tokenisation import MOTS_OUTILS
+        liste = MOTS_OUTILS[:k]
+    ids = {id_mot(conn, schemas, m) for m in liste}
+    return sorted(i for i in ids if i is not None)
+
+
+def mots_des_ids(conn, schemas, ids):
+    # {id: mot} par paquets, dans chaque base (un mot récent n'est que dans le tampon)
+    mots = {}
+    for debut in range(0, len(ids), 5000):
+        paquet = ",".join(map(str, ids[debut:debut + 5000]))
+        for s in schemas:
+            mots.update(conn.execute(f"SELECT id, word FROM {s}.token WHERE id IN ({paquet})").fetchall())
+    return mots
+
+
+def classement(args, mots):
+    # n-grammes correspondant à un motif, classés par occurrences décroissantes sur la période
+    # (base des routes /joker_ngram, /wildcard_ngram, /associated_ngram) -> DataFrame tot, gram
+    # ou chaque mot des positions « _ » séparément (associes=True) ; n_joker (défaut 50 ou
+    # « all »), stopwords=k écarte les k premiers mots vides aux positions « _ »
+    cat = catalogue()
+    corpus = args.get("corpus", "")
+    if corpus not in cat:
+        raise Refus(f"corpus inconnu : {corpus} (choix : {', '.join(sorted(cat))})")
+    if not 1 <= len(mots) <= 2:
+        raise Refus("le motif doit contenir 1 ou 2 mots")
+    if all(m == "_" for m in mots):
+        raise Refus("le motif doit contenir au moins un mot autre que _")
+    n_joker = args.get("n_joker", "50")
+    if n_joker != "all" and not n_joker.isdigit():
+        raise Refus("n_joker doit être un entier ou all")
+    stopwords = args.get("stopwords", "0")
+    if not stopwords.isdigit():
+        raise Refus("stopwords doit être un entier")
+    if args.get("score", "count") != "count":
+        raise Refus("score : seul le classement par occurrences (count) est disponible")
+    date_min = borne_date(args.get("from") or "1900", 101)
+    date_max = borne_date(args.get("to") or "2100", 1231)
+    conn, schemas = ouvrir(cat[corpus])
+    try:
+        conditions, params = conditions_mots(conn, schemas, mots)
+        libres = [f"w{i}" for i, m in enumerate(mots, 1) if m == "_"]
+        if conditions is None:
+            return pd.DataFrame(columns=["tot", "gram"])
+        vides = mots_vides(conn, schemas, int(stopwords))
+        if vides and libres:
+            conditions += [f"{w} NOT IN ({','.join(map(str, vides))})" for w in libres]
+        colonnes = ", ".join(f"w{i}" for i in range(1, len(mots) + 1))
+        ou = " AND ".join(conditions + ["date BETWEEN ? AND ?"])
+        limite = "" if n_joker == "all" else f" LIMIT {int(n_joker)}"
+        df = pd.read_sql_query(
+            f"SELECT {colonnes}, SUM(n) AS tot FROM ("
+            + union(schemas, f"SELECT {colonnes}, n FROM {{s}}.{TABLE[len(mots)]} WHERE {ou}")
+            + f") GROUP BY {colonnes} ORDER BY tot DESC{limite}",
+            conn, params=(params + [date_min, date_max]) * len(schemas))
+        ids = sorted({int(v) for c in df.columns[:-1] for v in df[c]})
+        noms = mots_des_ids(conn, schemas, ids)
+    finally:
+        conn.close()
+    df["gram"] = [" ".join(noms.get(int(v), "?") for v in ligne) for ligne in df[df.columns[:-1]].values]
+    return df[["tot", "gram"]]
+
+
+def reponse_csv(df):
+    return Response(df.to_csv(index=False), mimetype="text/plain")
 
 
 @app.route("/")
@@ -293,8 +438,9 @@ def proxy_mcp():
 @app.route("/query_ngram")
 def query():
     # Même interface que /query_ngram de l'API Gallicagram (guni) : ',' sépare des séries, '+'
-    # additionne des variantes en une série (« grève+grèves »), résolution par défaut la plus
-    # fine (jour), colonnes n,annee[,mois[,jour]],gram,total. Les comptes peuvent différer de
+    # additionne des variantes en une série (« grève+grèves »), jokers « _ », « * », « ? »
+    # (voir JOKERS), résolution par défaut la plus fine (jour), colonnes
+    # n,annee[,mois[,jour]],gram,total. Les comptes peuvent différer de
     # guni (élisions l', d', n' ici, voir variantes()). Son paramètre elias=true est ignoré.
     cat = catalogue()
     corpus = request.args.get("corpus", "")
@@ -306,16 +452,16 @@ def query():
 
     series = []
     for gram in request.args.get("mot", "").split(","):
-        expressions = [tokeniser(v) for v in gram.split("+")]
-        for v, tokens in zip(gram.split("+"), expressions):
-            if not 1 <= len(tokens) <= 2:
-                return f"« {v.strip()} » : 1 ou 2 mots attendus", 400
-        if len({len(tokens) for tokens in expressions}) > 1:
-            return f"« {gram.strip()} » : les variantes d'une même série (+) doivent avoir le même nombre de mots", 400
-        conn, schemas = ouvrir(cat[corpus])
-        df = totaux(conn, schemas, TABLE[len(expressions[0])], date_min, date_max).merge(
-            serie(conn, schemas, expressions, date_min, date_max), on="date", how="left").sort_values("date")
-        conn.close()
+        try:
+            expressions = analyser_serie(gram)
+            conn, schemas = ouvrir(cat[corpus])
+            try:
+                df = totaux(conn, schemas, TABLE[len(expressions[0])], date_min, date_max).merge(
+                    serie(conn, schemas, expressions, date_min, date_max), on="date", how="left").sort_values("date")
+            finally:
+                conn.close()
+        except Refus as e:
+            return str(e), 400
         df["n"] = df["n"].fillna(0).astype(int)
         df["gram"] = gram.strip()
         series.append(df)
@@ -339,15 +485,16 @@ def ratio():
     # deux fréquences ont donc chacune leur dénominateur. Le rapport est nul si A est absente,
     # null si B l'est ; un corpus sans mot sur la période est aussi à null. Corpus triés par
     # rapport décroissant, les null à la fin. Tous les corpus par défaut, ou une liste.
-    # /ratio?mot=gaza,ukraine&from=2023&to=2024[&corpus=mediapart,le_figaro]
     cat = catalogue()
+    # /ratio?mot=gaza,ukraine&from=2023&to=2024[&corpus=mediapart,le_figaro] ; chaque expression
+    # accepte « + » et les jokers comme /query
     grams = [g.strip() for g in request.args.get("mot", "").split(",") if g.strip()]
     if len(grams) != 2:
         return "paramètre mot : deux expressions séparées par une virgule attendues", 400
-    tokens = [tokeniser(g) for g in grams]
-    for g, tk in zip(grams, tokens):
-        if not 1 <= len(tk) <= 2:
-            return f"« {g} » : 1 ou 2 mots attendus", 400
+    try:
+        expressions = [analyser_serie(g) for g in grams]
+    except Refus as e:
+        return str(e), 400
     if request.args.get("corpus"):
         noms = [c.strip() for c in request.args["corpus"].split(",") if c.strip()]
         inconnus = [c for c in noms if c not in cat]
@@ -362,9 +509,13 @@ def ratio():
     for corpus in noms:
         conn, schemas = ouvrir(cat[corpus])
         ligne = {"corpus": corpus}
-        for lettre, tk in zip("ab", tokens):
-            total = int(totaux(conn, schemas, TABLE[len(tk)], date_min, date_max)["total"].sum())
-            n = int(serie(conn, schemas, [tk], date_min, date_max)["n"].sum())
+        for lettre, expr in zip("ab", expressions):
+            total = int(totaux(conn, schemas, TABLE[len(expr[0])], date_min, date_max)["total"].sum())
+            try:
+                n = int(serie(conn, schemas, expr, date_min, date_max)["n"].sum())
+            except Refus as e:
+                conn.close()
+                return str(e), 400
             ligne[f"n_{lettre}"] = n
             ligne[f"total_{lettre}"] = int(total)
             ligne[f"freq_{lettre}"] = n / total if total else None
@@ -375,6 +526,58 @@ def ratio():
     lignes.sort(key=lambda l: (l["ratio"] is None, -(l["ratio"] or 0), l["corpus"]))
     return jsonify({"mot_a": grams[0], "mot_b": grams[1], "de": date_min, "a": date_max,
                     "corpus": lignes})
+
+
+@app.route("/joker_ngram")
+def joker_ngram():
+    # mots qui suivent le plus souvent « mot » (after=True, défaut) : « pouvoir » -> « pouvoir
+    # d'achat », « pouvoir de »… ; « _ » peut aussi être placé dans mot (« pouvoir _ »). length :
+    # taille du n-gramme (défaut : mots + 1, au plus 2 ici). after=False (« _ pouvoir ») est refusé :
+    # le premier mot doit être fixé. CSV tot,gram comme /joker_ngram de Gallicagram.
+    args = request.args
+    mots = decouper(args.get("mot", ""))
+    if "_" not in mots:
+        length = args.get("length", str(len(mots) + 1))
+        if not length.isdigit() or int(length) <= len(mots):
+            return "length doit être un entier supérieur au nombre de mots", 400
+        jokers = ["_"] * (int(length) - len(mots))
+        mots = mots + jokers if args.get("after", "True").lower() in ("true", "1") else jokers + mots
+    try:
+        return reponse_csv(classement(args, mots))
+    except Refus as e:
+        return str(e), 400
+
+
+@app.route("/wildcard_ngram")
+def wildcard_ngram():
+    # formes correspondant à un motif : « inflat* » -> inflation, inflationniste… ; « grève _ »
+    # ; « * » = zéro ou plusieurs lettres, « ? » = une lettre. CSV tot,gram.
+    try:
+        return reponse_csv(classement(request.args, decouper(request.args.get("mot", ""))))
+    except Refus as e:
+        return str(e), 400
+
+
+@app.route("/associated_ngram")
+def associated_ngram():
+    # mots les plus fréquents juste après « mot » (un seul mot, bigrammes seulement) ; comme
+    # /associated_ngram de Gallicagram avec side=after : les autres côtés parcourraient toute la
+    # base. Sans ponctuation ni nombres ; stopwords=k écarte les k premiers mots vides. CSV gram,tot.
+    args = request.args
+    mots = decouper(args.get("mot", ""))
+    if len(mots) != 1 or mots[0] == "_":
+        return "mot : un seul mot attendu (les bases vont jusqu'au bigramme)", 400
+    if args.get("side", "after") != "after":
+        return "side : seul after est disponible (chercher avant un mot parcourrait toute la base)", 400
+    if args.get("length", "2") != "2":
+        return "length : seul 2 est disponible (les bases vont jusqu'au bigramme)", 400
+    try:
+        df = classement(args, mots + ["_"])
+    except Refus as e:
+        return str(e), 400
+    df["gram"] = df["gram"].str.split(" ", n=1).str[1]
+    df = df[df["gram"].str.contains(r"[^\W\d_]", regex=True, na=False)]
+    return reponse_csv(df[["gram", "tot"]])
 
 
 @app.route("/pca/catalogue")

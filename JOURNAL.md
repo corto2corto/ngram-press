@@ -1,5 +1,27 @@
 # Journal du projet
 
+## 06/10/2026 — API : jokers, « + » partout, trois routes de Gallicagram
+- `/query` et `/ratio` partagent `analyser_serie` : `+` dans « Usage relatif »
+  aussi (avant : bigramme « grève grèves », 0 sans erreur), et jokers comme
+  `/query_ngram` de guni : `*` (zéro ou plusieurs lettres), `?` (une lettre)
+  dans un mot, `_` pour un mot entier. Un mot à joker additionne ses formes
+  (`grèv*`), sous-requête `w IN (SELECT id FROM token WHERE word GLOB ?)`.
+  Garde-fous de guni repris : premier mot fixé (sinon scan de la clé primaire
+  w1, w2, date), au plus 100 000 formes par motif ; mots à joker non élidés.
+  `decouper` garde `_`, `*`, `?` que `tokeniser` effacerait.
+- Nouvelles routes, même CSV que guni : `/joker_ngram` (`tot,gram`, suites d'un
+  mot, `after=False` refusé), `/wildcard_ngram` (`tot,gram`, formes d'un motif),
+  `/associated_ngram` (`gram,tot`, mots après un mot, sans ponctuation ni
+  nombres ; `side` autre que after et `length` autre que 2 refusés : bigrammes
+  seulement). Commun : `classement` (GROUP BY w1, w2, LIMIT n_joker), mots
+  résolus par paquets de 5 000 ids. `stopwords=k` : k premiers de
+  `stopwords.csv` de Gallicagram (chemin dans STOPWORDS, 1 000 mots les plus
+  fréquents des livres de Gallica), repli sur MOTS_OUTILS. `score` refusé.
+- MCP : `+` et jokers dans la description de `query_frequency`. Swagger : trois
+  routes, jokers, `NJokerParam` / `StopwordsParam`.
+- Testé en local sur la minibase (unigrammes) ; bigrammes vérifiés sur gram
+  après déploiement.
+
 ## 06/10/2026 — API : /query aligné sur /query_ngram de Gallicagram
 - Comparaison avec l'API Gallicagram (guni, même serveur) : trois interfaces,
   v1 historique (`/guni/query`…, ne lit pas nos bases), v1 « ngram »
