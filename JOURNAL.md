@@ -1,5 +1,15 @@
 # Journal du projet
 
+## 06/10/2026 — courbes : trait épais, sans point d'arrivée
+- Les courbes de l'onglet Courbes prennent le style de la maquette : trait de
+  3 px (contre 2) aux jointures et bouts arrondis, et plus de point qui éclôt
+  sur la dernière valeur — le tracé s'arrête net (`COURBE_EPAISSEUR` dans
+  `Chart.tsx`, règle `.serie .bout` retirée de `globals.css`, la keyframe
+  `eclore` restant pour les sucettes de Ratio). Le témoin de légende et
+  d'infobulle passe à 3 px pour imiter le trait. Grille, axes, étiquettes,
+  barres des occurrences brutes et animations de tracé sont inchangés ; le
+  lissage des fréquences aussi.
+
 ## 06/10/2026 — l'accueil devient un encadré
 - La page d'entrée `/bienvenue/<lang>` disparaît au profit d'un encadré posé
   par-dessus le site à la première visite, quelle que soit la page d'arrivée,

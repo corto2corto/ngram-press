@@ -15,6 +15,10 @@ import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 const MARGE = { haut: 24, droite: 16, bas: 30, gauche: 52 };
 const HAUTEUR = 380;
 
+// courbes : trait épais, arrondi, sans point d'arrivée — le tracé s'arrête net
+// sur la dernière valeur, comme sur la maquette
+const COURBE_EPAISSEUR = 3;
+
 // barres : épaisseur plafonnée (le reste du créneau est de l'air), sommet
 // arrondi et base carrée, jour de surface entre barres voisines dès qu'elles
 // ont la place — sinon elles se touchent, en histogramme serré (pas jour)
@@ -28,7 +32,7 @@ type Barre = { d: string; part: number };
 
 // un rendu de série prêt à peindre : la couche sortante en garde une copie figée
 type Trace =
-  | { genre: "courbe"; couleur: string; d: string; bout: { x: number; y: number } }
+  | { genre: "courbe"; couleur: string; d: string }
   | { genre: "barres"; couleur: string; barres: Barre[] };
 
 // lissage « appuyé » : moyenne mobile centrée à noyau triangulaire,
@@ -258,10 +262,6 @@ export default function Chart({
           d: s.points
             .map((p, j) => `${j ? "L" : "M"}${px(p.x)},${py(valsSeries[i][j])}`)
             .join(""),
-          bout: {
-            x: px(s.points[s.points.length - 1].x),
-            y: py(valsSeries[i][s.points.length - 1]),
-          },
         };
       });
 
@@ -286,27 +286,16 @@ export default function Chart({
   // couche courante, la copie sortante est figée
   const peindre = (tr: Trace, anime: boolean) =>
     tr.genre === "courbe" ? (
-      <>
-        <path
-          className={anime ? "courbe" : undefined}
-          pathLength={1}
-          d={tr.d}
-          fill="none"
-          stroke={tr.couleur}
-          strokeWidth={2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <circle
-          className={anime ? "bout" : undefined}
-          cx={tr.bout.x}
-          cy={tr.bout.y}
-          r={4}
-          fill={tr.couleur}
-          stroke="var(--surface)"
-          strokeWidth={2}
-        />
-      </>
+      <path
+        className={anime ? "courbe" : undefined}
+        pathLength={1}
+        d={tr.d}
+        fill="none"
+        stroke={tr.couleur}
+        strokeWidth={COURBE_EPAISSEUR}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
     ) : (
       tr.barres.map((b, j) => (
         <path

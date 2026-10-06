@@ -970,7 +970,7 @@ main > section,
 .legende .trait,
 .infobulle .trait {
   width: 14px;
-  border-top: 2.5px solid;
+  border-top: 3px solid;
   border-radius: 2px;
 }
 
@@ -1003,8 +1003,8 @@ main > section,
   transition: opacity 0.25s ease;
 }
 
-/* A6 — les courbes se tracent de gauche à droite, dans le sens du temps, puis
-   le point de dernière valeur éclôt. Chaque série part avec 120 ms de retard
+/* A6 — les courbes se tracent de gauche à droite, dans le sens du temps, et
+   s'arrêtent net sur la dernière valeur. Chaque série part avec 120 ms de retard
    sur la précédente. pathLength="1" normalise la longueur du chemin : la durée
    ne dépend donc pas du nombre de points. Le tracé rejoue à chaque requête,
    grâce à la clé de tirage posée sur les groupes de séries (Chart.tsx). */
@@ -1030,8 +1030,7 @@ main > section,
 
 /* Le défilement automatique a sa propre vitesse de tracé, un peu plus lente :
    on laisse à la courbe le temps de naître. Les tracés demandés à la main
-   gardent la durée commune. Le point de fin (A6) suit de lui-même, son délai
-   étant calculé sur --duree-trace. */
+   gardent la durée commune. */
 .carte-graphe.trace-defile {
   --duree-trace: 1700ms;
 }
@@ -1056,13 +1055,7 @@ main > section,
   animation: trace var(--duree-trace) var(--trace) var(--retard) both;
 }
 
-.serie .bout {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: eclore 420ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
-  animation-delay: calc(var(--retard) + var(--duree-trace) - 60ms);
-}
-
+/* eclore sert aux sucettes de l'onglet Ratio (plus bas) */
 @keyframes eclore {
   0% {
     transform: scale(0);
