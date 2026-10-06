@@ -1,24 +1,25 @@
 ---
 name: task
-description: Note une tâche identifiée au fil de la discussion (contexte + piste de résolution envisagée) dans le taches.md du dépôt stage-mids et l'ajoute à la section « Tâches en attente » du dashboard, avec un prompt de reprise prêt à coller dans une future session Claude. Utiliser quand Corto veut garder une tâche pour plus tard (« /task », « note ça pour plus tard »), ou pour marquer une tâche faite.
+description: Note une tâche identifiée au fil de la discussion (contexte + piste de résolution envisagée) sous forme d'issue GitHub dans le dépôt stage-mids, avec un prompt de reprise prêt à coller dans une future session Claude sur ngram-press. Utiliser quand Corto veut garder une tâche pour plus tard (« /task », « note ça pour plus tard »), ou pour marquer une tâche faite.
 ---
 
 # Skill /task (depuis ngram-press)
 
-Capture une tâche discutée dans la session courante, pour la reprendre plus tard depuis le dashboard.
+Capture une tâche discutée dans la session courante sous forme d'issue GitHub, pour la reprendre plus tard.
 
-Les tâches de tous les dépôts sont centralisées dans le dépôt **stage-mids** : c'est là que vivent la liste et le dashboard. Ce skill écrit donc en dehors du dépôt courant.
+Les tâches de tous les dépôts sont centralisées dans les issues de **stage-mids** (même procédure que le skill `task` de stage-mids). Seule différence : la tâche se reprend dans ngram-press, ce que l'issue doit dire.
 
 ## Références fixes
 
-- **Source de vérité des tâches** : `~/Documents/stage-mids/.claude/taches.md`.
-- **Dashboard** : `~/Documents/stage-mids/site/static/dashboard.html`, fichier local versionné dans stage-mids. On l'édite directement (Edit, pas de récupération distante).
-- **Dépôt courant** : `~/Documents/ngram-press` — à mentionner dans l'entrée et sur la carte, puisque la tâche ne se reprend pas dans stage-mids.
+- **Source de vérité des tâches** : les issues du dépôt `corto2corto/stage-mids`, label `tâche`. Plus de `.claude/taches.md` ni de dashboard : ne pas y écrire.
+- **Outil** : `gh` (connecté au compte `corto2corto`, protocole SSH).
+- **Le dépôt est public** : tout ce qui est écrit dans l'issue est visible de tous.
+- **Dépôt courant** : `ngram-press`, à indiquer dans le corps de l'issue, puisque la tâche ne se reprend pas dans stage-mids.
 
 ## Étape 1 — Comprendre la tâche depuis la conversation
 
 Relire la discussion et en extraire :
-- un **titre court** (une ligne) et un **slug** kebab-case (servira d'id HTML) ;
+- un **titre court** (une ligne) ;
 - le **contexte** : ce qui a été constaté, où, pourquoi c'est un problème ;
 - la **piste de résolution** discutée — celle qui a été retenue, pas l'inventaire des options ;
 - les **fichiers, bases et commandes** concernés, avec les détails précis établis dans la conversation (noms exacts, numéros de ligne, décisions prises).
@@ -35,20 +36,42 @@ Le prompt sera collé dans une **nouvelle session Claude sur le dépôt ngram-pr
 - comment vérifier le résultat à la fin ;
 - si la tâche touche au serveur (gram ou gallica), terminer par « Me demander avant de lancer quoi que ce soit sur le serveur. »
 
-Ton : instructions directes à Claude, en français, 10-20 lignes. Voir l'entrée `stopwords-tops` de taches.md comme modèle.
+Ton : instructions directes à Claude, en français, 10-20 lignes. Voir l'issue n°2 de stage-mids (`stopwords-tops`) comme modèle.
 
-## Étape 3 — Enregistrer dans taches.md
+## Étape 3 — Vérifier qu'il n'y a rien de sensible
 
-Ajouter l'entrée dans `~/Documents/stage-mids/.claude/taches.md`, AVANT la section « ## Faites », au format existant : `## <slug> — <titre>`, date d'ajout, **Dépôt : ngram-press**, branche, **Contexte**, **Piste envisagée**, **Prompt** en bloc de code. Ce fichier est la source de vérité — le dashboard n'est qu'un affichage.
+L'issue est publique. Avant de créer, relire le texte : ni identifiant, mot de passe, jeton, adresse IP, e-mail, ni nom de compte dans un chemin serveur (écrire `/opt/<compte>/…`, `/data/<compte>`). En cas de doute, retirer le détail ou demander à Corto.
 
-## Étape 4 — Mettre à jour le dashboard
+## Étape 4 — Créer l'issue
 
-Éditer `~/Documents/stage-mids/site/static/dashboard.html` : ajouter une carte dans la section « Tâches en attente », sur le modèle d'une carte existante — `carte-titre` (titre), `carte-sous` (date + `ngram-press/<branche>`, pour distinguer des tâches stage-mids), bouton `btn-prompt` avec `data-panneau="prompt-<slug>"`, `p.desc` (une phrase : constat + piste), panneau `panneau-prompt` d'id `prompt-<slug>` contenant le `<pre>` du prompt et un bouton `btn-copier` avec `data-copie="prompt-<slug>"`. Attention : dans le `<pre>`, échapper `<`, `>` et `&` en `&lt;`, `&gt;`, `&amp;`. Le `<script>` en bas de page gère déjà tous les boutons — ne rien y ajouter.
+Écrire le corps dans un fichier du scratchpad (jamais dans un dépôt), au format :
+
+```
+- Ajoutée : <date>
+- Dépôt : ngram-press
+- Branche : <branche>
+
+**Contexte** : ...
+
+**Piste envisagée** : ...
+
+**Prompt** :
+
+<bloc de code avec le prompt de reprise>
+```
+
+Puis :
+
+```
+gh issue create -R corto2corto/stage-mids --title "ngram-press : <titre>" --label tâche --body-file <fichier>
+```
+
+Le préfixe `ngram-press : ` dans le titre distingue ces tâches de celles de stage-mids dans la liste des issues.
 
 ## Tâche terminée
 
-Si Corto dit qu'une tâche est faite : déplacer son entrée de taches.md vers « ## Faites » (garder la trace, on peut retirer le prompt), et supprimer sa carte du dashboard.
+Si Corto dit qu'une tâche est faite : retrouver son numéro (`gh issue list -R corto2corto/stage-mids --label tâche`), puis `gh issue close <n> -R corto2corto/stage-mids --comment "<une ligne sur ce qui a été fait>"`. Un commit de ngram-press peut aussi la fermer avec « closes corto2corto/stage-mids#<n> » (la forme courte « closes #<n> » viserait les issues de ngram-press).
 
 ## Étape 5 — Rendre compte
 
-Une ou deux lignes : la tâche notée, où (taches.md + dashboard, dans stage-mids), et rappeler que les deux fichiers modifiés sont dans **stage-mids** — il faut donc committer là-bas, pas dans ngram-press. Ne pas committer soi-même sans que Corto le demande.
+Une ligne : la tâche notée, son numéro et l'URL de l'issue. Rien à push, les issues ne passent pas par git.
