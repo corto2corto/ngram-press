@@ -43,8 +43,9 @@ const VUES_TESTS: VueTests[] = ["projection", "catalogue", "ratio"];
 // astuces de syntaxe du panneau d'aide des Courbes : un exemple cliquable (il
 // remplit le champ des mots et trace, journal et bornes inchangés) et la clé
 // i18n de ce qu'il montre. Les exemples restent en français : le corpus l'est.
-const ASTUCES: { exemple: string; cle: "virgule" | "expression" | "casse" }[] = [
+const ASTUCES: { exemple: string; cle: "virgule" | "plus" | "expression" | "casse" }[] = [
   { exemple: "retraites, grève", cle: "virgule" },
+  { exemple: "grève+grèves", cle: "plus" },
   { exemple: "gilets jaunes", cle: "expression" },
   { exemple: "Macron", cle: "casse" },
 ];

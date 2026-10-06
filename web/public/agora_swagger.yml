@@ -14,7 +14,7 @@ info:
 
     Exemple R :
     ```r
-    read.csv("https://shiny.ens-paris-saclay.fr/guni/agora/query?corpus=leparisien&mot=inflation")
+    read.csv("https://shiny.ens-paris-saclay.fr/guni/agora/query?corpus=leparisien&mot=inflation&resolution=mois")
     ```
 
     Exemple Python :
@@ -58,20 +58,30 @@ servers:
 
 paths:
   /query:
-    get:
+    get: &query
       summary: Fréquence d'un mot ou syntagme
       description: |
         Retourne le nombre d'occurrences d'un mot ou d'un couple de mots sur une
         période donnée, accompagné du volume total du corpus pour la même période
         (dénominateur permettant de calculer une fréquence relative).
 
-        **Colonnes CSV retournées :** `gram` (l'expression cherchée), `n`
-        (occurrences), `total` (mots du corpus sur la période), `annee`, `mois`
-        (si résolution `mois`), `jour` (si résolution `jour`).
+        **Colonnes CSV retournées, dans cet ordre :** `n` (occurrences), `annee`,
+        `mois` (résolutions `mois` et `jour`), `jour` (résolution `jour`), `gram`
+        (l'expression cherchée), `total` (mots du corpus sur la période).
 
         **Plusieurs expressions :** séparez-les par une virgule
         (`mot=inflation,chômage`). Chacune donne son propre groupe de lignes,
         identifié par la colonne `gram`.
+
+        **Somme de variantes :** le signe `+` additionne plusieurs formes en une
+        seule série (`mot=grève+grèves`), nommée comme saisie dans `gram`. Les
+        variantes d'une même série doivent avoir le même nombre de mots.
+
+        **Compatibilité Gallicagram :** la même route répond aussi sous
+        `/query_ngram`, avec les mêmes paramètres et le même format que la route
+        `/query_ngram` de l'API Gallicagram (le paramètre `elias` de celle-ci est
+        accepté et ignoré). Les comptes peuvent différer : Agora additionne les
+        formes en l', d' et n' (voir « Tokenisation » plus haut).
 
         **Limitation :** 1 ou 2 mots par expression. Les bigrammes ne sont
         disponibles que pour les corpus dont la base 2-gram est construite —
@@ -82,7 +92,8 @@ paths:
           in: query
           description: |
             Mot ou syntagme de 1 à 2 mots. Plusieurs expressions peuvent être
-            demandées en une requête, séparées par une virgule.
+            demandées en une requête, séparées par une virgule ; le signe `+`
+            additionne des variantes en une seule série.
           required: true
           schema:
             type: string
@@ -91,7 +102,7 @@ paths:
         - $ref: '#/components/parameters/ToParam'
         - name: resolution
           in: query
-          description: Granularité temporelle des résultats. Défaut `mois`.
+          description: Granularité temporelle des résultats. Défaut `jour`.
           required: false
           schema:
             $ref: '#/components/schemas/Resolution'
@@ -104,16 +115,20 @@ paths:
             text/plain:
               schema:
                 type: string
-                example: "gram,annee,mois,n,total\ninflation,2023,1,412,8104233\ninflation,2023,2,388,7620118"
+                example: "n,annee,mois,gram,total\n412,2023,1,inflation,8104233\n388,2023,2,inflation,7620118"
         "400":
           description: |
             Paramètre invalide : corpus inconnu, expression de plus de 2 mots,
-            base n-gram absente pour ce corpus, ou paramètre `mot` manquant.
+            variantes `+` de longueurs différentes, base n-gram absente pour ce
+            corpus, ou paramètre `mot` manquant.
           content:
             text/plain:
               schema:
                 type: string
                 example: "corpus inconnu : lemonde (choix : le_monde, leparisien, mediapart)"
+
+  /query_ngram:
+    get: *query
 
   /corpus:
     get:
@@ -197,7 +212,7 @@ paths:
         - $ref: '#/components/parameters/ToParam'
         - name: corpus
           in: query
-          description: Corpus à comparer, séparés par des virgules. Défaut : tous les corpus.
+          description: "Corpus à comparer, séparés par des virgules. Défaut : tous les corpus."
           required: false
           schema:
             type: string
@@ -527,7 +542,7 @@ components:
     Resolution:
       type: string
       enum: [jour, mois, annee]
-      default: mois
+      default: jour
       description: |
         Granularité temporelle des résultats.
 

@@ -157,9 +157,13 @@ def variantes(tokens):
     return formes
 
 
-def serie(conn, schemas, tokens, date_min, date_max):
-    # somme jour par jour des formes de l'expression (élisions comprises)
-    df = pd.concat([serie_forme(conn, schemas, f, date_min, date_max) for f in variantes(tokens)])
+def serie(conn, schemas, expressions, date_min, date_max):
+    # somme jour par jour des formes des expressions (variantes « + » et leurs élisions), chaque
+    # forme comptée une fois : « économie+l'économie » ne compte pas deux fois « l'économie »
+    formes = []
+    for tokens in expressions:
+        formes += [f for f in variantes(tokens) if f not in formes]
+    df = pd.concat([serie_forme(conn, schemas, f, date_min, date_max) for f in formes])
     return df.groupby("date", as_index=False)["n"].sum().astype({"date": "int64", "n": "int64"})
 
 
@@ -286,23 +290,31 @@ def proxy_mcp():
 
 
 @app.route("/query")
+@app.route("/query_ngram")
 def query():
+    # Même interface que /query_ngram de l'API Gallicagram (guni) : ',' sépare des séries, '+'
+    # additionne des variantes en une série (« grève+grèves »), résolution par défaut la plus
+    # fine (jour), colonnes n,annee[,mois[,jour]],gram,total. Les comptes peuvent différer de
+    # guni (élisions l', d', n' ici, voir variantes()). Son paramètre elias=true est ignoré.
     cat = catalogue()
     corpus = request.args.get("corpus", "")
     if corpus not in cat:
         return f"corpus inconnu : {corpus} (choix : {', '.join(sorted(cat))})", 400
     date_min = borne_date(request.args.get("from") or "1900", 101)   # défaut : 1er janvier
     date_max = borne_date(request.args.get("to") or "2100", 1231)    # défaut : 31 décembre
-    resolution = request.args.get("resolution", "mois")
+    resolution = request.args.get("resolution", "jour")
 
     series = []
     for gram in request.args.get("mot", "").split(","):
-        tokens = tokeniser(gram)
-        if not 1 <= len(tokens) <= 2:
-            return f"« {gram.strip()} » : 1 ou 2 mots attendus", 400
+        expressions = [tokeniser(v) for v in gram.split("+")]
+        for v, tokens in zip(gram.split("+"), expressions):
+            if not 1 <= len(tokens) <= 2:
+                return f"« {v.strip()} » : 1 ou 2 mots attendus", 400
+        if len({len(tokens) for tokens in expressions}) > 1:
+            return f"« {gram.strip()} » : les variantes d'une même série (+) doivent avoir le même nombre de mots", 400
         conn, schemas = ouvrir(cat[corpus])
-        df = totaux(conn, schemas, TABLE[len(tokens)], date_min, date_max).merge(
-            serie(conn, schemas, tokens, date_min, date_max), on="date", how="left")
+        df = totaux(conn, schemas, TABLE[len(expressions[0])], date_min, date_max).merge(
+            serie(conn, schemas, expressions, date_min, date_max), on="date", how="left").sort_values("date")
         conn.close()
         df["n"] = df["n"].fillna(0).astype(int)
         df["gram"] = gram.strip()
@@ -314,13 +326,9 @@ def query():
     df["annee"] = df["date"] // 10000
     df["mois"] = df["date"] // 100 % 100
     df["jour"] = df["date"] % 100
-    if resolution == "annee":
-        df = df.groupby(["gram", "annee"], as_index=False)[["n", "total"]].sum()
-    elif resolution == "mois":
-        df = df.groupby(["gram", "annee", "mois"], as_index=False)[["n", "total"]].sum()
-    else:  # jour
-        df = df.drop(columns="date")
-    return Response(df.to_csv(index=False), mimetype="text/plain")
+    temps = {"annee": ["annee"], "mois": ["annee", "mois"]}.get(resolution, ["annee", "mois", "jour"])
+    df = df.groupby(["gram"] + temps, as_index=False, sort=False)[["n", "total"]].sum()
+    return Response(df[["n"] + temps + ["gram", "total"]].to_csv(index=False), mimetype="text/plain")
 
 
 @app.route("/ratio")
@@ -356,7 +364,7 @@ def ratio():
         ligne = {"corpus": corpus}
         for lettre, tk in zip("ab", tokens):
             total = int(totaux(conn, schemas, TABLE[len(tk)], date_min, date_max)["total"].sum())
-            n = int(serie(conn, schemas, tk, date_min, date_max)["n"].sum())
+            n = int(serie(conn, schemas, [tk], date_min, date_max)["n"].sum())
             ligne[f"n_{lettre}"] = n
             ligne[f"total_{lettre}"] = int(total)
             ligne[f"freq_{lettre}"] = n / total if total else None

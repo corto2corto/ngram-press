@@ -1,5 +1,40 @@
 # Journal du projet
 
+## 06/10/2026 — API : /query aligné sur /query_ngram de Gallicagram
+- Comparaison avec l'API Gallicagram (guni, même serveur) : trois interfaces,
+  v1 historique (`/guni/query`…, ne lit pas nos bases), v1 « ngram »
+  (`/guni/query_ngram`, `elias=true` lit nos bases), v2 (`/guni/v2/query`,
+  JSON, sert déjà nos 36 corpus). Alignement sur la v1 « ngram » (même CSV).
+- `/query` répond aussi sous `/query_ngram` (`elias` accepté, ignoré).
+- `+` additionne des variantes en une série (`grève+grèves`), chaque forme
+  comptée une fois ; avant, le `+` était avalé par `tokeniser` et la série
+  cherchait le bigramme « grève grèves » (0 sans erreur). Variantes de
+  longueurs différentes : erreur 400.
+- Colonnes toujours dans l'ordre de guni : `n,annee[,mois[,jour]],gram,total`
+  (avant : `gram,…,n,total`, et `total,n,gram,…` en résolution jour).
+  Résolution par défaut : `jour` (avant `mois`), comme guni.
+- Le site n'est pas touché : il lit les colonnes par leur nom et passe
+  toujours la résolution (vérifié avec `api.ts` sur les deux formats). Le MCP
+  non plus (`pd.read_csv`, résolution explicite).
+- Choix acté : les comptes peuvent différer de guni (Agora additionne l', d',
+  n' ; guni l' sur le premier mot, la v2 rien). Jokers (`_`, `*`) et routes
+  joker / wildcard / associated : plus tard.
+- Front : astuce « grève+grèves » dans l'aide « ? » des Courbes (`ASTUCES`,
+  `astuce_plus` FR/EN), « un + additionne des mots en une seule courbe ».
+- Swagger : `/query_ngram`, `+`, ordre des colonnes, défaut `jour`, exemple R
+  avec `resolution=mois` ; guillemets sur la description de `corpus` de
+  `/ratio` (« Défaut : » cassait la lecture du YAML).
+
+## 06/10/2026 — idée : couverture d'un sujet par candidat (Présidentielle 2027)
+- Idée d'outil pour l'onglet « Présidentielle 2027 », encore vide (hero et
+  badge « À venir ») : on choisit un mot, ou un sujet (une collection de mots),
+  et une période ; l'outil indique, pour chaque candidat, comment il a couvert
+  ce sujet sur ses réseaux sociaux.
+- Rien n'est commencé. À trancher avant : la source (quels réseaux, quels
+  comptes, comment les collecter ; le corpus actuel ne contient que la presse),
+  la liste des candidats, la mesure (part des publications, fréquence
+  relative…) et la forme de l'affichage.
+
 ## 06/10/2026 — courbes : trait épais, sans point d'arrivée
 - Les courbes de l'onglet Courbes prennent le style de la maquette : trait de
   3 px (contre 2) aux jointures et bouts arrondis, et plus de point qui éclôt

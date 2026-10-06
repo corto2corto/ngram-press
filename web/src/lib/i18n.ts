@@ -251,6 +251,7 @@ export const textes = {
     // astuces de syntaxe du panneau d'aide des Courbes : l'exemple est
     // cliquable (Explorer.tsx, ASTUCES), le texte dit ce qu'il montre
     astuce_virgule: "une virgule compare jusqu'à quatre mots",
+    astuce_plus: "un + additionne des mots en une seule courbe",
     astuce_expression: "deux mots suivent une expression",
     astuce_casse: "majuscules ou minuscules, c'est pareil",
     lbl_corpus: "Journal",
@@ -491,6 +492,7 @@ export const textes = {
 
     lbl_mots: "Words (comma-separated)",
     astuce_virgule: "a comma compares up to four words",
+    astuce_plus: "a + adds words up into a single curve",
     astuce_expression: "two words follow a phrase",
     astuce_casse: "upper or lower case, same thing",
     lbl_corpus: "Newspaper",
