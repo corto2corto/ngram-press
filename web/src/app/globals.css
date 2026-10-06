@@ -286,11 +286,6 @@ main > section,
   transform: scale(0.97);
 }
 
-.bouton-petit {
-  padding: 0.45rem 1.1rem;
-  font-size: 0.85rem;
-}
-
 .lien-accent {
   color: var(--accent);
   font-weight: 550;

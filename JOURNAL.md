@@ -1,5 +1,10 @@
 # Journal du projet
 
+## 06/10/2026 — en-tête sans « Explorer les courbes »
+- Le bouton « Explorer les courbes » quitte l'en-tête : il ne reste à droite que
+  les langues. La clé `cta_header` (FR/EN) et la classe `.bouton-petit`, qui ne
+  servaient qu'à lui, disparaissent.
+
 ## 05/10/2026 — en-tête et explorateur allégés
 - L'en-tête perd son menu (« Explorer », « Contact ») : la marque à gauche, les
   langues et « Explorer les courbes » à droite (`margin-left: auto` sur

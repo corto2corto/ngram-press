@@ -71,9 +71,6 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
                 </Link>
               ))}
             </nav>
-            <Link className="bouton bouton-petit" href={`/${lang}#explorer`}>
-              {t.cta_header}
-            </Link>
           </div>
         </header>
 

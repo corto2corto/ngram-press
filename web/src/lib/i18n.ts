@@ -56,7 +56,6 @@ export const textes = {
     // navigation et en-tête
     nav_projet: "Le projet",
     nav_contact: "Contact",
-    cta_header: "Explorer les courbes",
 
     // onglets du site, sous l'en-tête (Onglets.tsx) : une page par onglet
     onglets_aria: "Pages du site",
@@ -313,7 +312,6 @@ export const textes = {
   en: {
     nav_projet: "The project",
     nav_contact: "Contact",
-    cta_header: "Explore the curves",
 
     onglets_aria: "Site pages",
     onglet_outil: "Tool",
