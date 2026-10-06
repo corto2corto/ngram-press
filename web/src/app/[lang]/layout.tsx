@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { EB_Garamond, IM_Fell_English_SC } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Accueil from "@/components/Accueil";
 import Onglets from "@/components/Onglets";
 import Spirale from "@/components/Spirale";
 import { hasLang, langs, textes } from "@/lib/i18n";
@@ -112,6 +113,13 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
             </div>
           </div>
         </footer>
+
+        <Accueil
+          lang={lang}
+          accroche={t.accueil_accroche}
+          texte={t.accueil_texte}
+          bouton={t.accueil_bouton}
+        />
       </body>
     </html>
   );

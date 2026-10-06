@@ -1,5 +1,24 @@
 # Journal du projet
 
+## 06/10/2026 — l'accueil devient un encadré
+- La page d'entrée `/bienvenue/<lang>` disparaît au profit d'un encadré posé
+  par-dessus le site à la première visite, quelle que soit la page d'arrivée,
+  `/fr` et `/en` compris (`web/src/components/Accueil.tsx`, monté dans le
+  layout `[lang]`). Voile légèrement flouté, carte blanche au centre : le
+  logotype, fixe (pas de tracé), l'accroche, les trois lignes sur le corpus et
+  le bouton « Explorer l'outil → ». Les pastilles FR/EN de l'encadré mènent à
+  la même page dans l'autre langue, l'encadré restant ouvert.
+- Le bouton, Échap ou un clic sur le voile le ferment et posent le cookie
+  `agora_accueil=vu` (13 mois, inchangé) ; la ligne qui annonçait le cookie
+  n'est pas reprise. L'encadré s'ouvre après l'hydratation, le cookie se lisant
+  dans le navigateur : les pages restent statiques.
+- `proxy.ts` : `/` mène toujours à `/<lang>` ; `/bienvenue` et
+  `/bienvenue/<lang>` aussi, pour les anciens liens. `BoutonEssayer.tsx` et
+  `bienvenue.module.css` sont retirés. Textes FR/EN : `bienvenue_*` devient
+  `accueil_accroche`, `accueil_texte` et `accueil_bouton` (« Explorer
+  l'outil » / « Explore the tool ») ; `bienvenue_auteur` et `bienvenue_cookie`
+  disparaissent.
+
 ## 06/10/2026 — en-tête sans « Explorer les courbes »
 - Le bouton « Explorer les courbes » quitte l'en-tête : il ne reste à droite que
   les langues. La clé `cta_header` (FR/EN) et la classe `.bouton-petit`, qui ne

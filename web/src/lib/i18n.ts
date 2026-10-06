@@ -299,15 +299,13 @@ export const textes = {
     // pied de page
     pied_api: "API et documentation",
 
-    // page d'entrée (bienvenue/[lang]) : vue une seule fois, hors du gabarit du site
-    bienvenue_accroche: "Ce dont parle la presse française, mesuré jour après jour.",
-    bienvenue_texte:
+    // encadré d'accueil (Accueil.tsx) : à la première visite, par-dessus le site
+    accueil_accroche: "Ce dont parle la presse française, mesuré jour après jour.",
+    accueil_texte:
       "Agora compte les mots publiés chaque jour par 36 médias français, du Monde à BFM TV, "
       + "de Mediapart à Voici, depuis 2008. Tapez un mot : sa courbe montre quand un sujet "
       + "apparaît, culmine, puis s'efface.",
-    bienvenue_essayer: "Essayer l'outil",
-    bienvenue_auteur: "Un projet de Corto",
-    bienvenue_cookie: "Un seul cookie, sans suivi, pour ne pas revoir cette page.",
+    accueil_bouton: "Explorer l'outil",
   },
   en: {
     nav_projet: "The project",
@@ -538,14 +536,12 @@ export const textes = {
 
     pied_api: "API and documentation",
 
-    bienvenue_accroche: "What the French press talks about, measured day after day.",
-    bienvenue_texte:
+    accueil_accroche: "What the French press talks about, measured day after day.",
+    accueil_texte:
       "Agora counts the words published every day by 36 French media outlets, from Le Monde "
       + "to BFM TV, from Mediapart to Voici, since 2008. Type a word: its curve shows when a "
       + "topic emerges, peaks, then fades.",
-    bienvenue_essayer: "Try the tool",
-    bienvenue_auteur: "A project by Corto",
-    bienvenue_cookie: "A single cookie, no tracking, so you don't see this page again.",
+    accueil_bouton: "Explore the tool",
   },
 } satisfies Record<Lang, unknown>;
 
