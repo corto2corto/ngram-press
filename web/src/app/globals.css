@@ -1993,3 +1993,25 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 .infobulle-p27 .nom-etiquette {
   color: var(--encre);
 }
+
+/* les médias de l'onglet : la rangée repliée sur deux lignes (Presidentielle.tsx la mesure
+   sur une copie invisible, posée par-dessus) et la pilule « + » qui la déplie */
+.choix-medias-p27 {
+  position: relative;
+}
+
+.mesure-medias {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pilules-medias .plus-medias {
+  min-width: 2.6rem;
+  border-color: var(--axe);
+  color: var(--encre);
+  font-variant-numeric: tabular-nums;
+}

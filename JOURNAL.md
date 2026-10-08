@@ -15,6 +15,10 @@
   axe, la plus haute colonne à 1/1,12 de la hauteur ; détail au survol
   (période précédente, écart, mentions, étiquettes) ; colonnes couchées sous
   560 px ; glissement des colonnes d'une réponse à l'autre.
+- Médias : au départ, les 15 principaux seuls, montrés et cochés (presse
+  nationale d'information générale, BFM TV, CNews, 20 Minutes, Ouest-France),
+  repliés sur deux lignes mesurées à la largeur réelle ; une pilule « + n »
+  déplie les 36, « − » replie, « Tous » coche tout et déplie.
 - API : route `/presidentielle?from&to[&corpus]`, occurrences par étiquette sur
   la période et la précédente, cache d'une demi-heure. Comparaison donnée
   seulement si chaque média servi a des données dès le début de la période

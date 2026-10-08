@@ -78,7 +78,6 @@ export const textes = {
       ["3 mois", "Les 3 derniers mois"],
       ["6 mois", "Les 6 derniers mois"],
     ] as [string, string][],
-    p27_jours: (n: string, pluriel: boolean) => `${n} jour${pluriel ? "s" : ""}`,
     p27_date_invalide: "Date attendue au format JJ/MM/AAAA.",
     p27_ordre: "Le début doit précéder la fin.",
     p27_du: (de: string, a: string) => `du ${de} au ${a}`,
@@ -97,6 +96,12 @@ export const textes = {
     p27_points: (v: string, pluriel: boolean) => `${v}\u00a0pt${pluriel ? "s" : ""}`,
     p27_aucun: "Aucune mention des candidats sur cette période.",
     p27_choisir: "Cochez au moins un média.",
+    // la pilule qui déplie la liste des médias, puis la replie
+    p27_plus: (n: number) => `+ ${n}`,
+    p27_plus_aria: (n: number, coches: number) =>
+      `Afficher les ${n} autres médias` + (coches ? ` (${coches} coché${coches > 1 ? "s" : ""})` : ""),
+    p27_moins: "−",
+    p27_moins_aria: "Afficher seulement les principaux médias",
     p27_graphe_aria: "Part des mentions de chaque candidat, sur la période et sur la précédente",
     p27_aide:
       "Chaque candidat est compté par ses étiquettes, des noms et appellations d'un ou deux mots "
@@ -366,7 +371,6 @@ export const textes = {
       ["3 months", "The last 3 months"],
       ["6 months", "The last 6 months"],
     ] as [string, string][],
-    p27_jours: (n: string, pluriel: boolean) => `${n} day${pluriel ? "s" : ""}`,
     p27_date_invalide: "Date expected as DD/MM/YYYY.",
     p27_ordre: "The start must come before the end.",
     p27_du: (de: string, a: string) => `${de} – ${a}`,
@@ -385,6 +389,11 @@ export const textes = {
     p27_points: (v: string, pluriel: boolean) => `${v}\u00a0pt${pluriel ? "s" : ""}`,
     p27_aucun: "No mention of the candidates over this period.",
     p27_choisir: "Tick at least one outlet.",
+    p27_plus: (n: number) => `+ ${n}`,
+    p27_plus_aria: (n: number, coches: number) =>
+      `Show the ${n} other outlets` + (coches ? ` (${coches} ticked)` : ""),
+    p27_moins: "−",
+    p27_moins_aria: "Show only the main outlets",
     p27_graphe_aria: "Each candidate's share of mentions, over the period and the previous one",
     p27_aide:
       "Each candidate is counted through their labels: one- or two-word names and phrases chosen "

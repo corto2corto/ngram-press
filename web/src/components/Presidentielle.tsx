@@ -10,7 +10,9 @@
 // peu d'air au-dessus de la plus haute colonne, sans axe : chaque valeur est écrite. Sur
 // téléphone, les colonnes se couchent. La période se tape dans deux cases (JJ/MM/AAAA) ou se
 // choisit par quatre bulles qui finissent au dernier jour servi ; les médias se cochent en
-// pilules, comme dans Ratio.tsx (tous au départ).
+// pilules, comme dans Ratio.tsx. Au départ, seuls les principaux médias sont montrés et
+// cochés, sur deux lignes au plus (mesurées sur la largeur réelle) ; une pilule « + » déplie
+// la liste entière.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -39,6 +41,14 @@ const CANDIDATS: Record<string, Candidat> = {
   zemmour: { nom: "Zemmour", court: "Zemmour", parti: "R!", partiCourt: "R!", couleur: "#160759" },
 };
 const IDS = Object.keys(CANDIDATS);
+
+// les médias montrés et cochés au départ : presse nationale d'information générale, chaînes
+// d'info et Ouest-France, dans cet ordre (le repli sur deux lignes garde les premiers)
+const PRINCIPAUX = [
+  "le_monde", "le_figaro", "leparisien", "ouest_france", "les_echos", "mediapart", "l_opinion",
+  "la_croix", "le_nouvel_observateur", "le_journal_du_dimanche", "marianne", "valeurs_actuelles",
+  "20minutes", "bfmtv", "cnews",
+];
 const NC = IDS.length;
 
 const JOUR_MS = 86_400_000;
@@ -128,6 +138,8 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
 
   const [medias, setMedias] = useState<string[]>([]);
   const [coches, setCoches] = useState<string[]>([]);
+  const [deplie, setDeplie] = useState(false); // toute la liste des médias, ou les principaux
+  const [nbReplie, setNbReplie] = useState<number | null>(null); // principaux tenant sur deux lignes
   const [dernier, setDernier] = useState<number | null>(null); // dernier jour servi
   const [periode, setPeriode] = useState<{ de: number; a: number } | null>(null);
   const [champs, setChamps] = useState({ de: "", a: "" });
@@ -138,15 +150,19 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   const [survol, setSurvol] = useState<number | null>(null);
   const appel = useRef(0);
 
-  // les médias (triés par nom d'affichage, tous cochés) et le dernier jour servi ; la
-  // période de départ : les trois derniers mois
+  // les médias (les principaux d'abord, puis les autres par nom d'affichage ; les principaux
+  // seuls cochés) et le dernier jour servi ; la période de départ : les trois derniers mois
   useEffect(() => {
     chargerCatalogue().then((cat) => {
-      const noms = cat.map((c) => c.corpus).sort((x, y) => nomDe(x).localeCompare(nomDe(y), locale));
+      const noms = cat.map((c) => c.corpus);
+      const principaux = PRINCIPAUX.filter((c) => noms.includes(c));
+      const autres = noms
+        .filter((c) => !PRINCIPAUX.includes(c))
+        .sort((x, y) => nomDe(x).localeCompare(nomDe(y), locale));
       const fin = Math.max(...cat.map((c) => deIso(c.fin)));
       const p = { de: moisAvant(fin, 3), a: fin };
-      setMedias(noms);
-      setCoches(noms);
+      setMedias([...principaux, ...autres]);
+      setCoches(principaux.length ? principaux : noms);
       setDernier(fin);
       setPeriode(p);
       setChamps({ de: ecrire(p.de, "jour"), a: ecrire(p.a, "jour") });
@@ -224,6 +240,39 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   const basculer = (c: string) =>
     setCoches((liste) => (liste.includes(c) ? liste.filter((m) => m !== c) : [...liste, c]));
 
+  // repli : combien de principaux tiennent sur deux lignes, la pilule « + » comprise. Mesuré
+  // sur une copie invisible de la rangée (les principaux puis « + »), à chaque changement de
+  // taille : on garde les k premiers tels que le k-ième est sur l'une des deux premières
+  // lignes et que « + » tient encore après lui (ou passe en tête de la seconde ligne).
+  const principaux = useMemo(() => medias.filter((c) => PRINCIPAUX.includes(c)), [medias]);
+  const mesure = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = mesure.current;
+    if (!el) return;
+    const calculer = () => {
+      const boutons = [...el.children] as HTMLElement[];
+      const plus = boutons.pop();
+      if (!plus || !boutons.length) return;
+      const ecart = parseFloat(getComputedStyle(el).columnGap) || 0;
+      const lignes = [...new Set(boutons.map((b) => b.offsetTop))].sort((x, y) => x - y);
+      const ligne = (b: HTMLElement) => lignes.indexOf(b.offsetTop);
+      let k = 0;
+      boutons.forEach((b, i) => {
+        const l = ligne(b);
+        const tient = b.offsetLeft + b.offsetWidth + ecart + plus.offsetWidth <= el.clientWidth;
+        if (l === 0 || (l === 1 && tient)) k = i + 1;
+      });
+      setNbReplie(Math.max(1, k));
+    };
+    const observateur = new ResizeObserver(calculer);
+    observateur.observe(el);
+    return () => observateur.disconnect();
+  }, [principaux]);
+
+  const visibles = deplie ? medias : principaux.slice(0, nbReplie ?? principaux.length);
+  const caches = medias.length - visibles.length;
+  const cochesCaches = coches.filter((c) => !visibles.includes(c)).length;
+
   // les parts, de la période et de la précédente, et le rang de chacun
   const calcul = useMemo(() => {
     if (!resultat) return null;
@@ -270,7 +319,6 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   const du = (de: number, a: number) => t.p27_du(date(de, ymd(de)[0] !== ymd(a)[0]), date(a, true));
 
   const r = resultat;
-  const duree = periode ? periode.a - periode.de + 1 : 0;
 
   // ---- tracé
   const W = largeur;
@@ -493,16 +541,19 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
               <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.p27_aide} />
             </div>
             <p className={`p27-note${erreur ? " erreur" : ""}`} aria-live="polite">
-              {erreur ? erreur.message : periode ? t.p27_jours(entier(duree), duree > 1) : " "}
+              {erreur?.message}
             </p>
           </div>
         </div>
 
         {medias.length > 0 && (
-          <fieldset className="choix-medias">
+          <fieldset className="choix-medias choix-medias-p27">
             <legend>
               <span>{t.lbl_medias}</span>
-              <button type="button" className="lien-medias" onClick={() => setCoches(medias)}>
+              <button type="button" className="lien-medias" onClick={() => {
+                setCoches(medias);
+                setDeplie(true);
+              }}>
                 {t.medias_tous}
               </button>
               <button type="button" className="lien-medias" onClick={() => setCoches([])}>
@@ -510,12 +561,27 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
               </button>
             </legend>
             <div className="pilules pilules-medias">
-              {medias.map((c) => (
+              {visibles.map((c) => (
                 <button key={c} type="button" className={coches.includes(c) ? "actif" : undefined}
                   aria-pressed={coches.includes(c)} onClick={() => basculer(c)}>
                   {nomDe(c)}
                 </button>
               ))}
+              {(deplie || caches > 0) && (
+                <button type="button" className="plus-medias" aria-expanded={deplie}
+                  aria-label={deplie ? t.p27_moins_aria : t.p27_plus_aria(caches, cochesCaches)}
+                  title={deplie ? t.p27_moins_aria : t.p27_plus_aria(caches, cochesCaches)}
+                  onClick={() => setDeplie((d) => !d)}>
+                  {deplie ? t.p27_moins : t.p27_plus(caches)}
+                </button>
+              )}
+            </div>
+            {/* copie invisible des principaux et de « + », pour mesurer le repli */}
+            <div className="pilules pilules-medias mesure-medias" ref={mesure} aria-hidden="true">
+              {principaux.map((c) => (
+                <button key={c} type="button" tabIndex={-1}>{nomDe(c)}</button>
+              ))}
+              <button type="button" tabIndex={-1} className="plus-medias">{t.p27_plus(medias.length)}</button>
             </div>
           </fieldset>
         )}
