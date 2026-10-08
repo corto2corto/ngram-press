@@ -23,13 +23,15 @@ import Aide from "@/components/Aide";
 type Candidat = { nom: string; court: string; parti: string; partiCourt: string; couleur: string };
 
 // identifiants de l'API ; couleurs de partis fournies par Corto (Retailleau et Dupont-Aignan
-// y partagent le même bleu : le nom écrit sous chaque colonne porte l'identité)
+// y partagent le même bleu : le nom écrit sous chaque colonne porte l'identité), sauf Attal :
+// son bleu nuit d'origine le rangeait avec l'extrême droite (Le Pen, Zemmour), il prend le
+// bleu d'Édouard Philippe
 const CANDIDATS: Record<string, Candidat> = {
   roussel: { nom: "Roussel", court: "Roussel", parti: "PCF", partiCourt: "PCF", couleur: "#e40028" },
   melenchon: { nom: "Mélenchon", court: "Mélenchon", parti: "FI", partiCourt: "FI", couleur: "#4d2370" },
   tondelier: { nom: "Tondelier", court: "Tondelier", parti: "Les Écologistes", partiCourt: "Écolo.", couleur: "#3ca860" },
-  glucksmann: { nom: "Glucksmann", court: "Glucksm.", parti: "PP", partiCourt: "PP", couleur: "#ffee35" },
-  attal: { nom: "Attal", court: "Attal", parti: "REN", partiCourt: "REN", couleur: "#001f4e" },
+  glucksmann: { nom: "Glucksmann", court: "Glucksm.", parti: "PP", partiCourt: "PP", couleur: "#efd739" },
+  attal: { nom: "Attal", court: "Attal", parti: "REN", partiCourt: "REN", couleur: "#000fad" },
   philippe: { nom: "Philippe", court: "Philippe", parti: "H", partiCourt: "H", couleur: "#000fad" },
   retailleau: { nom: "Retailleau", court: "Retailleau", parti: "LR", partiCourt: "LR", couleur: "#003da3" },
   dupont_aignan: { nom: "Dupont-Aignan", court: "D.-Aignan", parti: "DLF", partiCourt: "DLF", couleur: "#003da3" },
@@ -291,7 +293,7 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
       const y = (v: number) => MARGE.haut + plotH * (1 - Math.min(v, image.ymax) / image.ymax);
       const slot = W / NC;
       const serre = slot < 92;
-      const w = Math.min(36, slot * 0.36);
+      const w = Math.min(40, slot * 0.39);
       marques.push(<line key="base" x1={0} x2={W} y1={y0} y2={y0} stroke="var(--axe)" strokeWidth={1} />);
       IDS.forEach((id, i) => {
         const c = CANDIDATS[id];
@@ -351,10 +353,10 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
         const vp = image.vp ? image.vp[i] : null;
         let fin = x(v);
         if (vp !== null) {
-          marques.push(<path key={`p${id}`} d={barre(x0, cy - 14, x(vp) - x0, 13)} fill={c.couleur} fillOpacity={0.28} />);
+          marques.push(<path key={`p${id}`} d={barre(x0, cy - 16, x(vp) - x0, 15)} fill={c.couleur} fillOpacity={0.28} />);
           fin = Math.max(fin, x(vp));
         }
-        marques.push(<path key={`v${id}`} d={vp !== null ? barre(x0, cy + 1, x(v) - x0, 13) : barre(x0, cy - 7, x(v) - x0, 14)} fill={c.couleur} />);
+        marques.push(<path key={`v${id}`} d={vp !== null ? barre(x0, cy + 1, x(v) - x0, 15) : barre(x0, cy - 8, x(v) - x0, 16)} fill={c.couleur} />);
         textesSvg.push(
           <text key={`n${id}`} x={x0 - 10} y={cy + 4} textAnchor="end" fontSize={13} fill="var(--encre)">
             {c.nom}
@@ -436,7 +438,7 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
               <div className="bloc-titre">{t.p27_etiquettes}</div>
               {k.etiquettes.map((e) => (
                 <div className="ligne" key={e.etiquette}>
-                  <span className="etiquette">{e.etiquette}</span>
+                  <span className="nom-etiquette">{e.etiquette}</span>
                   <span className="valeur">{entier(e.n)}</span>
                 </div>
               ))}
