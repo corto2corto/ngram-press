@@ -280,3 +280,41 @@ export function requeteRatio(options: {
   if (options.corpus.length) params.set("corpus", options.corpus.join(","));
   return lireJson<Ratio>(`/ratio?${params}`);
 }
+
+// ---- Présidentielle 2027 (route /presidentielle de api/app_agora.py) : occurrences des
+// étiquettes des dix candidats sur la période et sur la précédente de même durée, sommées sur
+// les médias choisis. Les n_prec sont null quand la comparaison n'est pas disponible (un média
+// n'a pas encore de données au début de la période précédente).
+
+export type EtiquetteP27 = { etiquette: string; n: number; n_prec: number | null };
+
+export type CandidatP27 = { id: string; n: number; n_prec: number | null; etiquettes: EtiquetteP27[] };
+
+export type Presidentielle = {
+  de: number; // AAAAMMJJ
+  a: number;
+  prec_de: number;
+  prec_a: number;
+  comparable: boolean;
+  corpus: string[]; // les médias qui ont des données sur la période
+  candidats: CandidatP27[];
+};
+
+// mémoire de session, comme requeteSeries : une bulle recliquée ne relance pas l'API
+const p27Servies = new Map<string, Promise<Presidentielle>>();
+
+export function requetePresidentielle(options: {
+  de: string; // AAAA-MM-JJ
+  a: string;
+  corpus: string[]; // les médias choisis (tous si vide)
+}): Promise<Presidentielle> {
+  const params = new URLSearchParams({ from: options.de, to: options.a });
+  if (options.corpus.length) params.set("corpus", [...options.corpus].sort().join(","));
+  const cle = params.toString();
+  const connue = p27Servies.get(cle);
+  if (connue) return connue;
+  const promesse = lireJson<Presidentielle>(`/presidentielle?${cle}`);
+  p27Servies.set(cle, promesse);
+  promesse.catch(() => p27Servies.delete(cle));
+  return promesse;
+}

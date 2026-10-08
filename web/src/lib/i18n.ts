@@ -63,11 +63,47 @@ export const textes = {
     onglet_2027: "Présidentielle 2027",
     onglet_contact: "Contact",
 
-    // page « Présidentielle 2027 », pas encore écrite
+    // page « Présidentielle 2027 » (Presidentielle.tsx)
     p27_titre: "Présidentielle 2027",
     p27_intro:
-      "Cette page arrive bientôt : l'onglet est posé, le suivi de la campagne dans la "
-      + "presse suit.",
+      "Qui occupe la presse ? Pour la période et les médias choisis, la part de chaque candidat "
+      + "dans les mentions des dix candidats, comparée à la période précédente de même durée.",
+    p27_periode: "Période",
+    p27_debut: "Début de la période",
+    p27_fin: "Fin de la période",
+    // les quatre bulles de période : libellé, puis ce qu'elles choisissent
+    p27_bulles: [
+      ["7 jours", "Les 7 derniers jours"],
+      ["1 mois", "Le dernier mois"],
+      ["3 mois", "Les 3 derniers mois"],
+      ["6 mois", "Les 6 derniers mois"],
+    ] as [string, string][],
+    p27_jours: (n: string, pluriel: boolean) => `${n} jour${pluriel ? "s" : ""}`,
+    p27_date_invalide: "Date attendue au format JJ/MM/AAAA.",
+    p27_ordre: "Le début doit précéder la fin.",
+    p27_du: (de: string, a: string) => `du ${de} au ${a}`,
+    p27_titre_graphe: (periode: string) => `Part des mentions, ${periode}`,
+    p27_sous: (medias: string, mentions: string, unSeul: boolean) =>
+      `${medias} média${unSeul ? "" : "s"} · ${mentions} mentions des dix candidats`,
+    p27_prec: (periode: string) => `période précédente, ${periode}`,
+    p27_non_dispo: "Comparaison non disponible",
+    p27_part: "Part des mentions",
+    p27_bulle_prec: "Période précédente",
+    p27_ecart: "Écart",
+    p27_mentions: "Mentions",
+    p27_avant: (n: string) => `${n} avant`,
+    p27_etiquettes: "Étiquettes comptées",
+    p27_pourcent: "\u202f%",
+    p27_points: (v: string, pluriel: boolean) => `${v}\u00a0pt${pluriel ? "s" : ""}`,
+    p27_aucun: "Aucune mention des candidats sur cette période.",
+    p27_choisir: "Cochez au moins un média.",
+    p27_graphe_aria: "Part des mentions de chaque candidat, sur la période et sur la précédente",
+    p27_aide:
+      "Chaque candidat est compté par ses étiquettes, des noms et appellations d'un ou deux mots "
+      + "choisis sur les bases (au moins 1 % de ses mentions, sans homonyme courant) : « Mélenchon », "
+      + "« leader insoumis », « Marine Le Pen », « Édouard Philippe »… Sa part est le nombre de ses "
+      + "mentions divisé par celles des dix candidats, tous les médias cochés additionnés. La "
+      + "période précédente a la même durée et finit la veille du début.",
 
     // hero
     tagline: "Les tendances de la presse française, jour par jour.",
@@ -319,7 +355,43 @@ export const textes = {
 
     p27_titre: "Presidential 2027",
     p27_intro:
-      "This page is coming soon: the tab is in place, the campaign's press coverage follows.",
+      "Who dominates the press? For the chosen period and outlets, each candidate's share of the "
+      + "mentions of all ten candidates, compared with the previous period of the same length.",
+    p27_periode: "Period",
+    p27_debut: "Start of the period",
+    p27_fin: "End of the period",
+    p27_bulles: [
+      ["7 days", "The last 7 days"],
+      ["1 month", "The last month"],
+      ["3 months", "The last 3 months"],
+      ["6 months", "The last 6 months"],
+    ] as [string, string][],
+    p27_jours: (n: string, pluriel: boolean) => `${n} day${pluriel ? "s" : ""}`,
+    p27_date_invalide: "Date expected as DD/MM/YYYY.",
+    p27_ordre: "The start must come before the end.",
+    p27_du: (de: string, a: string) => `${de} – ${a}`,
+    p27_titre_graphe: (periode: string) => `Share of mentions, ${periode}`,
+    p27_sous: (medias: string, mentions: string, unSeul: boolean) =>
+      `${medias} outlet${unSeul ? "" : "s"} · ${mentions} mentions of the ten candidates`,
+    p27_prec: (periode: string) => `previous period, ${periode}`,
+    p27_non_dispo: "Comparison not available",
+    p27_part: "Share of mentions",
+    p27_bulle_prec: "Previous period",
+    p27_ecart: "Change",
+    p27_mentions: "Mentions",
+    p27_avant: (n: string) => `${n} before`,
+    p27_etiquettes: "Labels counted",
+    p27_pourcent: "%",
+    p27_points: (v: string, pluriel: boolean) => `${v}\u00a0pt${pluriel ? "s" : ""}`,
+    p27_aucun: "No mention of the candidates over this period.",
+    p27_choisir: "Tick at least one outlet.",
+    p27_graphe_aria: "Each candidate's share of mentions, over the period and the previous one",
+    p27_aide:
+      "Each candidate is counted through their labels: one- or two-word names and phrases chosen "
+      + "on the data (at least 1% of their mentions, no common namesake): “Mélenchon”, “leader "
+      + "insoumis”, “Marine Le Pen”, “Édouard Philippe”… Their share is their number of mentions "
+      + "divided by that of all ten candidates, summed over the ticked outlets. The previous period "
+      + "has the same length and ends the day before the start.",
 
     tagline: "Trends in the French press, day by day.",
     intro:

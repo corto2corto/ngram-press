@@ -1,5 +1,40 @@
 # Journal du projet
 
+## 08/10/2026 — onglet Présidentielle 2027 : part des mentions des candidats
+- Design choisi sur maquettes (Artifact, données générées) : colonnes jumelles,
+  en plein la période choisie, en clair la période précédente de même durée
+  (qui finit la veille), écart en points sous le nom, tri par part
+  décroissante, couleurs de partis fournies par Corto. Mesure : part des
+  mentions (mentions du candidat ÷ mentions des dix), plutôt que le rapport aux
+  autres (même classement, mais ne totalise pas 100 % et s'emballe en tête).
+  Médias additionnés (somme), cochables en pilules ; la moyenne des médias
+  donnait à un titre qui cite trois fois les candidats le poids du Monde.
+- Front (`Presidentielle.tsx`) : période en deux cases JJ/MM/AAAA et quatre
+  bulles (7 jours, 1, 3, 6 mois, jusqu'au dernier jour servi), pas de curseur ;
+  valeur toujours au-dessus de la plus haute des deux colonnes ; échelle sans
+  axe, la plus haute colonne à 1/1,12 de la hauteur ; détail au survol
+  (période précédente, écart, mentions, étiquettes) ; colonnes couchées sous
+  560 px ; glissement des colonnes d'une réponse à l'autre.
+- API : route `/presidentielle?from&to[&corpus]`, occurrences par étiquette sur
+  la période et la précédente, cache d'une demi-heure. Comparaison donnée
+  seulement si chaque média servi a des données dès le début de la période
+  précédente, sinon « Comparaison non disponible ».
+- Étiquettes choisies sur les bases (oct. 2025 → oct. 2026, 36 médias) : au
+  moins 1 % des mentions du candidat et pas d'homonyme courant. Retenues : nom
+  seul pour Mélenchon, Attal, Tondelier, Glucksmann, Retailleau, Zemmour,
+  Dupont-Aignan ; « leader insoumis » (4,9 %) ; « Marine Le Pen » (bigramme
+  « marine le ») et « triple candidate » ; « Édouard Philippe » avec et sans
+  accent (Le Monde et Les Échos écrivent « Edouard » : 4 981 mentions,
+  « édouard philippe » y valait 0) ; « Fabien Roussel ». Écartées : JLM,
+  leader LFI, tribun insoumis, triple candidat (< 1 %) ; « Roussel » seul
+  (1 161 dans Ouest-France pour 178 « fabien roussel ») ; « Philippe » seul
+  (prénom) ; « Le Pen » seul (Jean-Marie, Marion) ; « Mme Le Pen » (« Mme le
+  maire ») ; « M. Philippe », « M. Roussel », « président LR », NDA (ambigus).
+- Limites : une apposition (« le leader insoumis Jean-Luc Mélenchon ») compte
+  deux fois (≥ 400 des 1 050 « leader insoumis » sont suivis de « Jean ») ;
+  Roussel et Le Pen ne sont comptés qu'avec leur prénom.
+- Testé en local sur une minibase synthétique (route) ; tsc, lint, build OK.
+
 ## 06/10/2026 — API : jokers, « + » partout, trois routes de Gallicagram
 - `/query` et `/ratio` partagent `analyser_serie` : `+` dans « Usage relatif »
   aussi (avant : bigramme « grève grèves », 0 sans erreur), et jokers comme

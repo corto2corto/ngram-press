@@ -10,6 +10,8 @@
 # Lancement (serveur) : venv_agora/bin/gunicorn --bind 127.0.0.1:8010 api.app_agora:app
 # Test local : NGRAM_DIR=data python -m api.app_agora  puis  http://localhost:8502/corpus
 
+import calendar
+import datetime as dt
 import glob
 import json
 import logging
@@ -578,6 +580,139 @@ def associated_ngram():
     df["gram"] = df["gram"].str.split(" ", n=1).str[1]
     df = df[df["gram"].str.contains(r"[^\W\d_]", regex=True, na=False)]
     return reponse_csv(df[["gram", "tot"]])
+
+
+# Présidentielle 2027 (onglet du site) : chaque candidat est compté par ses étiquettes,
+# expressions d'un ou deux mots (« + » réunit les graphies d'une même étiquette) dont les
+# occurrences s'additionnent, élisions comprises (« d'Attal »), comme /query.
+# Étiquettes choisies sur les bases (octobre 2025 → octobre 2026, 36 médias) : au moins 1 % des
+# mentions du candidat, et pas d'homonyme courant. Écartées : JLM (0,2 %), leader LFI (0,4 %),
+# tribun insoumis (0,6 %), triple candidat (0,8 %), « Roussel » seul (homonymes de la presse
+# régionale : 1 161 « roussel » pour 178 « fabien roussel » dans Ouest-France), « Philippe »
+# seul (prénom), « M. Philippe » et « M. Roussel » (d'autres porteurs du nom), « Le Pen » seul
+# (Jean-Marie, Marion), « Mme Le Pen » (« Mme le maire »), « président LR » (élus locaux), NDA
+# (sigle). « Edouard » sans accent : graphie du Monde et des Échos (4 981 mentions). Limites :
+# une apposition (« le leader insoumis Jean-Luc Mélenchon ») compte deux fois ; « Marine Le »
+# ne voit pas « Mme Le Pen » ni « Le Pen » seul.
+# (identifiant, [(étiquette affichée, expression comptée)]) ; les bases s'arrêtent au bigramme
+CANDIDATS_2027 = [
+    ("roussel", [("Fabien Roussel", "Fabien Roussel")]),
+    ("melenchon", [("Mélenchon", "Mélenchon"), ("leader insoumis", "leader insoumis")]),
+    ("tondelier", [("Tondelier", "Tondelier")]),
+    ("glucksmann", [("Glucksmann", "Glucksmann")]),
+    ("attal", [("Attal", "Attal")]),
+    ("philippe", [("Édouard Philippe", "Édouard Philippe+Edouard Philippe")]),
+    ("retailleau", [("Retailleau", "Retailleau")]),
+    ("dupont_aignan", [("Dupont-Aignan", "Dupont-Aignan")]),
+    ("le_pen", [("Marine Le Pen", "Marine Le"), ("triple candidate", "triple candidate")]),
+    ("zemmour", [("Zemmour", "Zemmour")]),
+]
+# (de, a, corpus) -> (instant, réponse) : la période de départ de l'onglet (les trois derniers
+# mois) est la même pour tous les visiteurs d'une journée ; une demi-heure, les bases se
+# complètent chaque jour
+CACHE_2027 = {}
+DUREE_CACHE_2027 = 1800
+
+
+def formes_2027(expression):
+    # formes comptées pour une étiquette : chaque graphie (« + »), et ses élisions sur le seul
+    # premier mot (« d'Attal », « d'Édouard Philippe ») — variantes() élide aussi le second mot,
+    # inutile pour un nom (« Dupont-Aignan ») et coûteux sur 36 médias
+    formes = []
+    for tokens in analyser_serie(expression):
+        elisions = [[e + tokens[0]] + tokens[1:] for e in ELISIONS] if _VOYELLE.match(tokens[0]) else []
+        formes += [f for f in [tokens] + elisions if f not in formes]
+    return formes
+
+
+def vers_date(v):
+    # entier AAAAMMJJ de borne_date -> date ; une fin « 2026-02 » donne 20260231, ramené au 28
+    a, m, j = v // 10000, v // 100 % 100, v % 100
+    return dt.date(a, m, min(j, calendar.monthrange(a, m)[1]))
+
+
+def vers_entier(d):
+    return d.year * 10000 + d.month * 100 + d.day
+
+
+@app.route("/presidentielle")
+def presidentielle():
+    # /presidentielle?from=2026-07-07&to=2026-10-06[&corpus=le_monde,le_figaro] : occurrences de
+    # chaque étiquette des dix candidats, sommées sur les médias choisis (tous par défaut), sur la
+    # période et sur la précédente de même durée (qui finit la veille du début). Seuls comptent
+    # les médias qui ont des données sur la période ; la comparaison n'est donnée (comparable)
+    # que si chacun en a dès le début de la période précédente, sinon les n_prec sont null.
+    cat = catalogue()
+    if request.args.get("corpus"):
+        noms = sorted({c.strip() for c in request.args["corpus"].split(",") if c.strip()})
+        inconnus = [c for c in noms if c not in cat]
+        if inconnus:
+            return f"corpus inconnu : {', '.join(inconnus)} (choix : {', '.join(sorted(cat))})", 400
+    else:
+        noms = sorted(cat)
+    if not request.args.get("from") or not request.args.get("to"):
+        return "paramètres from et to attendus (AAAA-MM-JJ)", 400
+    try:
+        d0 = vers_date(borne_date(request.args["from"], 101))
+        d1 = vers_date(borne_date(request.args["to"], 1231))
+    except ValueError:
+        return "dates illisibles : AAAA-MM-JJ attendu", 400
+    if d0 > d1:
+        return "from doit précéder to", 400
+    duree = (d1 - d0).days + 1
+    de, a = vers_entier(d0), vers_entier(d1)
+    prec_de, prec_a = vers_entier(d0 - dt.timedelta(days=duree)), vers_entier(d0 - dt.timedelta(days=1))
+
+    cle = (de, a, tuple(noms))
+    deja = CACHE_2027.get(cle)
+    if deja and time.time() - deja[0] < DUREE_CACHE_2027:
+        return jsonify(deja[1])
+
+    # les médias servis (des données sur la période) et la comparabilité, avant de compter
+    servis, comparable = [], True
+    for corpus in noms:
+        conn, schemas = ouvrir(cat[corpus])
+        try:
+            present = any(conn.execute(f"SELECT 1 FROM {s}.total_unigram WHERE date BETWEEN ? AND ? LIMIT 1",
+                                       (de, a)).fetchone() for s in schemas)
+            debut = min(conn.execute(f"SELECT MIN(date) FROM {s}.total_unigram").fetchone()[0] or 99999999
+                        for s in schemas)
+        finally:
+            conn.close()
+        if present:
+            servis.append(corpus)
+            comparable = comparable and debut <= prec_de
+    comparable = comparable and bool(servis)
+
+    # une série jour par jour par étiquette, depuis le début de la période précédente (ou de la
+    # période), coupée en deux au premier jour de la période
+    depuis = prec_de if comparable else de
+    comptes = {cid: [[0, 0] for _ in etiquettes] for cid, etiquettes in CANDIDATS_2027}
+    for corpus in servis:
+        conn, schemas = ouvrir(cat[corpus])
+        try:
+            for cid, etiquettes in CANDIDATS_2027:
+                for k, (_, expression) in enumerate(etiquettes):
+                    for forme in formes_2027(expression):
+                        df = serie_forme(conn, schemas, forme, depuis, a)
+                        comptes[cid][k][0] += int(df.loc[df["date"] >= de, "n"].sum())
+                        comptes[cid][k][1] += int(df.loc[df["date"] < de, "n"].sum())
+        finally:
+            conn.close()
+
+    candidats = []
+    for cid, etiquettes in CANDIDATS_2027:
+        lignes = [{"etiquette": affichee, "n": n, "n_prec": n_prec if comparable else None}
+                  for (affichee, _), (n, n_prec) in zip(etiquettes, comptes[cid])]
+        candidats.append({"id": cid, "n": sum(l["n"] for l in lignes),
+                          "n_prec": sum(l["n_prec"] for l in lignes) if comparable else None,
+                          "etiquettes": lignes})
+    reponse = {"de": de, "a": a, "prec_de": prec_de, "prec_a": prec_a, "comparable": comparable,
+               "corpus": servis, "candidats": candidats}
+    if len(CACHE_2027) >= 256:
+        CACHE_2027.clear()
+    CACHE_2027[cle] = (time.time(), reponse)
+    return jsonify(reponse)
 
 
 @app.route("/pca/catalogue")

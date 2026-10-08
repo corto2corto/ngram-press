@@ -1801,3 +1801,196 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
     transition: none;
   }
 }
+
+/* ---- onglet Présidentielle 2027 (Presidentielle.tsx) : la période en deux cases et
+   quatre bulles, les médias en pilules (comme Ratio), puis la carte des colonnes
+   jumelles — en clair la période précédente, en plein la période choisie */
+
+.p27 {
+  padding-block: 0.4rem 3rem;
+}
+
+.p27-filtres {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.p27-periode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.p27-borne {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.p27-borne .vers {
+  font-size: 0.95rem;
+  letter-spacing: normal;
+  color: var(--encre-muette);
+}
+
+.p27-periode .aide {
+  align-self: center;
+  margin: 0;
+}
+
+/* les bulles : pilules à contour, l'active à l'accent (pas en noir : ce ne sont
+   pas des cases à cocher comme les médias) */
+.bulles-periode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: 0.4rem;
+}
+
+.bulles-periode button {
+  padding: 0.32rem 0.95rem;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.9rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition:
+    border-color var(--duree-courte) ease,
+    color var(--duree-courte) ease,
+    background-color var(--duree-courte) ease;
+}
+
+.bulles-periode button:hover {
+  border-color: var(--axe);
+  color: var(--encre);
+}
+
+.bulles-periode button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+}
+
+.bulles-periode button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.p27-note {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--encre-2);
+}
+
+.p27-note.erreur {
+  color: var(--accent);
+}
+
+.legende .trait.pave.clair {
+  opacity: 0.28;
+}
+
+.legende .non-dispo {
+  color: var(--encre-muette);
+}
+
+.zone-p27 {
+  position: relative;
+  margin-top: 1.1rem;
+}
+
+.zone-p27 svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  touch-action: pan-y;
+  transition: opacity 0.25s ease;
+}
+
+.zone-p27.charge svg {
+  opacity: 0.45;
+  transition-delay: 350ms;
+}
+
+/* la bande d'un candidat : survol et focus clavier (l'infobulle suit) */
+.p27-cible {
+  fill: var(--encre);
+  fill-opacity: 0;
+  outline: none;
+  transition: fill-opacity var(--duree-courte) ease;
+}
+
+.p27-cible.actif {
+  fill-opacity: 0.035;
+}
+
+.p27-cible:focus-visible {
+  fill-opacity: 0.05;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.infobulle-p27 {
+  z-index: 2;
+  width: max-content;
+  max-width: 17rem;
+}
+
+.infobulle-p27 .quand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.infobulle-p27 .pt {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.infobulle-p27 .parti {
+  font-weight: 400;
+  color: var(--encre-muette);
+}
+
+.infobulle-p27 .ligne {
+  gap: 1rem;
+}
+
+.infobulle-p27 .fort .valeur {
+  font-weight: 600;
+  color: var(--encre);
+}
+
+.infobulle-p27 .avant {
+  color: var(--encre-muette);
+}
+
+.infobulle-p27 .bloc {
+  margin-top: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--grille);
+}
+
+.infobulle-p27 .bloc-titre {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--encre-muette);
+}
+
+.infobulle-p27 .etiquette {
+  font-family: var(--police-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 0.95rem;
+}
