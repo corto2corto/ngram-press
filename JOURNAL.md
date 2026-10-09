@@ -1,5 +1,30 @@
 # Journal du projet
 
+## 09/10/2026 — Présidentielle 2027 : route /presidentielle accélérée (issue 53)
+- Mesuré sur gram (lecture seule, priorité basse) : 0,86 à 0,98 s pour 15
+  médias, 1,9 à 2,3 s pour 36, de 7 jours à 6 mois. Environ 85 % du temps
+  partait dans pandas : la route lisait 28 formes par média (420 pour 15
+  médias, 1 008 pour 36), chacune en série jour par jour mise en DataFrame
+  puis coupée en deux sommes, à ~1,5 ms par forme quelle que soit sa taille.
+  SQLite, l'ouverture des bases et la recherche des mots pèsent peu ; pages
+  déjà en mémoire (à froid ≈ à chaud).
+- Correctif minimal : `comptes_forme` demande directement à SQLite les deux
+  sommes (période et précédente, `SUM(CASE WHEN date >= début …)`), sans
+  série ni pandas ; trois lignes de `presidentielle()` remplacées. Mesuré sur
+  gram en variante d'essai : 55 à 65 ms pour 15 médias, 110 à 145 ms pour 36
+  (la route garde sa double ouverture des bases, 10 à 20 ms de plus, à
+  remesurer après mise en ligne). Comptes identiques à
+  l'ancienne méthode (gram : 8 cas × 2 passages ; local : 10 cas sur
+  mini-bases avec et sans tampon, comparaison impossible comprise).
+- Fonctions partagées (`serie_forme`, `conditions_mots`, `union`, `ouvrir`) et
+  routes de l'Explorateur inchangées : l'Explorateur lit 1 à 4 formes par mot,
+  pandas n'y coûte qu'une dizaine de ms.
+- Écartés : précalcul quotidien (gain résiduel de quelques dizaines de ms,
+  table à tenir à jour avec le tampon et à reconstruire à chaque étiquette),
+  cache partagé et `Cache-Control`, préchauffage, threads. En suspens : le
+  délai de 250 ms du front (regroupe une rafale de pilules) s'applique aussi
+  au premier affichage.
+
 ## 09/10/2026 — Présidentielle 2027 : Ruffin, Faure, Lisnard
 - Trois candidats de plus (13), étiquettes mesurées sur les bases (oct. 2025
   → oct. 2026, 36 médias), même règle (≥ 1 % des mentions, pas d'homonyme

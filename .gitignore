@@ -4,3 +4,4 @@ __pycache__/
 rupture/cache/
 .DS_Store
 data/
+.vscode/

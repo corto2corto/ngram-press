@@ -631,6 +631,21 @@ def formes_2027(expression):
     return formes
 
 
+def comptes_forme(conn, schemas, mots, depuis, de, a):
+    # occurrences d'une forme sur la période (de -> a) et sur la précédente (depuis -> veille de
+    # de), les deux sommes faites par SQLite : pas de série jour par jour ni de pandas, qui
+    # coûtait ~1,5 ms par forme lue (0,9 s pour les 15 médias de départ, gram, 09/10/2026)
+    conditions, params = conditions_mots(conn, schemas, mots)
+    if conditions is None:  # mot inconnu
+        return 0, 0
+    ou = " AND ".join(conditions + ["date BETWEEN ? AND ?"])
+    return conn.execute(
+        "SELECT COALESCE(SUM(CASE WHEN date >= ? THEN n END), 0),"
+        " COALESCE(SUM(CASE WHEN date < ? THEN n END), 0) FROM ("
+        + union(schemas, f"SELECT date, n FROM {{s}}.{TABLE[len(mots)]} WHERE {ou}") + ")",
+        [de, de] + (params + [depuis, a]) * len(schemas)).fetchone()
+
+
 def vers_date(v):
     # entier AAAAMMJJ de borne_date -> date ; une fin « 2026-02 » donne 20260231, ramené au 28
     a, m, j = v // 10000, v // 100 % 100, v % 100
@@ -690,8 +705,8 @@ def presidentielle():
             comparable = comparable and debut <= prec_de
     comparable = comparable and bool(servis)
 
-    # une série jour par jour par étiquette, depuis le début de la période précédente (ou de la
-    # période), coupée en deux au premier jour de la période
+    # chaque forme comptée depuis le début de la période précédente (ou de la période), en deux
+    # sommes séparées au premier jour de la période
     depuis = prec_de if comparable else de
     comptes = {cid: [[0, 0] for _ in etiquettes] for cid, etiquettes in CANDIDATS_2027}
     for corpus in servis:
@@ -700,9 +715,9 @@ def presidentielle():
             for cid, etiquettes in CANDIDATS_2027:
                 for k, (_, expression) in enumerate(etiquettes):
                     for forme in formes_2027(expression):
-                        df = serie_forme(conn, schemas, forme, depuis, a)
-                        comptes[cid][k][0] += int(df.loc[df["date"] >= de, "n"].sum())
-                        comptes[cid][k][1] += int(df.loc[df["date"] < de, "n"].sum())
+                        n, n_prec = comptes_forme(conn, schemas, forme, depuis, de, a)
+                        comptes[cid][k][0] += n
+                        comptes[cid][k][1] += n_prec
         finally:
             conn.close()
 
