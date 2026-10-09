@@ -1,5 +1,36 @@
 # Journal du projet
 
+## 09/10/2026 — Présidentielle 2027 : Ruffin, Faure, Lisnard
+- Trois candidats de plus (13), étiquettes mesurées sur les bases (oct. 2025
+  → oct. 2026, 36 médias), même règle (≥ 1 % des mentions, pas d'homonyme
+  courant). « Ruffin » seul : son écart avec « François Ruffin » (3 129 contre
+  2 342) se répartit dans les titres nationaux, pas d'homonyme. « Lisnard »
+  seul (93 % de « David Lisnard »). « Olivier Faure » avec le prénom : « faure »
+  seul est massivement un homonyme en presse régionale (Sud Ouest 1 463 pour
+  493, La Dépêche 1 431 pour 609). Écartées : « premier
+  secrétaire » (4 232, mais aussi fédéraux et diplomates), « député picard »,
+  « maire cannois », « M. Faure », « M. Lisnard » (< 1 % ou ambigus).
+- Couleurs : Faure en rose PS (#e86fb0, écart ΔE 18,7 avec
+  le rouge de Roussel), Ruffin un orange (#e0782a), Lisnard un bleu clair
+  (#2f8fe0, loin des autres bleus).
+- Partis vérifiés en ligne : Ruffin, Debout ! (déclinaison nationale de
+  Picardie debout depuis juin 2025) ; Lisnard, Nouvelle Énergie (a quitté
+  LR le 31/03/2026) ; Faure, PS.
+- Contrôle de pollution des étiquettes « nom seul » (consigne de Corto :
+  prénom + nom dès qu'un nom est pollué) : rapport prénom + nom / nom seul dans
+  les titres nationaux, excédent attendu ailleurs compté comme homonymes.
+  Pollution estimée ≤ 1,1 % pour tous (Retailleau 1,1 %, Le Courrier de
+  l'Ouest ; Attal 0,8 %, Voici ; Ruffin 0,5 % ; Mélenchon, Tondelier,
+  Glucksmann, Zemmour, Lisnard 0 %) : le nom seul reste, le prénom + nom est
+  réservé aux noms pollués (Roussel, Faure, Philippe, Le Pen).
+- Jérôme Guedj (PS, primaire « Choisir 2027 ») mesuré puis retiré à la
+  demande de Corto ; « guedj » seul y était pollué (84 dans Voici pour aucun
+  « jérôme guedj »).
+- Treize colonnes, toujours debout au-dessus de 560 px (couchées sur
+  téléphone seulement) : noms entiers, abrégés sous 92 px par candidat, puis
+  inclinés à 40° sous 66 px (écart sans unité, parti dans l'infobulle) ;
+  textes « des dix candidats » rendus génériques.
+
 ## 08/10/2026 — onglet Présidentielle 2027 : part des mentions des candidats
 - Design choisi sur maquettes (Artifact, données générées) : colonnes jumelles,
   en plein la période choisie, en clair la période précédente de même durée

@@ -1,6 +1,6 @@
 "use client";
 
-// Onglet « Présidentielle 2027 » : la part de chaque candidat dans les mentions des dix
+// Onglet « Présidentielle 2027 » : la part de chaque candidat dans les mentions de tous les
 // candidats, pour la période et les médias choisis, comparée à la période de même durée qui
 // finit la veille (route /presidentielle de api/app_agora.py, qui compte les étiquettes de
 // chacun et somme les médias). Une colonne pleine par candidat pour la période, doublée en
@@ -27,15 +27,19 @@ type Candidat = { nom: string; court: string; parti: string; partiCourt: string;
 // identifiants de l'API ; couleurs de partis fournies par Corto (Retailleau et Dupont-Aignan
 // y partagent le même bleu : le nom écrit sous chaque colonne porte l'identité), sauf Attal :
 // son bleu nuit d'origine le rangeait avec l'extrême droite (Le Pen, Zemmour), il prend le
-// bleu d'Édouard Philippe
+// bleu d'Édouard Philippe. Ajoutés ensuite : Faure en rose PS, Ruffin en orange, Lisnard en
+// bleu clair (teintes vérifiées : écart ΔE ≥ 15 avec chaque voisine)
 const CANDIDATS: Record<string, Candidat> = {
   roussel: { nom: "Roussel", court: "Roussel", parti: "PCF", partiCourt: "PCF", couleur: "#e40028" },
   melenchon: { nom: "Mélenchon", court: "Mélenchon", parti: "FI", partiCourt: "FI", couleur: "#4d2370" },
+  ruffin: { nom: "Ruffin", court: "Ruffin", parti: "Debout !", partiCourt: "Debout !", couleur: "#e0782a" },
   tondelier: { nom: "Tondelier", court: "Tondelier", parti: "Les Écologistes", partiCourt: "Écolo.", couleur: "#3ca860" },
   glucksmann: { nom: "Glucksmann", court: "Glucksm.", parti: "PP", partiCourt: "PP", couleur: "#efd739" },
+  faure: { nom: "Faure", court: "Faure", parti: "PS", partiCourt: "PS", couleur: "#e86fb0" },
   attal: { nom: "Attal", court: "Attal", parti: "REN", partiCourt: "REN", couleur: "#000fad" },
   philippe: { nom: "Philippe", court: "Philippe", parti: "H", partiCourt: "H", couleur: "#000fad" },
   retailleau: { nom: "Retailleau", court: "Retailleau", parti: "LR", partiCourt: "LR", couleur: "#003da3" },
+  lisnard: { nom: "Lisnard", court: "Lisnard", parti: "Nouvelle Énergie", partiCourt: "NE", couleur: "#2f8fe0" },
   dupont_aignan: { nom: "Dupont-Aignan", court: "D.-Aignan", parti: "DLF", partiCourt: "DLF", couleur: "#003da3" },
   le_pen: { nom: "Le Pen", court: "Le Pen", parti: "RN", partiCourt: "RN", couleur: "#1f3e64" },
   zemmour: { nom: "Zemmour", court: "Zemmour", parti: "R!", partiCourt: "R!", couleur: "#160759" },
@@ -55,7 +59,11 @@ const JOUR_MS = 86_400_000;
 const HAUTEUR = 440; // colonnes debout
 const MARGE = { haut: 30, bas: 74 };
 const RANG = 48; // une ligne par candidat, colonnes couchées
-const ETROIT = 560; // en dessous, les colonnes se couchent
+const ETROIT = 560; // en dessous (téléphone), les colonnes se couchent ; au-dessus, elles restent
+// debout, et selon la place d'un candidat les noms sont entiers, abrégés (< 92 px) ou inclinés
+// (< 66 px : noms entiers à 40°, écart sans unité, parti dans l'infobulle)
+const SERRE = 92;
+const INCLINE = 66;
 const DUREE = 560; // glissement d'une réponse à l'autre
 const AIR = 1.12; // la plus haute colonne monte à 1 / 1,12 de la hauteur utile
 
@@ -305,11 +313,13 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   // formats
   const pct = (x: number) =>
     (x * 100).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + t.p27_pourcent;
-  const points = (x: number) => {
+  // écart en points ; court : sans l'unité, quand les noms sont inclinés
+  const points = (x: number, court = false) => {
     const v = x * 100;
-    if (Math.abs(v) < 0.05) return `= ${t.p27_points((0).toLocaleString(locale, { minimumFractionDigits: 1 }), false)}`;
-    const valeur = Math.abs(v).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    return `${v > 0 ? "▲" : "▼"} ${t.p27_points(valeur, Math.abs(v) >= 2)}`;
+    const nombre = (n: number) => n.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (Math.abs(v) < 0.05) return court ? `= ${nombre(0)}` : `= ${t.p27_points(nombre(0), false)}`;
+    const fleche = v > 0 ? "▲" : "▼";
+    return court ? `${fleche}\u2009${nombre(Math.abs(v))}` : `${fleche}\u2009${t.p27_points(nombre(Math.abs(v)), Math.abs(v) >= 2)}`;
   };
   const entier = (n: number) => n.toLocaleString(locale);
   const date = (n: number, annee: boolean) =>
@@ -336,16 +346,20 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
 
     if (!couche) {
       H = HAUTEUR;
-      const plotH = H - MARGE.haut - MARGE.bas;
+      const incline = W / NC < INCLINE;
+      // inclinés, les noms débordent à gauche de leur colonne : la première recule d'autant
+      const gauche = incline ? 24 : 0;
+      const slot = (W - gauche) / NC;
+      const serre = slot < SERRE;
+      const bas = incline ? 96 : MARGE.bas;
+      const plotH = H - MARGE.haut - bas;
       const y0 = MARGE.haut + plotH;
       const y = (v: number) => MARGE.haut + plotH * (1 - Math.min(v, image.ymax) / image.ymax);
-      const slot = W / NC;
-      const serre = slot < 92;
       const w = Math.min(40, slot * 0.39);
       marques.push(<line key="base" x1={0} x2={W} y1={y0} y2={y0} stroke="var(--axe)" strokeWidth={1} />);
       IDS.forEach((id, i) => {
         const c = CANDIDATS[id];
-        const cx = slot * (image.pos[i] + 0.5);
+        const cx = gauche + slot * (image.pos[i] + 0.5);
         const v = image.v[i];
         const vp = image.vp ? image.vp[i] : null;
         const xa = vp !== null ? cx + 1 : cx - w / 2;
@@ -356,28 +370,50 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
         // la valeur au-dessus de la plus haute des deux colonnes : jamais sur la colonne claire
         const haut = Math.min(y(v), vp !== null ? y(vp) : Infinity);
         textesSvg.push(
-          <text key={`t${id}`} x={xa + w / 2} y={haut - 8} textAnchor="middle" fontSize={12.5} fontWeight={600}
+          <text key={`t${id}`} x={xa + w / 2} y={haut - 8} textAnchor="middle"
+            fontSize={incline ? 11 : serre ? 11.5 : 12.5} fontWeight={600}
             fill="var(--encre)" style={{ fontVariantNumeric: "tabular-nums" }}>
             {pct(v)}
           </text>,
-          <text key={`n${id}`} x={cx} y={y0 + 20} textAnchor="middle" fontSize={13} fill="var(--encre)">
-            {serre ? c.court : c.nom}
-          </text>,
-          <text key={`a${id}`} x={cx} y={y0 + 36} textAnchor="middle" fontSize={11} fill="var(--encre-muette)">
-            {serre ? c.partiCourt : c.parti}
-          </text>,
         );
-        if (vp !== null) {
+        if (incline) {
+          // l'écart d'abord, court, puis le nom entier incliné qui descend vers la gauche
+          const yNom = y0 + (vp !== null ? 32 : 18);
+          if (vp !== null) {
+            textesSvg.push(
+              <text key={`d${id}`} x={cx} y={y0 + 16} textAnchor="middle" fontSize={10.5} fill="var(--encre-2)"
+                style={{ fontVariantNumeric: "tabular-nums" }}>
+                {points(v - vp, true)}
+              </text>,
+            );
+          }
           textesSvg.push(
-            <text key={`d${id}`} x={cx} y={y0 + 57} textAnchor="middle" fontSize={11.5} fill="var(--encre-2)"
-              style={{ fontVariantNumeric: "tabular-nums" }}>
-              {points(v - vp)}
+            <text key={`n${id}`} x={cx + 3} y={yNom} textAnchor="end" fontSize={11.5} fill="var(--encre)"
+              transform={`rotate(-40 ${cx + 3} ${yNom})`}>
+              {c.nom}
             </text>,
           );
+        } else {
+          textesSvg.push(
+            <text key={`n${id}`} x={cx} y={y0 + 20} textAnchor="middle" fontSize={serre ? 12 : 13} fill="var(--encre)">
+              {serre ? c.court : c.nom}
+            </text>,
+            <text key={`a${id}`} x={cx} y={y0 + 36} textAnchor="middle" fontSize={serre ? 10.5 : 11} fill="var(--encre-muette)">
+              {serre ? c.partiCourt : c.parti}
+            </text>,
+          );
+          if (vp !== null) {
+            textesSvg.push(
+              <text key={`d${id}`} x={cx} y={y0 + 57} textAnchor="middle" fontSize={serre ? 11 : 11.5} fill="var(--encre-2)"
+                style={{ fontVariantNumeric: "tabular-nums" }}>
+                {points(v - vp)}
+              </text>,
+            );
+          }
         }
         cibles.push(
           <rect key={`c${id}`} className={`p27-cible${survol === i ? " actif" : ""}`} x={cx - slot / 2} y={MARGE.haut - 10}
-            width={slot} height={plotH + MARGE.bas} rx={8} tabIndex={0} aria-label={`${c.nom} : ${pct(v)}`}
+            width={slot} height={plotH + bas} rx={8} tabIndex={0} aria-label={`${c.nom} : ${pct(v)}`}
             onPointerEnter={() => setSurvol(i)} onFocus={() => setSurvol(i)} onBlur={() => setSurvol(null)} />,
         );
         if (survol === i) {

@@ -67,7 +67,7 @@ export const textes = {
     p27_titre: "Présidentielle 2027",
     p27_intro:
       "Qui occupe la presse ? Pour la période et les médias choisis, la part de chaque candidat "
-      + "dans les mentions des dix candidats, comparée à la période précédente de même durée.",
+      + "dans les mentions de l'ensemble des candidats, comparée à la période précédente de même durée.",
     p27_periode: "Période",
     p27_debut: "Début de la période",
     p27_fin: "Fin de la période",
@@ -83,7 +83,7 @@ export const textes = {
     p27_du: (de: string, a: string) => `du ${de} au ${a}`,
     p27_titre_graphe: (periode: string) => `Part des mentions, ${periode}`,
     p27_sous: (medias: string, mentions: string, unSeul: boolean) =>
-      `${medias} média${unSeul ? "" : "s"} · ${mentions} mentions des dix candidats`,
+      `${medias} média${unSeul ? "" : "s"} · ${mentions} mentions des candidats`,
     p27_prec: (periode: string) => `période précédente, ${periode}`,
     p27_non_dispo: "Comparaison non disponible",
     p27_part: "Part des mentions",
@@ -107,7 +107,7 @@ export const textes = {
       "Chaque candidat est compté par ses étiquettes, des noms et appellations d'un ou deux mots "
       + "choisis sur les bases (au moins 1 % de ses mentions, sans homonyme courant) : « Mélenchon », "
       + "« leader insoumis », « Marine Le Pen », « Édouard Philippe »… Sa part est le nombre de ses "
-      + "mentions divisé par celles des dix candidats, tous les médias cochés additionnés. La "
+      + "mentions divisé par celles de tous les candidats, tous les médias cochés additionnés. La "
       + "période précédente a la même durée et finit la veille du début.",
 
     // hero
@@ -361,7 +361,7 @@ export const textes = {
     p27_titre: "Presidential 2027",
     p27_intro:
       "Who dominates the press? For the chosen period and outlets, each candidate's share of the "
-      + "mentions of all ten candidates, compared with the previous period of the same length.",
+      + "mentions of all the candidates, compared with the previous period of the same length.",
     p27_periode: "Period",
     p27_debut: "Start of the period",
     p27_fin: "End of the period",
@@ -376,7 +376,7 @@ export const textes = {
     p27_du: (de: string, a: string) => `${de} – ${a}`,
     p27_titre_graphe: (periode: string) => `Share of mentions, ${periode}`,
     p27_sous: (medias: string, mentions: string, unSeul: boolean) =>
-      `${medias} outlet${unSeul ? "" : "s"} · ${mentions} mentions of the ten candidates`,
+      `${medias} outlet${unSeul ? "" : "s"} · ${mentions} mentions of the candidates`,
     p27_prec: (periode: string) => `previous period, ${periode}`,
     p27_non_dispo: "Comparison not available",
     p27_part: "Share of mentions",
@@ -399,7 +399,7 @@ export const textes = {
       "Each candidate is counted through their labels: one- or two-word names and phrases chosen "
       + "on the data (at least 1% of their mentions, no common namesake): “Mélenchon”, “leader "
       + "insoumis”, “Marine Le Pen”, “Édouard Philippe”… Their share is their number of mentions "
-      + "divided by that of all ten candidates, summed over the ticked outlets. The previous period "
+      + "divided by that of all the candidates, summed over the ticked outlets. The previous period "
       + "has the same length and ends the day before the start.",
 
     tagline: "Trends in the French press, day by day.",

@@ -591,18 +591,24 @@ def associated_ngram():
 # régionale : 1 161 « roussel » pour 178 « fabien roussel » dans Ouest-France), « Philippe »
 # seul (prénom), « M. Philippe » et « M. Roussel » (d'autres porteurs du nom), « Le Pen » seul
 # (Jean-Marie, Marion), « Mme Le Pen » (« Mme le maire »), « président LR » (élus locaux), NDA
-# (sigle). « Edouard » sans accent : graphie du Monde et des Échos (4 981 mentions). Limites :
-# une apposition (« le leader insoumis Jean-Luc Mélenchon ») compte deux fois ; « Marine Le »
-# ne voit pas « Mme Le Pen » ni « Le Pen » seul.
+# (sigle). « Edouard » sans accent : graphie du Monde et des Échos (4 981 mentions). Ajoutés le
+# 09/10/2026 : « Ruffin » seul (son écart avec « François Ruffin » se répartit dans les titres
+# nationaux, pas d'homonyme), « Lisnard » seul (93 % de « David Lisnard »), « Olivier Faure »
+# avec le prénom (« faure » seul : 1 463 dans Sud Ouest pour 493 « olivier faure ») ;
+# « premier secrétaire » écarté (secrétaires fédéraux, diplomates). Limites : une apposition (« le leader insoumis Jean-Luc
+# Mélenchon ») compte deux fois ; « Marine Le » ne voit pas « Mme Le Pen » ni « Le Pen » seul.
 # (identifiant, [(étiquette affichée, expression comptée)]) ; les bases s'arrêtent au bigramme
 CANDIDATS_2027 = [
     ("roussel", [("Fabien Roussel", "Fabien Roussel")]),
     ("melenchon", [("Mélenchon", "Mélenchon"), ("leader insoumis", "leader insoumis")]),
+    ("ruffin", [("Ruffin", "Ruffin")]),
     ("tondelier", [("Tondelier", "Tondelier")]),
     ("glucksmann", [("Glucksmann", "Glucksmann")]),
+    ("faure", [("Olivier Faure", "Olivier Faure")]),
     ("attal", [("Attal", "Attal")]),
     ("philippe", [("Édouard Philippe", "Édouard Philippe+Edouard Philippe")]),
     ("retailleau", [("Retailleau", "Retailleau")]),
+    ("lisnard", [("Lisnard", "Lisnard")]),
     ("dupont_aignan", [("Dupont-Aignan", "Dupont-Aignan")]),
     ("le_pen", [("Marine Le Pen", "Marine Le"), ("triple candidate", "triple candidate")]),
     ("zemmour", [("Zemmour", "Zemmour")]),
@@ -638,7 +644,7 @@ def vers_entier(d):
 @app.route("/presidentielle")
 def presidentielle():
     # /presidentielle?from=2026-07-07&to=2026-10-06[&corpus=le_monde,le_figaro] : occurrences de
-    # chaque étiquette des dix candidats, sommées sur les médias choisis (tous par défaut), sur la
+    # chaque étiquette des candidats, sommées sur les médias choisis (tous par défaut), sur la
     # période et sur la précédente de même durée (qui finit la veille du début). Seuls comptent
     # les médias qui ont des données sur la période ; la comparaison n'est donnée (comparable)
     # que si chacun en a dès le début de la période précédente, sinon les n_prec sont null.
