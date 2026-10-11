@@ -602,7 +602,13 @@ def associated_ngram():
 # l'autre), « Villepin » seul (93 % de « de Villepin », « Dominique de » au même niveau partout ;
 # Marie de Villepin ≤ 1,5 %, Gala et Voici). Écartés : « Mme Arthaud » (13, Florence possible),
 # « Lutte ouvrière » (le parti, pas la candidate), « M. Bouamrane » et « M. de Villepin » (déjà
-# comptés par le nom seul). Limites : une apposition (« le leader insoumis Jean-Luc
+# comptés par le nom seul). Ajoutés le 11/10/2026, le soir de la primaire de la gauche
+# (Glucksmann 66 %, Faure 14 %) : « Bernard Cazeneuve » avec le prénom (« cazeneuve » seul :
+# 2 619 pour 1 488, Pierre Cazeneuve et les Cazeneuve du Sud-Ouest, La Dépêche 402 pour 50),
+# « Xavier Bertrand » (« bertrand » seul : prénom, 21 134), « Batho » seul (94 % de « Delphine
+# Batho », Le Courrier de l'Ouest 92 pour 91), « Florian Philippot » (« philippot » seul :
+# Ouest-France 158 pour 9). Écartés : Platret et Asselineau (165 et 163 mentions sur l'année),
+# Royal, Maurel et Guedj (battus à la primaire). Limites : une apposition (« le leader insoumis Jean-Luc
 # Mélenchon ») compte deux fois ; « Marine Le » ne voit pas « Mme Le Pen » ni « Le Pen » seul.
 # (identifiant, [(étiquette affichée, expression comptée)]) ; les bases s'arrêtent au bigramme
 CANDIDATS_2027 = [
@@ -622,6 +628,10 @@ CANDIDATS_2027 = [
     ("arthaud", [("Nathalie Arthaud", "Nathalie Arthaud")]),
     ("bouamrane", [("Bouamrane", "Bouamrane")]),
     ("villepin", [("Villepin", "Villepin")]),
+    ("cazeneuve", [("Bernard Cazeneuve", "Bernard Cazeneuve")]),
+    ("bertrand", [("Xavier Bertrand", "Xavier Bertrand")]),
+    ("batho", [("Batho", "Batho")]),
+    ("philippot", [("Florian Philippot", "Florian Philippot")]),
 ]
 # (de, a, corpus) -> (instant, réponse) : la période de départ de l'onglet (les trois derniers
 # mois) est la même pour tous les visiteurs d'une journée ; une demi-heure, les bases se

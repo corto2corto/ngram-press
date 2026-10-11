@@ -1,5 +1,37 @@
 # Journal du projet
 
+## 11/10/2026 — Présidentielle 2027 : primaire de la gauche, candidats secondaires
+- Primaire « Choisir 2027 » (PS, Place publique, GRS) tranchée le 11/10 dès le
+  premier tour : Glucksmann 66 %, Faure 14 %, Royal 8 %, Maurel 6 %, Guedj 6 %.
+  Règle de Corto pour le partage principaux / secondaires (l'interrupteur
+  « Tous les candidats ») : principal = candidat déclaré crédité de plus de
+  1 % au premier tour dans les sondages de septembre 2026 (Ifop 25-29/09,
+  Cluster17 15-16/09 et 01/09, Harris 22-24/09, OpinionWay 09-10/09).
+  Quatorze principaux : Le Pen (29-36 %), Mélenchon (15-19), Philippe
+  (13-23), Glucksmann (10-11), Retailleau (6,5-9), Attal (5), Zemmour
+  (3,5-5), Lisnard (4-5), Ruffin (4), Villepin (2,5-7), Tondelier (2,5-3),
+  Roussel (2-3,5), Dupont-Aignan (1,5-3), Cazeneuve (2 à 10 selon les
+  configurations, agrégat Votons 5 % ; peu testé, à surveiller). Secondaires :
+  Faure (battu à la primaire), Arthaud (0,5-1), Bouamrane, Bertrand, Batho,
+  Philippot (pas testés).
+- Quatre candidats déclarés de plus, étiquettes mesurées par
+  /ratio (oct. 2025 → oct. 2026) : « Bernard Cazeneuve » avec le prénom
+  (La Convention ; « cazeneuve » seul 2 619 pour 1 488, Pierre Cazeneuve et le
+  Sud-Ouest, La Dépêche 402 pour 50), « Xavier Bertrand » (Nous France ;
+  « bertrand » seul est un prénom, 21 134), « Batho » seul (Génération
+  Écologie ; 94 % de « Delphine Batho »), « Florian Philippot » (Les
+  Patriotes ; « philippot » seul pollué, Ouest-France 158 pour 9). Écartés :
+  Platret (déclaré le 08/10) et Asselineau (165 et 163 mentions sur l'année),
+  Royal, Maurel et Guedj (battus à la primaire).
+- Couleurs : à vingt candidats, une recherche sur la grille sRGB (ΔE OKLab
+  ≥ 15 avec les seize teintes) ne laisse que des tons vifs ou pâles. Batho
+  en vert olive (#226600) et Cazeneuve en turquoise (#44ccdd) passent ;
+  Bertrand partage le bleu de Retailleau et Philippot le bleu nuit de
+  Le Pen, sur le précédent de Dupont-Aignan (le nom sous la colonne porte
+  l'identité).
+- Vérifié : tsc, eslint, build ; route testée sur les mini-bases (20
+  candidats).
+
 ## 11/10/2026 — Présidentielle 2027 : Arthaud, Bouamrane, Villepin et le graphe agrandi (issue 52)
 - Trois candidats de plus (16), mesurés sur les bases par la route publique
   /ratio (oct. 2025 → oct. 2026, 36 médias), même règle (≥ 1 % des mentions,

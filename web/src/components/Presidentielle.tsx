@@ -33,8 +33,10 @@ type Candidat = { nom: string; court: string; parti: string; partiCourt: string;
 // y partagent le même bleu : le nom écrit sous chaque colonne porte l'identité), sauf Attal :
 // son bleu nuit d'origine le rangeait avec l'extrême droite (Le Pen, Zemmour), il prend le
 // bleu d'Édouard Philippe. Ajoutés ensuite : Faure en rose PS, Ruffin en orange, Lisnard en
-// bleu clair, puis (11/10/2026) Arthaud en bordeaux, Bouamrane en magenta, Villepin en taupe
-// (teintes vérifiées : écart ΔE ≥ 15 avec chaque voisine)
+// bleu clair, puis (11/10/2026) Arthaud en bordeaux, Bouamrane en magenta, Villepin en taupe,
+// Batho en vert olive, Cazeneuve en turquoise (teintes vérifiées : écart ΔE ≥ 15 avec chaque
+// voisine) ; à vingt candidats la palette est pleine, Bertrand partage le bleu de Retailleau et
+// Philippot le bleu nuit de Le Pen, comme Dupont-Aignan
 const CANDIDATS: Record<string, Candidat> = {
   roussel: { nom: "Roussel", court: "Roussel", parti: "PCF", partiCourt: "PCF", couleur: "#e40028" },
   melenchon: { nom: "Mélenchon", court: "Mélenchon", parti: "FI", partiCourt: "FI", couleur: "#4d2370" },
@@ -52,10 +54,17 @@ const CANDIDATS: Record<string, Candidat> = {
   arthaud: { nom: "Arthaud", court: "Arthaud", parti: "LO", partiCourt: "LO", couleur: "#8e1a2c" },
   bouamrane: { nom: "Bouamrane", court: "Bouamr.", parti: "PS", partiCourt: "PS", couleur: "#ad2d93" },
   villepin: { nom: "Villepin", court: "Villepin", parti: "La France humaniste", partiCourt: "LFH", couleur: "#7a6a52" },
+  cazeneuve: { nom: "Cazeneuve", court: "Cazen.", parti: "La Convention", partiCourt: "Conv.", couleur: "#44ccdd" },
+  bertrand: { nom: "Bertrand", court: "Bertrand", parti: "Nous France", partiCourt: "NF", couleur: "#003da3" },
+  batho: { nom: "Batho", court: "Batho", parti: "Génération Écologie", partiCourt: "GÉ", couleur: "#226600" },
+  philippot: { nom: "Philippot", court: "Philippot", parti: "Les Patriotes", partiCourt: "LP", couleur: "#1f3e64" },
 };
 const IDS = Object.keys(CANDIDATS);
-// tracés au départ ; l'interrupteur du graphe montre tous les autres
-const PRINCIPAUX_CANDIDATS = IDS.filter((id) => !["arthaud", "bouamrane", "villepin"].includes(id));
+// tracés au départ : les candidats déclarés crédités de plus de 1 % dans les sondages de
+// premier tour (règle de Corto, sondages de septembre 2026) ; l'interrupteur du graphe montre
+// les autres (sous 1 %, pas testés, ou battus à la primaire de la gauche du 11/10/2026)
+const SECONDAIRES = ["faure", "arthaud", "bouamrane", "bertrand", "batho", "philippot"];
+const PRINCIPAUX_CANDIDATS = IDS.filter((id) => !SECONDAIRES.includes(id));
 const AUTRES_CANDIDATS = IDS.filter((id) => !PRINCIPAUX_CANDIDATS.includes(id));
 
 // les médias montrés et cochés au départ : presse nationale d'information générale, chaînes

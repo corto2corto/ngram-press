@@ -116,7 +116,7 @@ export const textes = {
       + "« leader insoumis », « Marine Le Pen », « Édouard Philippe »… Sa part est le nombre de ses "
       + "mentions divisé par celles de tous les candidats affichés, tous les médias cochés "
       + "additionnés. La période précédente a la même durée et finit la veille du début. La "
-      + "interrupteur « Tous les candidats » de la légende montre les trois derniers.",
+      + "interrupteur « Tous les candidats » de la légende ajoute les candidats secondaires.",
 
     // hero
     tagline: "Les tendances de la presse française, jour par jour.",
@@ -414,7 +414,7 @@ export const textes = {
       + "insoumis”, “Marine Le Pen”, “Édouard Philippe”… Their share is their number of mentions "
       + "divided by that of all the candidates shown, summed over the ticked outlets. The previous "
       + "period has the same length and ends the day before the start. The “All the candidates” switch "
-      + "in the legend shows the last three.",
+      + "in the legend adds the minor candidates.",
 
     tagline: "Trends in the French press, day by day.",
     intro:
