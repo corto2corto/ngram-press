@@ -42,6 +42,7 @@ export const corpusNoms: Record<string, string> = {
   paris_match: "Paris Match",
   paris_normandie: "Paris-Normandie",
   presse_ocean: "Presse Océan",
+  society: "Society",
   sud_ouest: "Sud Ouest",
   telerama: "Télérama",
   valeurs_actuelles: "Valeurs actuelles",
