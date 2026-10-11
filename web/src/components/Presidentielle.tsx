@@ -62,8 +62,9 @@ const CANDIDATS: Record<string, Candidat> = {
 const IDS = Object.keys(CANDIDATS);
 // tracés au départ : les candidats déclarés crédités de plus de 1 % dans les sondages de
 // premier tour (règle de Corto, sondages de septembre 2026) ; l'interrupteur du graphe montre
-// les autres (sous 1 %, pas testés, ou battus à la primaire de la gauche du 11/10/2026)
-const SECONDAIRES = ["faure", "arthaud", "bouamrane", "bertrand", "batho", "philippot"];
+// les autres (sous 1 %, pas testés, ou battus à la primaire de la gauche du 11/10/2026 ;
+// Dupont-Aignan et Cazeneuve, à la marge du seuil ou peu testés, y sont aussi, choix de Corto)
+const SECONDAIRES = ["faure", "dupont_aignan", "arthaud", "bouamrane", "cazeneuve", "bertrand", "batho", "philippot"];
 const PRINCIPAUX_CANDIDATS = IDS.filter((id) => !SECONDAIRES.includes(id));
 const AUTRES_CANDIDATS = IDS.filter((id) => !PRINCIPAUX_CANDIDATS.includes(id));
 

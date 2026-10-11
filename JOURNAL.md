@@ -7,13 +7,14 @@
   « Tous les candidats ») : principal = candidat déclaré crédité de plus de
   1 % au premier tour dans les sondages de septembre 2026 (Ifop 25-29/09,
   Cluster17 15-16/09 et 01/09, Harris 22-24/09, OpinionWay 09-10/09).
-  Quatorze principaux : Le Pen (29-36 %), Mélenchon (15-19), Philippe
+  Principaux : Le Pen (29-36 %), Mélenchon (15-19), Philippe
   (13-23), Glucksmann (10-11), Retailleau (6,5-9), Attal (5), Zemmour
   (3,5-5), Lisnard (4-5), Ruffin (4), Villepin (2,5-7), Tondelier (2,5-3),
-  Roussel (2-3,5), Dupont-Aignan (1,5-3), Cazeneuve (2 à 10 selon les
-  configurations, agrégat Votons 5 % ; peu testé, à surveiller). Secondaires :
-  Faure (battu à la primaire), Arthaud (0,5-1), Bouamrane, Bertrand, Batho,
-  Philippot (pas testés).
+  Roussel (2-3,5). Secondaires : Faure (battu à la primaire), Arthaud
+  (0,5-1), Dupont-Aignan (1,5-3, à la marge, choix de Corto), Cazeneuve
+  (2 à 10 selon les configurations, agrégat Votons 5 %, peu testé : Corto le
+  garde en secondaire), Bouamrane, Bertrand, Batho, Philippot (pas testés).
+  Douze principaux au départ.
 - Quatre candidats déclarés de plus, étiquettes mesurées par
   /ratio (oct. 2025 → oct. 2026) : « Bernard Cazeneuve » avec le prénom
   (La Convention ; « cazeneuve » seul 2 619 pour 1 488, Pierre Cazeneuve et le
