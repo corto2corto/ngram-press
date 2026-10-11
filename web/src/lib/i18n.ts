@@ -14,6 +14,7 @@ export const corpusNoms: Record<string, string> = {
   "20minutes": "20 Minutes",
   atlantico: "Atlantico",
   bfmtv: "BFM TV",
+  blast: "Blast",
   challenges: "Challenges",
   cnews: "CNews",
   francesoir: "France-Soir",
