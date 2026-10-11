@@ -20,6 +20,7 @@ import { deIso, iso, jour, resolutionAuto } from "@/lib/dates";
 import { DEFILE, DUREE_ETAPE, type ConfigDefile } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
+import { ICONE_AGRANDIR, ICONE_REDUIRE } from "@/lib/icones";
 import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
@@ -76,19 +77,6 @@ const ICONES: Record<Mode, ReactElement> = {
     </svg>
   ),
 };
-
-// les deux coins du bouton d'agrandissement : vers l'extérieur pour étendre,
-// vers l'intérieur pour revenir à la page
-const ICONE_AGRANDIR = (
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M9.5 2.5h4v4M6.5 13.5h-4v-4" />
-  </svg>
-);
-const ICONE_REDUIRE = (
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M13.5 6.5h-4v-4M2.5 9.5h4v4" />
-  </svg>
-);
 
 export default function Explorer({ lang }: { lang: Lang }) {
   const t = textes[lang];
@@ -371,16 +359,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
             </button>
           ))}
         </nav>
-        <button
-          type="button"
-          className="bouton-agrandir"
-          aria-pressed={agrandi}
-          aria-label={agrandi ? t.explorateur_reduire : t.explorateur_agrandir}
-          title={agrandi ? t.explorateur_reduire : t.explorateur_agrandir}
-          onClick={basculerAgrandi}
-        >
-          {agrandi ? ICONE_REDUIRE : ICONE_AGRANDIR}
-        </button>
       </div>
 
       <div hidden={mode !== "courbes"}>
@@ -444,7 +422,17 @@ export default function Explorer({ lang }: { lang: Lang }) {
           </div>
         </form>
 
-        <figure className={`carte-graphe${enDefile ? " trace-defile" : ""}`}>
+        <figure className={`carte-graphe carte-cadre${enDefile ? " trace-defile" : ""}`}>
+          <button
+            type="button"
+            className="bouton-agrandir"
+            aria-pressed={agrandi}
+            aria-label={agrandi ? t.explorateur_reduire : t.explorateur_agrandir}
+            title={agrandi ? t.explorateur_reduire : t.explorateur_agrandir}
+            onClick={basculerAgrandi}
+          >
+            {agrandi ? ICONE_REDUIRE : ICONE_AGRANDIR}
+          </button>
           <Chart
             series={resultat?.series ?? []}
             corpus={resultat?.corpus ?? corpus}

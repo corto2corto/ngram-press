@@ -595,7 +595,14 @@ def associated_ngram():
 # 09/10/2026 : « Ruffin » seul (son écart avec « François Ruffin » se répartit dans les titres
 # nationaux, pas d'homonyme), « Lisnard » seul (93 % de « David Lisnard »), « Olivier Faure »
 # avec le prénom (« faure » seul : 1 463 dans Sud Ouest pour 493 « olivier faure ») ;
-# « premier secrétaire » écarté (secrétaires fédéraux, diplomates). Limites : une apposition (« le leader insoumis Jean-Luc
+# « premier secrétaire » écarté (secrétaires fédéraux, diplomates). Ajoutés le 11/10/2026 (issue
+# 52) : « Nathalie Arthaud » avec le prénom (« arthaud » seul : Florence Arthaud, 140 dans
+# Ouest-France pour 30 « nathalie arthaud », 51 pour 4 dans La Provence, 21 pour 0 dans Voiles
+# et Voiliers), « Bouamrane » seul (92 % de « Karim Bouamrane », rapport uniforme d'un titre à
+# l'autre), « Villepin » seul (93 % de « de Villepin », « Dominique de » au même niveau partout ;
+# Marie de Villepin ≤ 1,5 %, Gala et Voici). Écartés : « Mme Arthaud » (13, Florence possible),
+# « Lutte ouvrière » (le parti, pas la candidate), « M. Bouamrane » et « M. de Villepin » (déjà
+# comptés par le nom seul). Limites : une apposition (« le leader insoumis Jean-Luc
 # Mélenchon ») compte deux fois ; « Marine Le » ne voit pas « Mme Le Pen » ni « Le Pen » seul.
 # (identifiant, [(étiquette affichée, expression comptée)]) ; les bases s'arrêtent au bigramme
 CANDIDATS_2027 = [
@@ -612,6 +619,9 @@ CANDIDATS_2027 = [
     ("dupont_aignan", [("Dupont-Aignan", "Dupont-Aignan")]),
     ("le_pen", [("Marine Le Pen", "Marine Le"), ("triple candidate", "triple candidate")]),
     ("zemmour", [("Zemmour", "Zemmour")]),
+    ("arthaud", [("Nathalie Arthaud", "Nathalie Arthaud")]),
+    ("bouamrane", [("Bouamrane", "Bouamrane")]),
+    ("villepin", [("Villepin", "Villepin")]),
 ]
 # (de, a, corpus) -> (instant, réponse) : la période de départ de l'onglet (les trois derniers
 # mois) est la même pour tous les visiteurs d'une journée ; une demi-heure, les bases se

@@ -355,17 +355,13 @@ main > section,
   scroll-margin-top: 2rem;
 }
 
-/* ligne des onglets : les modes à gauche, le bouton d'agrandissement tout à
-   droite, centré sur leur hauteur ; le filet passe sous les deux */
+/* ligne des onglets : les modes, et le filet dessous (le bouton d'agrandissement est dans
+   le coin de la carte des Courbes, .carte-cadre) */
 .tete-onglets {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.2rem;
   border-bottom: 1px solid var(--bord);
-}
-
-.tete-onglets .bouton-agrandir {
-  align-self: center;
 }
 
 .bouton-agrandir {
@@ -1901,6 +1897,101 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 
 .legende .non-dispo {
   color: var(--encre-muette);
+}
+
+/* carte du graphe avec le bouton d'agrandissement dans son coin haut droit (Courbes de
+   l'explorateur, onglet Présidentielle) */
+.carte-cadre {
+  position: relative;
+}
+
+.carte-cadre .bouton-agrandir {
+  position: absolute;
+  top: clamp(1rem, 3vw, 1.6rem);
+  right: clamp(1rem, 3vw, 1.6rem);
+  margin: 0;
+}
+
+.carte-cadre .titre-graphe {
+  padding-right: 2.5rem;
+}
+
+/* l'interrupteur au bout de la légende : tous les candidats, ou les principaux seuls */
+.legende .p27-tous {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition: color var(--duree-courte) ease;
+}
+
+.legende .p27-tous:hover,
+.legende .p27-tous[aria-checked="true"] {
+  color: var(--encre);
+}
+
+.p27-tous .interrupteur {
+  position: relative;
+  flex: none;
+  width: 1.85rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: var(--axe);
+  transition: background var(--duree-courte) ease;
+}
+
+.p27-tous .interrupteur::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.05rem - 4px);
+  height: calc(1.05rem - 4px);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px var(--ombre);
+  transition: transform var(--duree-courte) ease;
+}
+
+.p27-tous[aria-checked="true"] .interrupteur {
+  background: var(--accent);
+}
+
+.p27-tous[aria-checked="true"] .interrupteur::after {
+  transform: translateX(0.8rem);
+}
+
+.p27-tous:focus-visible {
+  outline: none;
+}
+
+.p27-tous:focus-visible .interrupteur {
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+/* carte agrandie de l'onglet Présidentielle : elle couvre la fenêtre (comme l'explorateur
+   agrandi), défile seule si besoin, et le graphe prend la hauteur libérée */
+.carte-p27.agrandi {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  border: none;
+  border-radius: 0;
+  background: var(--fond);
+  padding: clamp(1rem, 2.5vw, 1.8rem) clamp(1.25rem, 4vw, 3rem) 1.5rem;
+  animation: paraitre var(--duree-survol) var(--sortie) both;
+}
+
+.carte-p27.agrandi .bouton-agrandir {
+  top: clamp(1rem, 2.5vw, 1.8rem);
+  right: clamp(1.25rem, 4vw, 3rem);
 }
 
 .zone-p27 {

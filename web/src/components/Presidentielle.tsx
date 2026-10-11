@@ -12,7 +12,11 @@
 // choisit par quatre bulles qui finissent au dernier jour servi ; les médias se cochent en
 // pilules, comme dans Ratio.tsx. Au départ, seuls les principaux médias sont montrés et
 // cochés, sur deux lignes au plus (mesurées sur la largeur réelle) ; une pilule « + » déplie
-// la liste entière.
+// la liste entière. Les candidats : les principaux sont tracés au départ, un interrupteur
+// « Tous les candidats » au bout de la légende du graphe montre les autres ; la part se
+// calcule sur les candidats affichés. Un bouton dans le coin de la carte agrandit le graphe à
+// toute la fenêtre (comme l'explorateur) : les colonnes prennent la largeur et la hauteur
+// libres, Échap en sort.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -20,6 +24,7 @@ import {
 } from "@/lib/api";
 import { deIso, ecrire, finPeriode, iso, jour, lireDate, ymd } from "@/lib/dates";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+import { ICONE_AGRANDIR, ICONE_REDUIRE } from "@/lib/icones";
 import Aide from "@/components/Aide";
 
 type Candidat = { nom: string; court: string; parti: string; partiCourt: string; couleur: string };
@@ -28,7 +33,8 @@ type Candidat = { nom: string; court: string; parti: string; partiCourt: string;
 // y partagent le même bleu : le nom écrit sous chaque colonne porte l'identité), sauf Attal :
 // son bleu nuit d'origine le rangeait avec l'extrême droite (Le Pen, Zemmour), il prend le
 // bleu d'Édouard Philippe. Ajoutés ensuite : Faure en rose PS, Ruffin en orange, Lisnard en
-// bleu clair (teintes vérifiées : écart ΔE ≥ 15 avec chaque voisine)
+// bleu clair, puis (11/10/2026) Arthaud en bordeaux, Bouamrane en magenta, Villepin en taupe
+// (teintes vérifiées : écart ΔE ≥ 15 avec chaque voisine)
 const CANDIDATS: Record<string, Candidat> = {
   roussel: { nom: "Roussel", court: "Roussel", parti: "PCF", partiCourt: "PCF", couleur: "#e40028" },
   melenchon: { nom: "Mélenchon", court: "Mélenchon", parti: "FI", partiCourt: "FI", couleur: "#4d2370" },
@@ -43,8 +49,14 @@ const CANDIDATS: Record<string, Candidat> = {
   dupont_aignan: { nom: "Dupont-Aignan", court: "D.-Aignan", parti: "DLF", partiCourt: "DLF", couleur: "#003da3" },
   le_pen: { nom: "Le Pen", court: "Le Pen", parti: "RN", partiCourt: "RN", couleur: "#1f3e64" },
   zemmour: { nom: "Zemmour", court: "Zemmour", parti: "R!", partiCourt: "R!", couleur: "#160759" },
+  arthaud: { nom: "Arthaud", court: "Arthaud", parti: "LO", partiCourt: "LO", couleur: "#8e1a2c" },
+  bouamrane: { nom: "Bouamrane", court: "Bouamr.", parti: "PS", partiCourt: "PS", couleur: "#ad2d93" },
+  villepin: { nom: "Villepin", court: "Villepin", parti: "La France humaniste", partiCourt: "LFH", couleur: "#7a6a52" },
 };
 const IDS = Object.keys(CANDIDATS);
+// tracés au départ ; l'interrupteur du graphe montre tous les autres
+const PRINCIPAUX_CANDIDATS = IDS.filter((id) => !["arthaud", "bouamrane", "villepin"].includes(id));
+const AUTRES_CANDIDATS = IDS.filter((id) => !PRINCIPAUX_CANDIDATS.includes(id));
 
 // les médias montrés et cochés au départ : presse nationale d'information générale, chaînes
 // d'info et Ouest-France, dans cet ordre (le repli sur deux lignes garde les premiers)
@@ -53,10 +65,9 @@ const PRINCIPAUX = [
   "la_croix", "le_nouvel_observateur", "le_journal_du_dimanche", "marianne", "valeurs_actuelles",
   "20minutes", "bfmtv", "cnews",
 ];
-const NC = IDS.length;
 
 const JOUR_MS = 86_400_000;
-const HAUTEUR = 440; // colonnes debout
+const HAUTEUR = 440; // colonnes debout (agrandi : la hauteur libre de la fenêtre)
 const MARGE = { haut: 30, bas: 74 };
 const RANG = 48; // une ligne par candidat, colonnes couchées
 const ETROIT = 560; // en dessous (téléphone), les colonnes se couchent ; au-dessus, elles restent
@@ -147,6 +158,7 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   const [medias, setMedias] = useState<string[]>([]);
   const [coches, setCoches] = useState<string[]>([]);
   const [deplie, setDeplie] = useState(false); // toute la liste des médias, ou les principaux
+  const [tous, setTous] = useState(false); // tous les candidats tracés, ou les principaux
   const [nbReplie, setNbReplie] = useState<number | null>(null); // principaux tenant sur deux lignes
   const [dernier, setDernier] = useState<number | null>(null); // dernier jour servi
   const [periode, setPeriode] = useState<{ de: number; a: number } | null>(null);
@@ -157,6 +169,33 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   const [message, setMessage] = useState<string | null>(null);
   const [survol, setSurvol] = useState<number | null>(null);
   const appel = useRef(0);
+
+  // carte agrandie à toute la fenêtre : la page dessous ne défile plus, Échap la referme (sauf
+  // si une aide épinglée attend, elle part d'abord), et le graphe prend la hauteur libre sous
+  // la légende, remesurée à chaque redimensionnement
+  const [agrandi, setAgrandi] = useState(false);
+  const [hauteurLibre, setHauteurLibre] = useState(HAUTEUR);
+  const zone = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!agrandi) return;
+    const mesurer = () => {
+      const haut = zone.current?.getBoundingClientRect().top ?? 0;
+      setHauteurLibre(Math.max(380, window.innerHeight - haut - 28));
+    };
+    mesurer();
+    const clavier = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape" && !document.querySelector(".aide-panneau.epingle")) setAgrandi(false);
+    };
+    window.addEventListener("resize", mesurer);
+    document.addEventListener("keydown", clavier);
+    const debordement = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("resize", mesurer);
+      document.removeEventListener("keydown", clavier);
+      document.documentElement.style.overflow = debordement;
+    };
+  }, [agrandi]);
 
   // les médias (les principaux d'abord, puis les autres par nom d'affichage ; les principaux
   // seuls cochés) et le dernier jour servi ; la période de départ : les trois derniers mois
@@ -247,6 +286,7 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
 
   const basculer = (c: string) =>
     setCoches((liste) => (liste.includes(c) ? liste.filter((m) => m !== c) : [...liste, c]));
+  const traces = tous ? IDS : PRINCIPAUX_CANDIDATS;
 
   // repli : combien de principaux tiennent sur deux lignes, la pilule « + » comprise. Mesuré
   // sur une copie invisible de la rangée (les principaux puis « + »), à chaque changement de
@@ -281,26 +321,29 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
   const caches = medias.length - visibles.length;
   const cochesCaches = coches.filter((c) => !visibles.includes(c)).length;
 
-  // les parts, de la période et de la précédente, et le rang de chacun
+  // les parts, de la période et de la précédente, et le rang de chacun. Les candidats non
+  // tracés restent dans l'image (le glissement apparie les tableaux) à part nulle, rangés après
+  // les autres : un candidat qui paraît monte depuis la ligne de base, un retiré y redescend
   const calcul = useMemo(() => {
     if (!resultat) return null;
     const parId = new Map(resultat.candidats.map((c) => [c.id, c]));
-    const n = IDS.map((id) => parId.get(id)?.n ?? 0);
-    const np = IDS.map((id) => parId.get(id)?.n_prec ?? 0);
+    const trace = (id: string) => traces.includes(id);
+    const n = IDS.map((id) => (trace(id) ? parId.get(id)?.n ?? 0 : 0));
+    const np = IDS.map((id) => (trace(id) ? parId.get(id)?.n_prec ?? 0 : 0));
     const N = somme(n), Np = somme(np);
     if (!N) return { N, image: null };
     const v = n.map((x) => x / N);
     const vp = resultat.comparable && Np ? np.map((x) => x / Np) : null;
-    const ordre = IDS.map((_, i) => i).sort((x, y) => v[y] - v[x]);
+    const ordre = IDS.map((_, i) => i)
+      .sort((x, y) => Number(trace(IDS[y])) - Number(trace(IDS[x])) || v[y] - v[x]);
     const pos: number[] = [];
     ordre.forEach((i, k) => (pos[i] = k));
     const image: Image = { v, vp, pos, ymax: Math.max(...v, ...(vp ?? [])) * AIR };
     return { N, image };
-  }, [resultat]);
+  }, [resultat, traces]);
   const image = useGlissement(calcul?.image ?? null);
 
   // largeur du graphe suivant le conteneur, comme Chart.tsx
-  const zone = useRef<HTMLDivElement>(null);
   const [largeur, setLargeur] = useState(0);
   useEffect(() => {
     const el = zone.current;
@@ -340,12 +383,13 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
     const cibles: React.ReactNode[] = [];
     const marques: React.ReactNode[] = [];
     const textesSvg: React.ReactNode[] = [];
+    const NC = traces.length;
     let H: number;
     // ancrage de l'infobulle du candidat survolé, en px dans la zone
     let ancre: { x: number; y: number; cote: "gauche" | "droite" | "dessous" } | null = null;
 
     if (!couche) {
-      H = HAUTEUR;
+      H = agrandi ? hauteurLibre : HAUTEUR;
       const incline = W / NC < INCLINE;
       // inclinés, les noms débordent à gauche de leur colonne : la première recule d'autant
       const gauche = incline ? 24 : 0;
@@ -357,7 +401,8 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
       const y = (v: number) => MARGE.haut + plotH * (1 - Math.min(v, image.ymax) / image.ymax);
       const w = Math.min(40, slot * 0.39);
       marques.push(<line key="base" x1={0} x2={W} y1={y0} y2={y0} stroke="var(--axe)" strokeWidth={1} />);
-      IDS.forEach((id, i) => {
+      traces.forEach((id) => {
+        const i = IDS.indexOf(id);
         const c = CANDIDATS[id];
         const cx = gauche + slot * (image.pos[i] + 0.5);
         const v = image.v[i];
@@ -430,7 +475,8 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
       const x0 = nomW;
       const x = (v: number) => x0 + ((W - nomW - finW) * Math.min(v, image.ymax)) / image.ymax;
       marques.push(<line key="base" x1={x0} x2={x0} y1={4} y2={H - 4} stroke="var(--axe)" strokeWidth={1} />);
-      IDS.forEach((id, i) => {
+      traces.forEach((id) => {
+        const i = IDS.indexOf(id);
         const c = CANDIDATS[id];
         const cy = 4 + RANG * (image.pos[i] + 0.5);
         const v = image.v[i];
@@ -623,7 +669,17 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
         )}
       </div>
 
-      <figure className="carte-graphe">
+      <figure className={`carte-graphe carte-cadre carte-p27${agrandi ? " agrandi" : ""}`}>
+        <button
+          type="button"
+          className="bouton-agrandir"
+          aria-pressed={agrandi}
+          aria-label={agrandi ? t.p27_reduire : t.p27_agrandir}
+          title={agrandi ? t.p27_reduire : t.p27_agrandir}
+          onClick={() => setAgrandi((v) => !v)}
+        >
+          {agrandi ? ICONE_REDUIRE : ICONE_AGRANDIR}
+        </button>
         {r && calcul?.image ? (
           <>
             <figcaption className="titre-graphe">{t.p27_titre_graphe(du(depuisEntier(r.de), depuisEntier(r.a)))}</figcaption>
@@ -641,6 +697,12 @@ export default function Presidentielle({ lang }: { lang: Lang }) {
               ) : (
                 <span className="cle non-dispo">{t.p27_non_dispo}</span>
               )}
+              <button type="button" className="p27-tous" role="switch" aria-checked={tous}
+                title={tous ? t.p27_principaux_aria : t.p27_tous_aria(AUTRES_CANDIDATS.map((id) => CANDIDATS[id].nom).join(", "))}
+                onClick={() => setTous((v) => !v)}>
+                <span className="interrupteur" aria-hidden="true" />
+                {t.p27_tous}
+              </button>
             </div>
             <div className={`zone-p27${chargement ? " charge" : ""}`} ref={zone}>
               {svg}

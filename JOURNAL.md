@@ -1,5 +1,43 @@
 # Journal du projet
 
+## 11/10/2026 — Présidentielle 2027 : Arthaud, Bouamrane, Villepin et le graphe agrandi (issue 52)
+- Trois candidats de plus (16), mesurés sur les bases par la route publique
+  /ratio (oct. 2025 → oct. 2026, 36 médias), même règle (≥ 1 % des mentions,
+  pas d'homonyme courant). « Nathalie Arthaud » avec le prénom : « arthaud »
+  seul est Florence Arthaud en presse régionale et nautique (Ouest-France 140
+  pour 30 « nathalie arthaud », La Provence 51 pour 4, Voiles et Voiliers 21
+  pour 0 ; « florence arthaud » 221 sur l'année). « Bouamrane » seul (1 051,
+  dont 966 « karim bouamrane », rapport uniforme d'un titre à l'autre).
+  « Villepin » seul (2 610, dont 2 438 « de villepin » ; « dominique de »
+  2 575 au même niveau partout ; Marie de Villepin ≤ 1,5 %, Gala et Voici).
+  Écartés : « Mme Arthaud » (13, Florence possible), « Lutte ouvrière » (le
+  parti, 1 700, pas la candidate), « M. Bouamrane » et « M. de Villepin »
+  (déjà comptés par le nom seul).
+- Partis vérifiés en ligne : Arthaud, LO (désignée au congrès de décembre
+  2025) ; Bouamrane, PS (maire de Saint-Ouen, candidature annoncée le
+  09/06/2026) ; Villepin, La France humaniste (son parti, lancé en 2025 ;
+  candidature attendue sans primaire). Couleurs vérifiées (ΔE OKLab ≥ 15 avec
+  chaque voisine) : Arthaud bordeaux #8e1a2c, Bouamrane magenta #ad2d93,
+  Villepin taupe #7a6a52 (les bleus, verts et cyans sont tous pris).
+- Les 13 premiers restent tracés au départ : un interrupteur « Tous les
+  candidats » au bout de la légende du graphe montre les trois autres (choix
+  de Corto sur cinq maquettes Artifact : lien dans le sous-titre, sélecteur à
+  deux positions, colonnes fantômes, entrée de légende, interrupteur). La part
+  se calcule sur les candidats affichés (l'affichage de départ ne change
+  pas). Les candidats non tracés restent dans l'image à part nulle, rangés
+  après les autres : un candidat qui paraît monte depuis la ligne de base, un
+  retiré y redescend.
+- Graphe agrandi : bouton dans le coin haut droit de la carte (repris de
+  l'explorateur, pictogrammes partagés dans `web/src/lib/icones.tsx`, classe
+  `.carte-cadre`), la carte couvre la fenêtre, le graphe prend la largeur et
+  la hauteur libres sous la légende (remesurées au redimensionnement), Échap
+  en sort. Dans l'explorateur, le bouton quitte la ligne des onglets pour le
+  même coin de la carte des Courbes. À 16
+  colonnes, les noms restent debout dès 1 056 px de large et entiers dès
+  1 472 px (seuils de 66 et 92 px par candidat inchangés).
+- Vérifié : tsc, eslint, build ; route servie en local sur six mini-bases
+  synthétiques (Flask sur 8010, rendu sur le next dev 3010).
+
 ## 09/10/2026 — Présidentielle 2027 : route /presidentielle accélérée (issue 53)
 - Mesuré sur gram (lecture seule, priorité basse) : 0,86 à 0,98 s pour 15
   médias, 1,9 à 2,3 s pour 36, de 7 jours à 6 mois. Environ 85 % du temps

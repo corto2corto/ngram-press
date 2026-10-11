@@ -102,13 +102,21 @@ export const textes = {
       `Afficher les ${n} autres médias` + (coches ? ` (${coches} coché${coches > 1 ? "s" : ""})` : ""),
     p27_moins: "−",
     p27_moins_aria: "Afficher seulement les principaux médias",
+    // l'interrupteur au bout de la légende : tous les candidats, ou les principaux seuls
+    p27_tous: "Tous les candidats",
+    p27_tous_aria: (noms: string) => `Afficher tous les candidats : ${noms}`,
+    p27_principaux_aria: "Revenir aux principaux candidats",
+    // bouton dans le coin de la carte du graphe : l'étendre à toute la fenêtre, ou l'y rendre
+    p27_agrandir: "Agrandir le graphe",
+    p27_reduire: "Réduire le graphe",
     p27_graphe_aria: "Part des mentions de chaque candidat, sur la période et sur la précédente",
     p27_aide:
       "Chaque candidat est compté par ses étiquettes, des noms et appellations d'un ou deux mots "
       + "choisis sur les bases (au moins 1 % de ses mentions, sans homonyme courant) : « Mélenchon », "
       + "« leader insoumis », « Marine Le Pen », « Édouard Philippe »… Sa part est le nombre de ses "
-      + "mentions divisé par celles de tous les candidats, tous les médias cochés additionnés. La "
-      + "période précédente a la même durée et finit la veille du début.",
+      + "mentions divisé par celles de tous les candidats affichés, tous les médias cochés "
+      + "additionnés. La période précédente a la même durée et finit la veille du début. La "
+      + "interrupteur « Tous les candidats » de la légende montre les trois derniers.",
 
     // hero
     tagline: "Les tendances de la presse française, jour par jour.",
@@ -394,13 +402,19 @@ export const textes = {
       `Show the ${n} other outlets` + (coches ? ` (${coches} ticked)` : ""),
     p27_moins: "−",
     p27_moins_aria: "Show only the main outlets",
+    p27_tous: "All the candidates",
+    p27_tous_aria: (noms: string) => `Show all the candidates: ${noms}`,
+    p27_principaux_aria: "Back to the main candidates",
+    p27_agrandir: "Expand the chart",
+    p27_reduire: "Collapse the chart",
     p27_graphe_aria: "Each candidate's share of mentions, over the period and the previous one",
     p27_aide:
       "Each candidate is counted through their labels: one- or two-word names and phrases chosen "
       + "on the data (at least 1% of their mentions, no common namesake): “Mélenchon”, “leader "
       + "insoumis”, “Marine Le Pen”, “Édouard Philippe”… Their share is their number of mentions "
-      + "divided by that of all the candidates, summed over the ticked outlets. The previous period "
-      + "has the same length and ends the day before the start.",
+      + "divided by that of all the candidates shown, summed over the ticked outlets. The previous "
+      + "period has the same length and ends the day before the start. The “All the candidates” switch "
+      + "in the legend shows the last three.",
 
     tagline: "Trends in the French press, day by day.",
     intro:
