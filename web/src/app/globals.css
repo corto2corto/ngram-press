@@ -2050,6 +2050,10 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   top: clamp(1rem, 3vw, 1.6rem);
   right: clamp(1rem, 3vw, 1.6rem);
   margin: 0;
+  /* au-dessus du titre : son fondu (animation d'opacité, fill-mode both) en fait un
+     contexte d'empilement que Chrome garde après l'animation ; sans z-index, le titre,
+     qui suit le bouton dans le DOM et court sur toute la largeur, recevait le clic */
+  z-index: 3;
 }
 
 .carte-cadre .titre-graphe {

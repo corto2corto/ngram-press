@@ -1,5 +1,20 @@
 # Journal du projet
 
+## 12/10/2026 — bouton d'agrandissement inerte sur le site
+- Symptôme : sur agoragram.fr, le bouton du coin de la carte (Courbes de
+  l'explorateur, Présidentielle 2027) ne faisait rien au clic. Le code, le
+  gestionnaire et les règles CSS étaient pourtant bien livrés (vérifié sur le
+  HTML, le JS et le CSS servis par www.agoragram.fr).
+- Cause : le titre du graphe (`.titre-graphe`) porte un fondu d'opacité avec
+  `fill-mode: both`. Chrome garde l'élément dans un contexte d'empilement une
+  fois l'animation finie ; le titre suit le bouton dans le DOM et court sur
+  toute la largeur (son `padding-right` n'écarte que le texte), il recevait
+  donc le clic à la place du bouton, posé en `position: absolute` sans
+  `z-index`.
+- Correctif : `.carte-cadre .bouton-agrandir { z-index: 3 }` (sous l'aide
+  épinglée à 5 et la liste des médias à 20, au-dessus de l'infobulle à 2).
+- Vérifié : tsc, eslint, build. À regarder sur le site après mise en ligne.
+
 ## 12/10/2026 — pause d'un média côté site
 - Besoin : retirer du site des journaux peu utilisés sans toucher à leur
   alimentation (scraping et `maj_ngram.py` de stage-mids continuent).
