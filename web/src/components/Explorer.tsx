@@ -61,8 +61,8 @@ const ASTUCES: { exemple: string; cle: "virgule" | "plus" | "expression" | "cass
 const FONDS_DEFAUT: Fonds = { lo: jour(2008, 1, 1), hi: jour(2026, 12, 31) };
 
 // médias comparés en même temps, journal de référence compris : la palette de
-// séries a quatre couleurs (--serie-1..4)
-const MAX_MEDIAS = 4;
+// séries a huit couleurs (--serie-1..8)
+const MAX_MEDIAS = 8;
 // pilules de médias montrées sans déplier la rangée
 const PILULES_REPLIEES = 8;
 

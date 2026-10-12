@@ -1,5 +1,20 @@
 # Journal du projet
 
+## 12/10/2026 — Courbes : huit médias comparés au lieu de quatre
+- `MAX_MEDIAS` passe de 4 à 8 dans `Explorer.tsx` (référence comprise, donc
+  sept pilules cochables). La limite venait de la palette de séries, qui
+  n'avait que quatre jetons.
+- Quatre jetons de plus dans `globals.css` : `--serie-5` violet #7b5fd1,
+  `--serie-6` rose #d2457f, `--serie-7` bleu canard #1a9fb8, `--serie-8` olive
+  #8c8a21. Palette de huit passée au validateur du skill dataviz (bande de
+  clarté, chroma, séparation daltonienne ΔE ≥ 8,5 sur les paires voisines,
+  seuil vision normale) : tout passe ; un gris avait été écarté (lu comme
+  neutre). Même avertissement de contraste qu'avant sur le vert et l'ambre,
+  déjà présents.
+- Retards de tracé `.serie.s5` à `.s8` (480 à 840 ms, pas de 120 ms) et
+  `Chart.tsx` cycle sur 8 classes au lieu de 4. La légende est déjà en
+  `flex-wrap`, huit clés se replient.
+
 ## 12/10/2026 — Courbes : 90 px de vide entre la période et la carte
 - Mesuré dans Chrome (localhost) : la ligne `.rang-periode` faisait 161 px pour
   74 px de contenu. Le formulaire des Courbes (`.filtres-rangs`, en colonne)

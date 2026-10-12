@@ -20,6 +20,10 @@
   --serie-2: #2a78d6;
   --serie-3: #1baf7a;
   --serie-4: #eda100;
+  --serie-5: #7b5fd1;
+  --serie-6: #d2457f;
+  --serie-7: #1a9fb8;
+  --serie-8: #8c8a21;
   --ombre: rgba(0, 0, 0, 0.08);
   --anneau: rgba(184, 101, 63, 0.22);
 
@@ -1191,6 +1195,22 @@ main > section,
 
 .serie.s4 {
   --retard: 360ms;
+}
+
+.serie.s5 {
+  --retard: 480ms;
+}
+
+.serie.s6 {
+  --retard: 600ms;
+}
+
+.serie.s7 {
+  --retard: 720ms;
+}
+
+.serie.s8 {
+  --retard: 840ms;
 }
 
 .serie .courbe {

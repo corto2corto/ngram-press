@@ -2,7 +2,7 @@
 
 // Graphe SVG maison (grille, courbes ou barres, réticule, infobulle) : porte le
 // rendu du front statique en React. La largeur suit le conteneur
-// (ResizeObserver), les couleurs de séries viennent des jetons CSS --serie-1..4.
+// (ResizeObserver), les couleurs de séries viennent des jetons CSS --serie-1..8.
 // Les fréquences se tracent en courbes, sur une valeur lissée ; les occurrences
 // brutes — des entiers, souvent creux — se peignent en barres, telles quelles.
 // Le tableau garde les valeurs brutes dans tous les cas.
@@ -465,7 +465,7 @@ export default function Chart({
 
               {series.map((s, i) => (
                 // la métrique dans la clé : changer de mesure rejoue le tracé
-                <g className={`serie s${(i % 4) + 1}`} key={`${tirage}-${metrique}-${s.corpus ?? ""}-${s.gram}`}>
+                <g className={`serie s${(i % 8) + 1}`} key={`${tirage}-${metrique}-${s.corpus ?? ""}-${s.gram}`}>
                   {peindre(traces[i], true)}
                 </g>
               ))}
