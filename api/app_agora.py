@@ -7,6 +7,9 @@
 # version.json, chaque corpus y est une grosse base + des tampons, lus ensemble dans une
 # même connexion et additionnés jour par jour ; le fichier est relu à chaque requête.
 # Sans version.json, ancien fonctionnement : une base <corpus>_ngram.db par corpus.
+# Pause d'un média (côté site seulement, stage-mids continue de l'alimenter) : son
+# identifiant dans BASES_DIR/pause.json (liste JSON, fichier propriété de ce dépôt, relu à
+# chaque requête) ; il disparaît alors de toutes les routes et du MCP sans relance.
 # Lancement (serveur) : venv_agora/bin/gunicorn --bind 127.0.0.1:8010 api.app_agora:app
 # Test local : NGRAM_DIR=data python -m api.app_agora  puis  http://localhost:8502/corpus
 
@@ -94,17 +97,28 @@ app = Flask(__name__)
 CORS(app)  # autorise un front hébergé ailleurs (Vercel) à appeler l'API
 
 
+def en_pause():
+    # médias retirés du site (BASES_DIR/pause.json : liste d'identifiants), vide sans fichier
+    chemin = os.path.join(BASES_DIR, "pause.json")
+    if not os.path.exists(chemin):
+        return set()
+    with open(chemin) as f:
+        return set(json.load(f))
+
+
 def catalogue():
     # {corpus: [grosse base, tampons…]} d'après version.json, sinon d'après les fichiers
-    # *_ngram.db présents dans DOSSIER (une base par corpus)
+    # *_ngram.db présents dans DOSSIER (une base par corpus) ; moins les médias en pause
+    pause = en_pause()
     chemin = os.path.join(BASES_DIR, "version.json")
     if os.path.exists(chemin):
         with open(chemin) as f:
             version = json.load(f)
         return {corpus: [os.path.join(BASES_DIR, b) for b in [e["grosse"], *e["tampons"]]]
-                for corpus, e in version.items()}
-    return {os.path.basename(chemin)[:-len("_ngram.db")]: [chemin]
-            for chemin in glob.glob(os.path.join(DOSSIER, "*_ngram.db"))}
+                for corpus, e in version.items() if corpus not in pause}
+    return {corpus: [chemin]
+            for chemin in glob.glob(os.path.join(DOSSIER, "*_ngram.db"))
+            if (corpus := os.path.basename(chemin)[:-len("_ngram.db")]) not in pause}
 
 
 def ouvrir(bases):

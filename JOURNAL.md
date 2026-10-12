@@ -1,5 +1,16 @@
 # Journal du projet
 
+## 12/10/2026 — pause d'un média côté site
+- Besoin : retirer du site des journaux peu utilisés sans toucher à leur
+  alimentation (scraping et `maj_ngram.py` de stage-mids continuent).
+- `bases/pause.json` sur gram (liste d'identifiants, propriété de ce dépôt,
+  `version.json` intact) lu par `catalogue()` à chaque requête : le média sort
+  de toutes les routes (`/corpus`, `/catalogue`, `/query`, `/ratio`,
+  Présidentielle) et du MCP sans relance ; le lever = retirer la ligne.
+- En pause : gala, le_marin, presse_ocean, voiles_et_voiliers, le_maine_libre,
+  society. Le front n'a rien à changer (listes issues du catalogue,
+  `corpusFamilles` filtré sur ce qui est servi).
+
 ## 12/10/2026 — Courbes : chercher un média
 - Maquette d'abord (artifact, quatre variantes jouables : recherche en tête
   de liste, champ qui devient la recherche, familles, filtre à la frappe) ;
