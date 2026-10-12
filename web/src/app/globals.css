@@ -889,8 +889,14 @@ main > section,
 
 .filtres-rangs {
   flex-direction: column;
+  /* pas le wrap de .filtres : en colonne, Chrome dimensionnerait chaque rang à la
+     hauteur qu'il aurait replié (bouton et « ? » passés sous le curseur), d'où
+     90 px de vide entre la période et la carte */
+  flex-wrap: nowrap;
   align-items: stretch;
   gap: 0.9rem;
+  /* la carte respire un peu sous les graduations (≈ 34 px) */
+  margin-bottom: 2.1rem;
 }
 
 .filtres .rang {

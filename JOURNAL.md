@@ -1,5 +1,15 @@
 # Journal du projet
 
+## 12/10/2026 — Courbes : 90 px de vide entre la période et la carte
+- Mesuré dans Chrome (localhost) : la ligne `.rang-periode` faisait 161 px pour
+  74 px de contenu. Le formulaire des Courbes (`.filtres-rangs`, en colonne)
+  héritait du `flex-wrap: wrap` de `.filtres` ; en colonne, Chrome donne alors
+  à chaque rang la hauteur qu'il aurait replié (bouton et « ? » sous le
+  curseur : 74 + 14 + 72 px).
+- Correctif : `.filtres-rangs { flex-wrap: nowrap }`. La carte remonte de 86 px ;
+  marge du formulaire portée de 1,5 à 2,1 rem (≈ 34 px) pour que ça respire.
+  Les autres formulaires (une seule ligne, en rang) gardent leur wrap.
+
 ## 12/10/2026 — bouton d'agrandissement inerte sur le site
 - Symptôme : sur agoragram.fr, le bouton du coin de la carte (Courbes de
   l'explorateur, Présidentielle 2027) ne faisait rien au clic. Le code, le
@@ -16,15 +26,15 @@
 - Vérifié : tsc, eslint, build. À regarder sur le site après mise en ligne.
 
 ## 12/10/2026 — pause d'un média côté site
-- Besoin : retirer du site des journaux peu utilisés sans toucher à leur
-  alimentation (scraping et `maj_ngram.py` de stage-mids continuent).
-- `bases/pause.json` sur gram (liste d'identifiants, propriété de ce dépôt,
-  `version.json` intact) lu par `catalogue()` à chaque requête : le média sort
-  de toutes les routes (`/corpus`, `/catalogue`, `/query`, `/ratio`,
-  Présidentielle) et du MCP sans relance ; le lever = retirer la ligne.
+- Retirer du site des journaux peu consultés sans arrêter leur alimentation
+  (scraping et `maj_ngram.py` de stage-mids continuent, `version.json` intact).
+- `catalogue()` écarte les identifiants listés dans `bases/pause.json` sur gram
+  (fichier propriété de ce dépôt, relu à chaque requête) : le média sort de
+  toutes les routes et du MCP. Mettre ou lever une pause = éditer le fichier,
+  sans relance. Front inchangé.
 - En pause : gala, le_marin, presse_ocean, voiles_et_voiliers, le_maine_libre,
-  society. Le front n'a rien à changer (listes issues du catalogue,
-  `corpusFamilles` filtré sur ce qui est servi).
+  society. En ligne (eadf212, gunicorn relancé une fois) : 32 médias servis,
+  `/query?corpus=gala` répond 400.
 
 ## 12/10/2026 — Courbes : chercher un média
 - Maquette d'abord (artifact, quatre variantes jouables : recherche en tête
