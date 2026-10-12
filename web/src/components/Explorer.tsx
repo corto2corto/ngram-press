@@ -16,7 +16,8 @@
 // « + média » (à côté du journal) ouvre une rangée de pilules sous la barre :
 // chaque média coché s'ajoute au journal de référence, une requête par média,
 // et le graphe trace une courbe par mot et par média (couleur = média, trait =
-// mot). Les pilules vont du plus gros média au plus petit (volume de mots du
+// mot). Les pilules vont des médias principaux (lib/medias.ts, presse nationale)
+// aux autres, ceux-ci du plus gros fonds au plus petit (volume de mots du
 // catalogue). Refermer la rangée garde la comparaison, le bouton reste bordé d'encre.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
@@ -26,6 +27,7 @@ import { DEFILE, DUREE_ETAPE, type ConfigDefile } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
 import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import { ICONE_AGRANDIR, ICONE_REDUIRE } from "@/lib/icones";
+import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
@@ -101,8 +103,9 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // l'état de départ est la première configuration du défilement ; le champ des
   // mots part vide, la frappe automatique l'écrira.
   const [corpusListe, setCorpusListe] = useState(["leparisien", "mediapart", "le_figaro", "les_echos"]);
-  // la même liste classée du plus gros fonds au plus petit, pour les pilules
-  const [corpusParTaille, setCorpusParTaille] = useState<string[]>([]);
+  // la même liste dans l'ordre des pilules : les principaux, puis les autres
+  // du plus gros fonds au plus petit
+  const [corpusClasses, setCorpusClasses] = useState<string[]>([]);
   // premier et dernier jour servis par journal (route /catalogue)
   const [fondsParCorpus, setFondsParCorpus] = useState<Record<string, Fonds>>({});
   const [mots, setMots] = useState("");
@@ -252,7 +255,11 @@ export default function Explorer({ lang }: { lang: Lang }) {
     chargerCatalogue().then((catalogue) => {
       const liste = catalogue.map((c) => c.corpus);
       setCorpusListe(liste);
-      setCorpusParTaille([...catalogue].sort((x, y) => y.mots - x.mots).map((c) => c.corpus));
+      const parTaille = [...catalogue].sort((x, y) => y.mots - x.mots).map((c) => c.corpus);
+      setCorpusClasses([
+        ...MEDIAS_PRINCIPAUX.filter((c) => liste.includes(c)),
+        ...parTaille.filter((c) => !MEDIAS_PRINCIPAUX.includes(c)),
+      ]);
       setFondsParCorpus(
         Object.fromEntries(catalogue.map((c) => [c.corpus, { lo: deIso(c.debut), hi: deIso(c.fin) }])),
       );
@@ -375,9 +382,9 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [arreterDefile],
   );
 
-  // médias proposés à la comparaison : tous sauf la référence, du plus gros au
-  // plus petit (sans catalogue : l'ordre du select)
-  const mediasClasses = (corpusParTaille.length ? corpusParTaille : corpusListe).filter((c) => c !== corpus);
+  // médias proposés à la comparaison : tous sauf la référence, les principaux
+  // d'abord puis par taille de fonds (sans catalogue : l'ordre du select)
+  const mediasClasses = (corpusClasses.length ? corpusClasses : corpusListe).filter((c) => c !== corpus);
 
   return (
     <div className={`explorateur${agrandi ? " agrandi" : ""}`}>

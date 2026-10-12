@@ -24,6 +24,7 @@ import {
 } from "@/lib/api";
 import { deIso, ecrire, finPeriode, iso, jour, lireDate, ymd } from "@/lib/dates";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import { ICONE_AGRANDIR, ICONE_REDUIRE } from "@/lib/icones";
 import Aide from "@/components/Aide";
 
@@ -68,13 +69,9 @@ const SECONDAIRES = ["faure", "dupont_aignan", "arthaud", "bouamrane", "cazeneuv
 const PRINCIPAUX_CANDIDATS = IDS.filter((id) => !SECONDAIRES.includes(id));
 const AUTRES_CANDIDATS = IDS.filter((id) => !PRINCIPAUX_CANDIDATS.includes(id));
 
-// les médias montrés et cochés au départ : presse nationale d'information générale, chaînes
-// d'info et Ouest-France, dans cet ordre (le repli sur deux lignes garde les premiers)
-const PRINCIPAUX = [
-  "le_monde", "le_figaro", "leparisien", "ouest_france", "les_echos", "mediapart", "l_opinion",
-  "la_croix", "le_nouvel_observateur", "le_journal_du_dimanche", "marianne", "valeurs_actuelles",
-  "20minutes", "bfmtv", "cnews",
-];
+// les médias montrés et cochés au départ (lib/medias.ts ; le repli sur deux
+// lignes garde les premiers)
+const PRINCIPAUX = MEDIAS_PRINCIPAUX;
 
 const JOUR_MS = 86_400_000;
 const HAUTEUR = 440; // colonnes debout (agrandi : la hauteur libre de la fenêtre)

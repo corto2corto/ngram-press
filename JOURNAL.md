@@ -88,8 +88,12 @@
   pointillé, tiret-point ; en barres, l'opacité) ; légende en deux parties
   (médias, filet, mots), infobulle « mot · média », titre avec la liste des
   médias. DataTable.tsx : colonnes « mot · média ».
+- Ordre des pilules : les médias principaux d'abord (presse nationale, liste
+  de l'onglet Présidentielle déplacée dans `lib/medias.ts` et partagée), puis
+  les autres du plus gros fonds au plus petit — par le seul volume, La Dépêche
+  et Sud Ouest passaient devant Les Échos, Corto préfère les nationaux.
 - API : `/catalogue` renvoie `mots` (SUM(total) de total_unigram, immédiat),
-  qui classe les pilules ; sans ce champ (API pas relancée), ordre du select.
+  qui classe les autres médias ; sans ce champ (API pas relancée), ordre du select.
   Testé sur une mini-base synthétique à quatre corpus (test_client), puis
   servie sur 8010 pour le rendu local. À relancer sur gram après le pull.
 - i18n FR/EN : btn_plus_media, plus_media_aria, lbl_comparer_avec,
