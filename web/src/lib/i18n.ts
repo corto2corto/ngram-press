@@ -306,6 +306,12 @@ export const textes = {
     astuce_expression: "deux mots suivent une expression",
     astuce_casse: "majuscules ou minuscules, c'est pareil",
     lbl_corpus: "Journal",
+    // comparaison de médias (Explorer.tsx) : le bouton à côté du journal, la
+    // rangée de pilules qu'il ouvre, le repli des pilules
+    btn_plus_media: "+ média",
+    plus_media_aria: "Comparer avec d'autres médias",
+    lbl_comparer_avec: "Comparer avec",
+    plus_medias_aria: (n: number) => `Afficher les ${n} autres médias`,
     lbl_de: "De",
     lbl_a: "À",
     // la période des Courbes (Periode.tsx) : champs, poignées et notes
@@ -593,6 +599,12 @@ export const textes = {
     astuce_expression: "two words follow a phrase",
     astuce_casse: "upper or lower case, same thing",
     lbl_corpus: "Newspaper",
+    // outlet comparison (Explorer.tsx): the button next to the newspaper, the
+    // row of pills it opens, the folded pills
+    btn_plus_media: "+ outlet",
+    plus_media_aria: "Compare with other outlets",
+    lbl_comparer_avec: "Compare with",
+    plus_medias_aria: (n: number) => `Show the ${n} other outlets`,
     lbl_de: "From",
     lbl_a: "To",
     // the period of the Curves (Periode.tsx): fields, handles and notes

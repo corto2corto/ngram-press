@@ -351,13 +351,14 @@ def liste_corpus():
 
 @app.route("/catalogue")
 def catalogue_detaille():
-    # version enrichie de /corpus : bornes de dates et présence de bigrammes,
-    # lues dans total_unigram (une ligne par jour, MIN/MAX immédiats)
+    # version enrichie de /corpus : bornes de dates, volume de mots (le front
+    # classe les médias du plus gros au plus petit) et présence de bigrammes,
+    # lus dans total_unigram (une ligne par jour : MIN/MAX/SUM immédiats)
     iso = lambda d: f"{d // 10000:04d}-{d // 100 % 100:02d}-{d % 100:02d}"
     infos = []
     for corpus, bases in sorted(catalogue().items()):
         conn, schemas = ouvrir(bases)
-        bornes = [conn.execute(f"SELECT MIN(date), MAX(date) FROM {s}.total_unigram").fetchone()
+        bornes = [conn.execute(f"SELECT MIN(date), MAX(date), SUM(total) FROM {s}.total_unigram").fetchone()
                   for s in schemas]
         conn.close()
         d0 = min((b[0] for b in bornes if b[0]), default=None)
@@ -365,6 +366,7 @@ def catalogue_detaille():
         infos.append({"corpus": corpus,
                       "debut": iso(d0) if d0 else None,
                       "fin": iso(d1) if d1 else None,
+                      "mots": sum(b[2] or 0 for b in bornes),
                       "avec_2gram": True})
     return jsonify(infos)
 

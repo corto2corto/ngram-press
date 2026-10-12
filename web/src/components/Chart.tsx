@@ -6,6 +6,9 @@
 // Les fréquences se tracent en courbes, sur une valeur lissée ; les occurrences
 // brutes — des entiers, souvent creux — se peignent en barres, telles quelles.
 // Le tableau garde les valeurs brutes dans tous les cas.
+// Plusieurs médias (séries portant un corpus) : la couleur code le média, le
+// motif du trait code le mot (plein, tireté, pointillé, tiret-point) ; en
+// barres, le mot se lit à l'opacité.
 
 import { useEffect, useRef, useState } from "react";
 import type { Point, Serie } from "@/lib/api";
@@ -32,8 +35,13 @@ type Barre = { d: string; part: number };
 
 // un rendu de série prêt à peindre : la couche sortante en garde une copie figée
 type Trace =
-  | { genre: "courbe"; couleur: string; d: string }
-  | { genre: "barres"; couleur: string; barres: Barre[] };
+  | { genre: "courbe"; couleur: string; tirets: string; d: string }
+  | { genre: "barres"; couleur: string; opacite: number; barres: Barre[] };
+
+// motifs de trait des mots quand la couleur est prise par le média (dasharray,
+// en px), et opacités des barres dans le même cas
+const TIRETS = ["", "9 7", "2 6", "9 5 2 5"];
+const OPACITES = [1, 0.62, 0.38, 0.22];
 
 // lissage « appuyé » : moyenne mobile centrée à noyau triangulaire,
 // renormalisée aux bords pour que les extrémités ne s'affaissent pas.
@@ -116,12 +124,28 @@ export default function Chart({
     return () => observateur.disconnect();
   }, []);
 
-  const nomCorpus = corpusNoms[corpus] ?? corpus;
+  // médias et mots distincts des séries, dans l'ordre d'arrivée ; au-delà d'un
+  // média, la couleur passe au média et le trait au mot
+  const medias = [...new Set(series.map((s) => s.corpus ?? corpus))];
+  const mots = [...new Set(series.map((s) => s.gram))];
+  const multi = medias.length > 1;
+  const nomDe = (c: string) => corpusNoms[c] ?? c;
+  const nomCorpus = medias.map(nomDe).join(", ");
   const mesure = t[`axe_${metrique}`];
   const titre =
-    series.length === 1
-      ? t.titre_graphe_mot(series[0].gram, nomCorpus, mesure)
+    mots.length === 1 && series.length > 0
+      ? t.titre_graphe_mot(mots[0], nomCorpus, mesure)
       : t.titre_graphe(nomCorpus, mesure);
+  // couleur et motif d'une série : par média et par mot si plusieurs médias,
+  // sinon par mot et trait plein
+  const rangMedia = (s: Serie) => medias.indexOf(s.corpus ?? corpus);
+  const rangMot = (s: Serie) => mots.indexOf(s.gram);
+  const couleurDe = (s: Serie) => `var(--serie-${(multi ? rangMedia(s) : rangMot(s)) + 1})`;
+  const tiretsDe = (s: Serie) => (multi ? TIRETS[rangMot(s)] ?? "" : "");
+  const opaciteDe = (s: Serie) => (multi ? OPACITES[rangMot(s)] ?? 0.2 : 1);
+  // libellé d'une série dans l'infobulle
+  const libelle = (s: Serie) =>
+    !multi ? s.gram : mots.length === 1 ? nomDe(s.corpus ?? corpus) : `${s.gram} · ${nomDe(s.corpus ?? corpus)}`;
 
   // les occurrences brutes se peignent en barres, les fréquences en courbes
   const enBarres = metrique === "brut";
@@ -240,13 +264,14 @@ export default function Chart({
   const traces: Trace[] = !pret
     ? []
     : series.map((s, i): Trace => {
-        const couleur = `var(--serie-${i + 1})`;
+        const couleur = couleurDe(s);
         if (enBarres) {
           const base = py(0);
           const dernier = Math.max(1, s.points.length - 1);
           return {
             genre: "barres",
             couleur,
+            opacite: opaciteDe(s),
             // un décompte nul ne laisse aucune barre
             barres: s.points.flatMap((p, j) => {
               const v = valsSeries[i][j];
@@ -259,6 +284,7 @@ export default function Chart({
         return {
           genre: "courbe",
           couleur,
+          tirets: tiretsDe(s),
           d: s.points
             .map((p, j) => `${j ? "L" : "M"}${px(p.x)},${py(valsSeries[i][j])}`)
             .join(""),
@@ -295,6 +321,7 @@ export default function Chart({
         strokeWidth={COURBE_EPAISSEUR}
         strokeLinejoin="round"
         strokeLinecap="round"
+        strokeDasharray={tr.tirets || undefined}
       />
     ) : (
       tr.barres.map((b, j) => (
@@ -303,18 +330,24 @@ export default function Chart({
           className={anime ? "barre" : undefined}
           d={b.d}
           fill={tr.couleur}
+          fillOpacity={tr.opacite < 1 ? tr.opacite : undefined}
           style={anime ? ({ "--part": b.part } as React.CSSProperties) : undefined}
         />
       ))
     );
 
   // témoin d'une série (légende, infobulle) : il imite la marque — un trait
-  // pour une courbe, un pavé pour des barres
-  const temoin = (i: number) =>
+  // pour une courbe, un pavé pour des barres ; le motif de trait et l'opacité
+  // du pavé suivent le mot quand la couleur est prise par le média
+  const temoin = (couleur: string, tirets = "", opacite = 1) =>
     enBarres ? (
-      <span className="trait pave" style={{ background: `var(--serie-${i + 1})` }} />
+      <span className="trait pave" style={{ background: couleur, opacity: opacite }} />
+    ) : tirets ? (
+      <svg className="trait motif" viewBox="0 0 22 4" aria-hidden="true">
+        <line x1="0" x2="22" y1="2" y2="2" stroke={couleur} strokeWidth="3" strokeDasharray={tirets} />
+      </svg>
     ) : (
-      <span className="trait" style={{ borderTopColor: `var(--serie-${i + 1})` }} />
+      <span className="trait" style={{ borderTopColor: couleur }} />
     );
 
   return (
@@ -323,14 +356,32 @@ export default function Chart({
       <figcaption className="titre-graphe" key={titre}>
         {titre}
       </figcaption>
-      {series.length > 1 && (
+      {series.length > 1 && !multi && (
         <div className="legende">
           {series.map((s, i) => (
             <span className="cle" key={s.gram}>
-              {temoin(i)}
+              {temoin(`var(--serie-${i + 1})`)}
               {s.gram}
             </span>
           ))}
+        </div>
+      )}
+      {multi && (
+        <div className="legende">
+          {medias.map((c, i) => (
+            <span className="cle" key={c}>
+              {temoin(`var(--serie-${i + 1})`)}
+              {nomDe(c)}
+            </span>
+          ))}
+          {mots.length > 1 && <span className="separateur" aria-hidden="true" />}
+          {mots.length > 1 &&
+            mots.map((m, j) => (
+              <span className="cle mot" key={m}>
+                {temoin("currentColor", TIRETS[j], OPACITES[j])}
+                {m}
+              </span>
+            ))}
         </div>
       )}
 
@@ -414,7 +465,7 @@ export default function Chart({
 
               {series.map((s, i) => (
                 // la métrique dans la clé : changer de mesure rejoue le tracé
-                <g className={`serie s${i + 1}`} key={`${tirage}-${metrique}-${s.gram}`}>
+                <g className={`serie s${(i % 4) + 1}`} key={`${tirage}-${metrique}-${s.corpus ?? ""}-${s.gram}`}>
                   {peindre(traces[i], true)}
                 </g>
               ))}
@@ -436,9 +487,9 @@ export default function Chart({
               const p = s.points[indice];
               if (!p) return null;
               return (
-                <div className="ligne" key={s.gram}>
-                  {temoin(i)}
-                  <span>{s.gram}</span>
+                <div className="ligne" key={`${s.corpus ?? ""}-${s.gram}`}>
+                  {temoin(couleurDe(s), tiretsDe(s), opaciteDe(s))}
+                  <span>{libelle(s)}</span>
                   <span className="valeur">{formater(valsSeries[i][indice])}</span>
                 </div>
               );

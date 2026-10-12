@@ -4,7 +4,7 @@
 
 import type { Serie } from "@/lib/api";
 import { formaterValeur, valeurPoint, type Metrique } from "@/lib/mesures";
-import { localeDe, textes, type Lang } from "@/lib/i18n";
+import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 
 export default function DataTable({
   series,
@@ -17,6 +17,11 @@ export default function DataTable({
 }) {
   const t = textes[lang];
   const locale = localeDe(lang);
+  // plusieurs médias comparés : la colonne dit le mot et le média
+  const multi = new Set(series.map((s) => s.corpus)).size > 1;
+  const cle = (s: (typeof series)[number]) => `${s.corpus ?? ""}-${s.gram}`;
+  const entete = (s: (typeof series)[number]) =>
+    multi && s.corpus ? `${s.gram} · ${corpusNoms[s.corpus] ?? s.corpus}` : s.gram;
 
   return (
     <div className="defilement">
@@ -25,8 +30,8 @@ export default function DataTable({
           <tr>
             <th scope="col">{t.col_periode}</th>
             {series.map((s) => (
-              <th scope="col" key={s.gram}>
-                {s.gram}
+              <th scope="col" key={cle(s)}>
+                {entete(s)}
               </th>
             ))}
           </tr>
@@ -38,7 +43,7 @@ export default function DataTable({
               {series.map((s) => {
                 const q = s.points[i];
                 return (
-                  <td key={s.gram}>
+                  <td key={cle(s)}>
                     {q ? formaterValeur(valeurPoint(q, metrique), metrique, locale) : ""}
                   </td>
                 );

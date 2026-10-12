@@ -1,5 +1,32 @@
 # Journal du projet
 
+## 12/10/2026 — Courbes : comparer un mot entre plusieurs médias
+- Maquette d'abord (artifact, huit variantes jouables sur une copie du panneau
+  Courbes : bouton « Comparer », menu à cases, pilules fixes, jetons, légende
+  cliquable, interrupteur « par média », syntaxe « @média » dans les mots) ;
+  Corto retient un mix : la logique du bouton qui déplie des pilules, avec le
+  bouton « + média » des jetons.
+- Explorer.tsx : « + média » à côté du journal, au gabarit des champs. Ouvert,
+  il passe en gras et une rangée « Comparer avec » paraît sous la barre : la
+  référence (le journal du select) en tête avec sa pastille, puis les autres
+  médias en pilules, du plus gros au plus petit, huit visibles et « + n » pour
+  déplier, « Aucun » dès qu'une pilule est cochée. Quatre médias au plus
+  (la palette de séries). Refermer la rangée garde la comparaison, le bouton
+  reste bordé d'encre (pas de compte, choix de Corto). Changer le journal de référence le sort
+  de la comparaison s'il y était coché.
+- Requêtes : une par média (Promise.all), les séries portent leur `corpus`
+  (api.ts) ; cache de session inchangé. Chart.tsx : à plusieurs médias la
+  couleur code le média et le motif du trait le mot (plein, tireté,
+  pointillé, tiret-point ; en barres, l'opacité) ; légende en deux parties
+  (médias, filet, mots), infobulle « mot · média », titre avec la liste des
+  médias. DataTable.tsx : colonnes « mot · média ».
+- API : `/catalogue` renvoie `mots` (SUM(total) de total_unigram, immédiat),
+  qui classe les pilules ; sans ce champ (API pas relancée), ordre du select.
+  Testé sur une mini-base synthétique à quatre corpus (test_client), puis
+  servie sur 8010 pour le rendu local. À relancer sur gram après le pull.
+- i18n FR/EN : btn_plus_media, plus_media_aria, lbl_comparer_avec,
+  plus_medias_aria.
+
 ## 11/10/2026 — Présidentielle 2027 : primaire de la gauche, candidats secondaires
 - Primaire « Choisir 2027 » (PS, Place publique, GRS) tranchée le 11/10 dès le
   premier tour : Glucksmann 66 %, Faure 14 %, Royal 8 %, Maurel 6 %, Guedj 6 %.

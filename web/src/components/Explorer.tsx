@@ -13,6 +13,11 @@
 // écraser sa requête. Le survol du graphe est sans effet.
 // Le bouton en tête (à droite, au bout de la ligne du titre) étend l'explorateur à toute la fenêtre,
 // sans passer en plein écran : Échap ou le même bouton le rendent à la page.
+// « + média » (à côté du journal) ouvre une rangée de pilules sous la barre :
+// chaque média coché s'ajoute au journal de référence, une requête par média,
+// et le graphe trace une courbe par mot et par média (couleur = média, trait =
+// mot). Les pilules vont du plus gros média au plus petit (volume de mots du
+// catalogue). Refermer la rangée garde la comparaison, le bouton reste bordé d'encre.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { chargerCatalogue, requeteSeries, type Serie } from "@/lib/api";
@@ -54,6 +59,12 @@ const ASTUCES: { exemple: string; cle: "virgule" | "plus" | "expression" | "cass
 // bornes d'un journal dont le catalogue ne dit rien (API absente)
 const FONDS_DEFAUT: Fonds = { lo: jour(2008, 1, 1), hi: jour(2026, 12, 31) };
 
+// médias comparés en même temps, journal de référence compris : la palette de
+// séries a quatre couleurs (--serie-1..4)
+const MAX_MEDIAS = 4;
+// pilules de médias montrées sans déplier la rangée
+const PILULES_REPLIEES = 8;
+
 // pictogrammes des onglets (traits 1.8, 16 px)
 const ICONES: Record<Mode, ReactElement> = {
   courbes: (
@@ -89,6 +100,8 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // l'état de départ est la première configuration du défilement ; le champ des
   // mots part vide, la frappe automatique l'écrira.
   const [corpusListe, setCorpusListe] = useState(["leparisien", "mediapart", "le_figaro", "les_echos"]);
+  // la même liste classée du plus gros fonds au plus petit, pour les pilules
+  const [corpusParTaille, setCorpusParTaille] = useState<string[]>([]);
   // premier et dernier jour servis par journal (route /catalogue)
   const [fondsParCorpus, setFondsParCorpus] = useState<Record<string, Fonds>>({});
   const [mots, setMots] = useState("");
@@ -109,13 +122,28 @@ export default function Explorer({ lang }: { lang: Lang }) {
     },
     [fondsParCorpus],
   );
-  // changer de journal ramène les bornes dans son fonds
+  // médias comparés au journal de référence (sans lui), rangée ouverte ou
+  // non, et pilules dépliées au-delà des premières
+  const [comparaison, setComparaison] = useState<string[]>([]);
+  const [comparer, setComparer] = useState(false);
+  const [pilulesDepliees, setPilulesDepliees] = useState(false);
+  // changer de journal ramène les bornes dans son fonds ; s'il était coché
+  // dans la comparaison, il en sort (il devient la référence)
   const choisirCorpus = (nom: string) => {
     const f = fondsParCorpus[nom] ?? FONDS_DEFAUT;
     setCorpus(nom);
+    setComparaison((liste) => liste.filter((c) => c !== nom));
     setDe((v) => Math.max(f.lo, Math.min(f.hi, v)));
     setA((v) => Math.max(f.lo, Math.min(f.hi, v)));
   };
+  const basculerMedia = (nom: string) =>
+    setComparaison((liste) =>
+      liste.includes(nom)
+        ? liste.filter((c) => c !== nom)
+        : liste.length + 1 < MAX_MEDIAS
+          ? [...liste, nom]
+          : liste,
+    );
   // métrique d'affichage : purement locale au rendu, ne relance aucune requête
   const [metrique, setMetrique] = useState<Metrique>("pour100k");
   const [demande, setDemande] = useState(0); // incrémenté à chaque validation
@@ -170,8 +198,10 @@ export default function Explorer({ lang }: { lang: Lang }) {
     a: iso(q.a, "jour"),
   });
 
+  // une requête par média : la référence d'abord, puis les médias comparés ;
+  // les séries s'étiquettent de leur média, rangées média par média
   const tracer = useCallback(
-    async (formulaire: { mots: string; corpus: string; de: number; a: number }) => {
+    async (formulaire: { mots: string; corpus: string; medias: string[]; de: number; a: number }) => {
       const liste = formulaire.mots.split(",").map((m) => m.trim()).filter(Boolean);
       if (!liste.length) return;
       if (liste.length > MAX_SERIES) {
@@ -182,7 +212,15 @@ export default function Explorer({ lang }: { lang: Lang }) {
       setChargement(true);
       setMessage("chargement");
       try {
-        const series = await requeteSeries(parametres({ ...formulaire, mots: liste }));
+        const medias = [formulaire.corpus, ...formulaire.medias];
+        const series =
+          medias.length === 1
+            ? await requeteSeries(parametres({ ...formulaire, mots: liste }))
+            : (
+                await Promise.all(
+                  medias.map((c) => requeteSeries(parametres({ ...formulaire, corpus: c, mots: liste }))),
+                )
+              ).flatMap((lot, i) => lot.map((s) => ({ ...s, corpus: medias[i] })));
         if (numero !== appel.current) return;
         if (!series.length) {
           setMessage("vide");
@@ -213,6 +251,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
     chargerCatalogue().then((catalogue) => {
       const liste = catalogue.map((c) => c.corpus);
       setCorpusListe(liste);
+      setCorpusParTaille([...catalogue].sort((x, y) => y.mots - x.mots).map((c) => c.corpus));
       setFondsParCorpus(
         Object.fromEntries(catalogue.map((c) => [c.corpus, { lo: deIso(c.debut), hi: deIso(c.fin) }])),
       );
@@ -231,11 +270,11 @@ export default function Explorer({ lang }: { lang: Lang }) {
     const dateModifiee = de !== bornesPrecedentes.current.de || a !== bornesPrecedentes.current.a;
     bornesPrecedentes.current = { de, a };
     const minuteur = setTimeout(
-      () => tracer({ mots: motsTraces, corpus, de, a }),
+      () => tracer({ mots: motsTraces, corpus, medias: comparaison, de, a }),
       dateModifiee ? 600 : 0,
     );
     return () => clearTimeout(minuteur);
-  }, [pret, motsTraces, corpus, de, a, demande, tracer]);
+  }, [pret, motsTraces, corpus, comparaison, de, a, demande, tracer]);
 
   // ---- défilement automatique : position dans la liste, minuteurs, et la
   // fonction d'étape rangée dans la ref pour se re-planifier elle-même.
@@ -335,6 +374,10 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [arreterDefile],
   );
 
+  // médias proposés à la comparaison : tous sauf la référence, du plus gros au
+  // plus petit (sans catalogue : l'ordre du select)
+  const mediasClasses = (corpusParTaille.length ? corpusParTaille : corpusListe).filter((c) => c !== corpus);
+
   // options de journal, partagées par tous les formulaires
   const optionsCorpus = corpusListe.map((nom) => (
     <option key={nom} value={nom}>
@@ -390,6 +433,19 @@ export default function Explorer({ lang }: { lang: Lang }) {
                 {optionsCorpus}
               </select>
             </label>
+            <div className="champ">
+              <span aria-hidden="true">&nbsp;</span>
+              <button
+                type="button"
+                className={`bouton-media${comparer ? " ouvert" : comparaison.length ? " actif" : ""}`}
+                aria-expanded={comparer}
+                aria-controls="comparer-medias"
+                aria-label={t.plus_media_aria}
+                onClick={() => setComparer((v) => !v)}
+              >
+                {t.btn_plus_media}
+              </button>
+            </div>
             <label className="champ">
               <span>{t.lbl_mesure}</span>
               <select value={metrique} onChange={(ev) => setMetrique(ev.target.value as Metrique)}>
@@ -399,6 +455,51 @@ export default function Explorer({ lang }: { lang: Lang }) {
               </select>
             </label>
           </div>
+          {comparer && (
+            <fieldset className="choix-medias choix-comparer" id="comparer-medias">
+              <legend>
+                <span>{t.lbl_comparer_avec}</span>
+                {comparaison.length > 0 && (
+                  <button type="button" className="lien-medias" onClick={() => setComparaison([])}>
+                    {t.medias_aucun}
+                  </button>
+                )}
+              </legend>
+              <div className="pilules pilules-medias">
+                <span className="reference" style={{ "--c": "var(--serie-1)" } as React.CSSProperties}>
+                  {corpusNoms[corpus] ?? corpus}
+                </span>
+                {(pilulesDepliees ? mediasClasses : mediasClasses.slice(0, PILULES_REPLIEES)).map((c) => {
+                  const rang = comparaison.indexOf(c);
+                  const coche = rang >= 0;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      className={coche ? "actif" : undefined}
+                      aria-pressed={coche}
+                      disabled={!coche && comparaison.length + 1 >= MAX_MEDIAS}
+                      style={coche ? ({ "--c": `var(--serie-${rang + 2})` } as React.CSSProperties) : undefined}
+                      onClick={() => basculerMedia(c)}
+                    >
+                      {corpusNoms[c] ?? c}
+                    </button>
+                  );
+                })}
+                {mediasClasses.length > PILULES_REPLIEES && (
+                  <button
+                    type="button"
+                    className="plus-medias"
+                    aria-expanded={pilulesDepliees}
+                    aria-label={pilulesDepliees ? t.p27_moins_aria : t.plus_medias_aria(mediasClasses.length - PILULES_REPLIEES)}
+                    onClick={() => setPilulesDepliees((v) => !v)}
+                  >
+                    {pilulesDepliees ? t.p27_moins : t.p27_plus(mediasClasses.length - PILULES_REPLIEES)}
+                  </button>
+                )}
+              </div>
+            </fieldset>
+          )}
           <div className="rang rang-periode">
             <Periode
               de={de}

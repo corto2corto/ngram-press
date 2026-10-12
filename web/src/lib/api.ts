@@ -15,7 +15,9 @@ export type Point = {
   total: number; // mots de la période (dénominateur des métriques relatives)
 };
 
-export type Serie = { gram: string; points: Point[] };
+// corpus : posé par l'explorateur quand plusieurs médias se comparent (une
+// série par mot et par média) ; absent sinon
+export type Serie = { gram: string; points: Point[]; corpus?: string };
 
 function analyserCSV(texte: string): Record<string, string>[] {
   const lignes = texte.trim().split("\n").map((l) => l.split(","));
@@ -35,22 +37,33 @@ export async function chargerCorpus(): Promise<string[]> {
 }
 
 // bornes de dates de chaque corpus (route /catalogue : premier et dernier jour
-// servis, en ISO), pour la piste de la période ; sans la route, la liste de
-// /corpus avec des bornes larges
-export type Catalogue = { corpus: string; debut: string; fin: string }[];
+// servis, en ISO), pour la piste de la période, et volume de mots du fonds,
+// pour classer les médias du plus gros au plus petit ; sans la route, la liste
+// de /corpus avec des bornes larges et un volume nul
+export type Catalogue = { corpus: string; debut: string; fin: string; mots: number }[];
 
 export async function chargerCatalogue(): Promise<Catalogue> {
   try {
     const r = await fetch(`${API}/catalogue`);
     if (r.ok) {
-      const infos = (await r.json()) as { corpus: string; debut: string | null; fin: string | null }[];
-      return infos.map((i) => ({ corpus: i.corpus, debut: i.debut ?? "2008-01-01", fin: i.fin ?? "2026-12-31" }));
+      const infos = (await r.json()) as {
+        corpus: string;
+        debut: string | null;
+        fin: string | null;
+        mots?: number;
+      }[];
+      return infos.map((i) => ({
+        corpus: i.corpus,
+        debut: i.debut ?? "2008-01-01",
+        fin: i.fin ?? "2026-12-31",
+        mots: i.mots ?? 0,
+      }));
     }
   } catch {
     /* route absente : repli */
   }
   const noms = await chargerCorpus();
-  return noms.map((corpus) => ({ corpus, debut: "2008-01-01", fin: "2026-12-31" }));
+  return noms.map((corpus) => ({ corpus, debut: "2008-01-01", fin: "2026-12-31", mots: 0 }));
 }
 
 // mémoire de session : une même requête (clé = paramètres) n'est lancée qu'une

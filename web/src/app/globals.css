@@ -2106,3 +2106,108 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   color: var(--encre);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- comparaison de médias dans les Courbes (Explorer.tsx) : « + média » au
+   gabarit des champs, en gras quand la rangée est ouverte, bordé d'encre quand
+   une comparaison court rangée fermée */
+
+.bouton-media {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: 11px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.95rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--encre-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color var(--duree-courte) ease,
+    color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
+}
+
+.bouton-media:hover {
+  border-color: var(--axe);
+  color: var(--encre);
+}
+
+.bouton-media:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.bouton-media.actif {
+  border-color: var(--encre-muette);
+  color: var(--encre);
+}
+
+.bouton-media.ouvert {
+  border-color: var(--encre);
+  color: var(--encre);
+  font-weight: 650;
+}
+
+/* la rangée : la référence en tête (pas un bouton), puis les pilules du plus
+   gros média au plus petit ; une pastille porte la couleur de la courbe */
+.choix-comparer {
+  animation: paraitre var(--duree-survol) var(--sortie) both;
+}
+
+.choix-comparer .reference,
+.choix-comparer button.actif {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.choix-comparer .reference::before,
+.choix-comparer button.actif::before {
+  content: "";
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+}
+
+.choix-comparer .reference {
+  border: 1px solid var(--encre-muette);
+  border-radius: 999px;
+  padding: 0.22rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 550;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--encre);
+}
+
+.choix-comparer button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* légende à plusieurs médias : les médias (couleurs), un filet, les mots (motifs) */
+.legende .separateur {
+  width: 1px;
+  height: 1em;
+  background: var(--bord);
+}
+
+.legende .cle.mot {
+  color: var(--encre-muette);
+}
+
+.legende .trait.motif,
+.infobulle .trait.motif {
+  width: 22px;
+  height: 4px;
+  border-top: 0;
+  display: block;
+}
