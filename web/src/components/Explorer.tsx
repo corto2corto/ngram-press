@@ -33,6 +33,7 @@ import Periode, { type Fonds } from "@/components/Periode";
 import Projection from "@/components/Projection";
 import CataloguePca from "@/components/CataloguePca";
 import Ratio from "@/components/Ratio";
+import SelecteurMedia from "@/components/SelecteurMedia";
 
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
@@ -378,13 +379,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // plus petit (sans catalogue : l'ordre du select)
   const mediasClasses = (corpusParTaille.length ? corpusParTaille : corpusListe).filter((c) => c !== corpus);
 
-  // options de journal, partagées par tous les formulaires
-  const optionsCorpus = corpusListe.map((nom) => (
-    <option key={nom} value={nom}>
-      {corpusNoms[nom] ?? nom}
-    </option>
-  ));
-
   return (
     <div className={`explorateur${agrandi ? " agrandi" : ""}`}>
       <div className="tete-onglets">
@@ -427,12 +421,10 @@ export default function Explorer({ lang }: { lang: Lang }) {
                 spellCheck={false}
               />
             </label>
-            <label className="champ">
+            <div className="champ">
               <span>{t.lbl_corpus}</span>
-              <select value={corpus} onChange={(ev) => choisirCorpus(ev.target.value)}>
-                {optionsCorpus}
-              </select>
-            </label>
+              <SelecteurMedia valeur={corpus} liste={corpusListe} lang={lang} onChange={choisirCorpus} />
+            </div>
             <div className="champ">
               <span aria-hidden="true">&nbsp;</span>
               <button
@@ -564,10 +556,10 @@ export default function Explorer({ lang }: { lang: Lang }) {
       {mode === "palmares" && (
         <div key="palmares">
           <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
-            <label className="champ">
+            <div className="champ">
               <span>{t.lbl_corpus}</span>
-              <select defaultValue={corpus}>{optionsCorpus}</select>
-            </label>
+              <SelecteurMedia valeur={corpus} liste={corpusListe} lang={lang} />
+            </div>
             <label className="champ">
               <span>{t.lbl_periode}</span>
               <input type="number" min={1990} max={2026} defaultValue="2024" />
@@ -601,10 +593,10 @@ export default function Explorer({ lang }: { lang: Lang }) {
       {mode === "evolutions" && (
         <div key="evolutions">
           <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
-            <label className="champ">
+            <div className="champ">
               <span>{t.lbl_corpus}</span>
-              <select defaultValue={corpus}>{optionsCorpus}</select>
-            </label>
+              <SelecteurMedia valeur={corpus} liste={corpusListe} lang={lang} />
+            </div>
             <label className="champ">
               <span>{t.lbl_comparer}</span>
               <input type="number" min={1990} max={2026} defaultValue="2023" />

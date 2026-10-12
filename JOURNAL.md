@@ -1,5 +1,22 @@
 # Journal du projet
 
+## 12/10/2026 — Courbes : chercher un média
+- Maquette d'abord (artifact, quatre variantes jouables : recherche en tête
+  de liste, champ qui devient la recherche, familles, filtre à la frappe) ;
+  Corto retient le mix champ + familles.
+- SelecteurMedia.tsx remplace le select de journal des trois formulaires
+  (Courbes, Palmarès, Évolutions) : le champ sert de bouton et de recherche
+  (au clic, le nom courant passe en placeholder, la frappe filtre sans
+  accents ni casse, lettres trouvées soulignées d'accent) ; sans frappe, la
+  liste s'ouvre par familles (nationaux, régionaux, magazines, chaînes et en
+  ligne — classement indicatif dans i18n `corpusFamilles`, les corpus non
+  classés tombent dans « Autres ») avec la coche sur le choix courant. Un clic
+  ou Entrée choisit et referme ; Échap ou un clic ailleurs referme sans rien
+  changer ; flèches au clavier, rôle combobox. Palmarès et Évolutions (inertes)
+  gardent un état interne.
+- i18n FR/EN : fam_nationaux, fam_regionaux, fam_magazines, fam_chaines,
+  fam_autres, media_aucun.
+
 ## 12/10/2026 — Courbes : comparer un mot entre plusieurs médias
 - Maquette d'abord (artifact, huit variantes jouables sur une copie du panneau
   Courbes : bouton « Comparer », menu à cases, pilules fixes, jetons, légende

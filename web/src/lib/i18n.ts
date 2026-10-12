@@ -51,6 +51,15 @@ export const corpusNoms: Record<string, string> = {
   voiles_et_voiliers: "Voiles et Voiliers",
 };
 
+// familles du sélecteur de média (SelecteurMedia.tsx), dans l'ordre d'affichage ;
+// un corpus absent d'ici tombe dans « autres ». Libellés : textes.fam_<cle>.
+export const corpusFamilles: { cle: string; corpus: string[] }[] = [
+  { cle: "nationaux", corpus: ["le_monde", "le_figaro", "leparisien", "les_echos", "la_croix", "l_opinion", "20minutes", "le_journal_du_dimanche", "francesoir", "latribune"] },
+  { cle: "regionaux", corpus: ["ouest_france", "sud_ouest", "la_depeche", "le_telegramme", "midilibre", "nice_matin", "laprovence", "le_courrier_de_l_ouest", "le_maine_libre", "paris_normandie", "presse_ocean"] },
+  { cle: "magazines", corpus: ["le_nouvel_observateur", "marianne", "telerama", "paris_match", "challenges", "le_capital", "valeurs_actuelles", "society", "gala", "voici", "le_marin", "voiles_et_voiliers"] },
+  { cle: "chaines", corpus: ["bfmtv", "cnews", "mediapart", "blast", "atlantico"] },
+];
+
 export const MAX_SERIES = 4;
 
 export const textes = {
@@ -306,6 +315,13 @@ export const textes = {
     astuce_expression: "deux mots suivent une expression",
     astuce_casse: "majuscules ou minuscules, c'est pareil",
     lbl_corpus: "Journal",
+    // sélecteur de média (SelecteurMedia.tsx) : familles de la liste, liste vide
+    fam_nationaux: "Nationaux",
+    fam_regionaux: "Régionaux",
+    fam_magazines: "Magazines",
+    fam_chaines: "Chaînes et en ligne",
+    fam_autres: "Autres",
+    media_aucun: "Aucun média ne correspond",
     // comparaison de médias (Explorer.tsx) : le bouton à côté du journal, la
     // rangée de pilules qu'il ouvre, le repli des pilules
     btn_plus_media: "+ média",
@@ -599,6 +615,13 @@ export const textes = {
     astuce_expression: "two words follow a phrase",
     astuce_casse: "upper or lower case, same thing",
     lbl_corpus: "Newspaper",
+    // outlet selector (SelecteurMedia.tsx): the list's families, empty list
+    fam_nationaux: "National",
+    fam_regionaux: "Regional",
+    fam_magazines: "Magazines",
+    fam_chaines: "TV and online",
+    fam_autres: "Other",
+    media_aucun: "No outlet matches",
     // outlet comparison (Explorer.tsx): the button next to the newspaper, the
     // row of pills it opens, the folded pills
     btn_plus_media: "+ outlet",
