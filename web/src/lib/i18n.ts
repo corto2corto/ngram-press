@@ -35,6 +35,7 @@ export const corpusNoms: Record<string, string> = {
   le_telegramme: "Le Télégramme",
   leparisien: "Le Parisien",
   les_echos: "Les Échos",
+  liberation: "Libération",
   marianne: "Marianne",
   mediapart: "Mediapart",
   midilibre: "Midi Libre",
@@ -54,7 +55,7 @@ export const corpusNoms: Record<string, string> = {
 // familles du sélecteur de média (SelecteurMedia.tsx), dans l'ordre d'affichage ;
 // un corpus absent d'ici tombe dans « autres ». Libellés : textes.fam_<cle>.
 export const corpusFamilles: { cle: string; corpus: string[] }[] = [
-  { cle: "nationaux", corpus: ["le_monde", "le_figaro", "leparisien", "les_echos", "la_croix", "l_opinion", "20minutes", "le_journal_du_dimanche", "francesoir", "latribune"] },
+  { cle: "nationaux", corpus: ["le_monde", "le_figaro", "liberation", "leparisien", "les_echos", "la_croix", "l_opinion", "20minutes", "le_journal_du_dimanche", "francesoir", "latribune"] },
   { cle: "regionaux", corpus: ["ouest_france", "sud_ouest", "la_depeche", "le_telegramme", "midilibre", "nice_matin", "laprovence", "le_courrier_de_l_ouest", "le_maine_libre", "paris_normandie", "presse_ocean"] },
   { cle: "magazines", corpus: ["le_nouvel_observateur", "marianne", "telerama", "paris_match", "challenges", "le_capital", "valeurs_actuelles", "society", "gala", "voici", "le_marin", "voiles_et_voiliers"] },
   { cle: "chaines", corpus: ["bfmtv", "cnews", "mediapart", "blast", "atlantico"] },
