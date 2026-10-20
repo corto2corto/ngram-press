@@ -8,13 +8,12 @@
 #     même index (plage de dates) plutôt que par la clé (w1, date).
 # Les tampons (petits, sans index) sont lus en entier. Les médias en pause (pause.json) sont exclus.
 # source='cumuls' (ou 'auto') : période et référence lues dans bases/cumuls/<media>/ (stage-mids,
-# scripts/cumul_ngram.py : cumuls hebdomadaires en memmap, une semaine = deux lignes à soustraire,
-# quelques millisecondes par titre) quand la période est faite de semaines entières (lundi à dimanche)
-# couvertes par la grosse base ; sinon, ou sans cumuls pour ce titre, lecture SQLite comme ci-dessus.
-# La référence par cumuls est faite de semaines entières : du premier lundi du premier mois de
-# référence au dernier dimanche du dernier (quelques jours de moins que les mois entiers). Elle est
-# lue dans les cumuls dès qu'ils la couvrent, même quand la période passe par SQLite (mois civil,
-# semaine en cours) : décidé avec Corto le 20/10, l'écart sur le top est négligeable.
+# scripts/cumul_ngram.py : cumuls hebdomadaires et mensuels en memmap, une période = deux lignes à
+# soustraire, quelques millisecondes par titre) quand la période est faite de semaines entières (lundi
+# à dimanche) ou de mois civils entiers couverts par la grosse base ; sinon, ou sans cumuls pour ce
+# titre, lecture SQLite comme ci-dessus. La référence (mois civils) est lue dans les cumuls mensuels dès
+# qu'ils la couvrent, même quand la période passe par SQLite (semaine en cours) ; des cumuls sans mois
+# (anciens) l'approchent en semaines entières, du premier lundi au dernier dimanche.
 # Les comptes d'un titre sur la période sont gardés en tableaux numpy (ids triés, n) d'un bout à
 # l'autre : ils servent aux candidats, aux scores, et aux dénominateurs du Dice (plus de relecture
 # des partenaires dans les grosses bases).
@@ -112,6 +111,11 @@ def _semaine(d):
     return (d - ORIGINE).days // 7
 
 
+def _mois(m):
+    """Numéro de ligne des cumuls mensuels d'un mois AAAAMM (0 = janvier 2008)."""
+    return (m // 100 - 2008) * 12 + m % 100 - 1
+
+
 class _Cumuls:
     """Cumuls hebdomadaires d'un titre (bases/cumuls/<media>/), memmaps ouverts une fois par processus."""
 
@@ -122,11 +126,25 @@ class _Cumuls:
         self.mots = np.load(os.path.join(d, "mots.npy"))
         self.n = np.load(os.path.join(d, "n.npy"), mmap_mode="r")
         self.tot = np.load(os.path.join(d, "totaux.npy"))
+        self.nb_mois = self.meta.get("mois", 0)
+        if self.nb_mois:
+            self.n_mois = np.load(os.path.join(d, "n_mois.npy"), mmap_mode="r")
+            self.tot_mois = np.load(os.path.join(d, "totaux_mois.npy"))
+
+    @staticmethod
+    def _diff(N, T, i0, i1):
+        n = N[i1].astype(np.int64) - (N[i0 - 1].astype(np.int64) if i0 > 0 else 0)
+        return n, int(T[i1, 0] - (T[i0 - 1, 0] if i0 > 0 else 0))
 
     def comptes(self, s0, s1):
         """(ids, n) des mots et total de mots sur les semaines s0..s1 incluses."""
-        n = self.n[s1].astype(np.int64) - (self.n[s0 - 1].astype(np.int64) if s0 > 0 else 0)
-        tot = int(self.tot[s1, 0] - (self.tot[s0 - 1, 0] if s0 > 0 else 0))
+        n, tot = self._diff(self.n, self.tot, s0, s1)
+        ok = n > 0
+        return self.mots[ok], n[ok], tot
+
+    def comptes_mois(self, m0, m1):
+        """Idem sur les mois m0..m1 inclus (numéros de _mois)."""
+        n, tot = self._diff(self.n_mois, self.tot_mois, m0, m1)
         ok = n > 0
         return self.mots[ok], n[ok], tot
 
@@ -143,6 +161,13 @@ def _semaines_entieres(d_fr, d_to):
     if d_fr.weekday() != 0 or d_to.weekday() != 6 or d_fr > d_to:
         return None
     return _semaine(d_fr), _semaine(d_to)
+
+
+def _mois_entiers(d_fr, d_to):
+    """Numéros de mois si [d_fr, d_to] va d'un premier du mois à une fin de mois, sinon None."""
+    if d_fr.day != 1 or (d_to + dt.timedelta(1)).day != 1 or d_fr > d_to:
+        return None
+    return _mois(d_fr.year * 100 + d_fr.month), _mois(d_to.year * 100 + d_to.month)
 
 
 def _par_date(conn):
@@ -182,20 +207,22 @@ def _aligner(ids, n, index):
     return y
 
 
-def _periode(corpus, version, fr, to, semaines=None, source="sqlite"):
+def _periode(corpus, version, fr, to, semaines=None, mois=None, source="sqlite"):
     """Comptes exacts de tous les mots de la période dans ce titre (ids triés, n), total de mots, date
-    maximale de la grosse base, et source utilisée. Par les cumuls si demandé et possible (semaines
-    entières, couvertes par la grosse base), sinon une lecture par base (index par date)."""
+    maximale de la grosse base, et source utilisée. Par les cumuls si demandé et possible (semaines ou
+    mois entiers, couverts par la grosse base), sinon une lecture par base (index par date)."""
     g, tampons, _ = _connexions(corpus, version)
     gmax = g.execute("SELECT max(date) FROM total_unigram").fetchone()[0] or 0
-    c = _cumuls_de(corpus) if source != "sqlite" and semaines else None
-    if c and to <= c.meta["date_max"] and semaines[1] < c.meta["semaines"]:
-        ids, n, tot = c.comptes(*semaines)
-        return ids, n, tot, gmax, "cumuls"
+    c = _cumuls_de(corpus) if source != "sqlite" and (semaines or mois) else None
+    if c and to <= c.meta["date_max"]:
+        if semaines and 0 <= semaines[0] and semaines[1] < c.meta["semaines"]:
+            return *c.comptes(*semaines), gmax, "cumuls"
+        if mois and 0 <= mois[0] and mois[1] < c.nb_mois:
+            return *c.comptes_mois(*mois), gmax, "cumuls"
     if source == "cumuls":
-        if c and semaines:
+        if c:
             return *_sommer([]), 0, gmax, "cumuls"   # titre dont la grosse base ne couvre pas la période : sans données
-        raise ValueError(f"{corpus} : pas de cumuls pour cette période (semaines entières du lundi au dimanche)")
+        raise ValueError(f"{corpus} : pas de cumuls pour cette période (semaines lundi-dimanche ou mois civils entiers)")
     lignes = []
     n1 = 0
     for c in [g, *tampons]:
@@ -207,13 +234,17 @@ def _periode(corpus, version, fr, to, semaines=None, source="sqlite"):
 
 
 def _reference(corpus, version, cand, ref_mois, source="sqlite"):
-    """Comptes des candidats et total sur la référence (mois ref_mois[0]..[1]) : par les cumuls (semaines
-    entières couvrant ces mois) si demandé et possible ; sinon mois synchronisés lus dans la table mensuelle
-    (candidats dans une table temporaire : SQLite ne renvoie que leurs comptes), les autres relus dans la
-    grosse base par l'index date, les tampons en entier."""
+    """Comptes des candidats et total sur la référence (mois ref_mois[0]..[1]) : par les cumuls mensuels
+    (ou, à défaut, hebdomadaires : semaines entières couvrant ces mois) si demandé et possible ; sinon mois
+    synchronisés lus dans la table mensuelle (candidats dans une table temporaire : SQLite ne renvoie que
+    leurs comptes), les autres relus dans la grosse base par l'index date, les tampons en entier."""
     c = _cumuls_de(corpus) if source != "sqlite" else None
     if c:
         m0, m1 = ref_mois
+        i0, i1 = _mois(m0), _mois(m1)
+        if 0 <= i0 <= i1 < c.nb_mois and m1 * 100 + 31 <= c.meta["date_max"]:
+            ids, n, tot = c.comptes_mois(i0, i1)
+            return _aligner(ids, n, cand), tot, []
         d0 = dt.date(m0 // 100, m0 % 100, 1)
         d0 += dt.timedelta((7 - d0.weekday()) % 7)                       # premier lundi
         d1 = dt.date(m1 // 100, m1 % 100, 28) + dt.timedelta(4)
@@ -367,8 +398,8 @@ def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_
     t = time.time()
 
     # 1-2a. période : comptes exacts de tous les mots de chaque titre, une lecture par base (ou par les cumuls)
-    semaines = _semaines_entieres(d_fr, d_to)
-    res = list(pool.map(lambda c: _periode(c, version, ifr, ito, semaines, source), corpora))
+    semaines, mois = _semaines_entieres(d_fr, d_to), _mois_entiers(d_fr, d_to)
+    res = list(pool.map(lambda c: _periode(c, version, ifr, ito, semaines, mois, source), corpora))
     comptes = {c: (r[0], r[1]) for c, r in zip(corpora, res)}       # (ids triés, n) par titre
     total1 = {c: r[2] for c, r in zip(corpora, res)}
     gmax = {c: r[3] for c, r in zip(corpora, res)}
