@@ -46,7 +46,7 @@ def periodes(semaines, mois, fin):
 def calculer(fr, to):
     nom = nom_precalcul(fr, to)
     chemin = os.path.join(PRECALCUL, f"{nom}.json")
-    r = mots_du_jour(None, fr, to, network=True)
+    r = mots_du_jour(None, fr, to, network=True, fige=False)      # jamais le fichier existant
     r["precalcule"] = time.strftime("%Y-%m-%d %H:%M:%S")
     with open(chemin + ".part", "w") as f:
         json.dump(r, f, ensure_ascii=False)

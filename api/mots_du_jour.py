@@ -356,20 +356,21 @@ def lire_precalcul(corpora, fr, to, network=False, source="auto", **params):
 
 def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, ratio_min=1.5, top=80, seuil=0.4,
                  dice_fusion=0.5, volume_min=20000, min_occ=1, tendance="passe_haut", network=False, processus=8,
-                 source="auto"):
-    """corpora : médias de version.json (None : tous) ; fr, to : 'AAAAMMJJ' ; source : auto, sqlite ou cumuls.
-    Renvoie un dict sérialisable."""
+                 source="auto", fige=True):
+    """corpora : médias de version.json (None : tous) ; fr, to : 'AAAAMMJJ' ; source : auto, sqlite ou cumuls ;
+    fige=False : ne pas servir un résultat figé de bases/mots_du_jour (recalcul). Renvoie un dict sérialisable."""
     if source not in ("auto", "sqlite", "cumuls"):
         raise ValueError("source doit être auto, sqlite ou cumuls")
     cle = (tuple(corpora or ()), fr, to, ref, min_titres, z_min, min_n, ratio_min, top, seuil, dice_fusion, volume_min,
            min_occ, tendance, network, source)
     if cle in _cache:
         return _cache[cle]
-    fige = lire_precalcul(corpora, fr, to, network, source, ref=ref, min_titres=min_titres, z_min=z_min, min_n=min_n,
-                          ratio_min=ratio_min, top=top, seuil=seuil, dice_fusion=dice_fusion, volume_min=volume_min,
-                          min_occ=min_occ, tendance=tendance)
     if fige:
-        return fige
+        pret = lire_precalcul(corpora, fr, to, network, source, ref=ref, min_titres=min_titres, z_min=z_min, min_n=min_n,
+                              ratio_min=ratio_min, top=top, seuil=seuil, dice_fusion=dice_fusion, volume_min=volume_min,
+                              min_occ=min_occ, tendance=tendance)
+        if pret:
+            return pret
     t0 = time.time()
     version = _version()
     corpora = list(corpora or version)
