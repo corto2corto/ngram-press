@@ -31,6 +31,7 @@ import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
+import Palmares from "@/components/Palmares";
 import Periode, { type Fonds } from "@/components/Periode";
 import Projection from "@/components/Projection";
 import CataloguePca from "@/components/CataloguePca";
@@ -39,8 +40,8 @@ import SelecteurMedia from "@/components/SelecteurMedia";
 
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
-// les quatre modes de l'explorateur ; les Courbes et les Tests sont branchés sur
-// l'API, les deux autres posent leur formulaire et annoncent la suite
+// les quatre modes de l'explorateur ; les Courbes, le Palmarès et les Tests sont
+// branchés sur l'API, les Évolutions posent leur formulaire et annoncent la suite
 type Mode = "courbes" | "palmares" | "evolutions" | "tests";
 const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
 // les trois vues des Tests : la projection d'un pic sur la PCA gelée, le
@@ -558,45 +559,15 @@ export default function Explorer({ lang }: { lang: Lang }) {
         </figure>
       </div>
 
-      {/* ---- modes pas encore branchés : le formulaire est posé (inerte),
-          la carte annonce la suite ; la clé remonte le panneau à la bascule */}
+      {/* ---- Palmarès : les sujets d'une semaine ou d'un mois, tous médias (Palmares.tsx) ;
+          la clé remonte le panneau à la bascule */}
       {mode === "palmares" && (
         <div key="palmares">
-          <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>
-            <div className="champ">
-              <span>{t.lbl_corpus}</span>
-              <SelecteurMedia valeur={corpus} liste={corpusListe} lang={lang} />
-            </div>
-            <label className="champ">
-              <span>{t.lbl_periode}</span>
-              <input type="number" min={1990} max={2026} defaultValue="2024" />
-            </label>
-            <label className="champ">
-              <span>{t.lbl_longueur}</span>
-              <select defaultValue="1">
-                <option value="1">1-gram</option>
-                <option value="2">2-gram</option>
-              </select>
-            </label>
-            <label className="champ">
-              <span>{t.lbl_nombre}</span>
-              <select defaultValue="10">
-                <option value="10">Top 10</option>
-                <option value="20">Top 20</option>
-                <option value="50">Top 50</option>
-              </select>
-            </label>
-            <button type="submit" className="bouton" disabled>
-              {t.btn_classer}
-            </button>
-          </form>
-          <figure className="carte-graphe panneau-avenir">
-            <span className="badge-avenir">{t.avenir}</span>
-            <p>{t.avenir_note}</p>
-          </figure>
+          <Palmares lang={lang} />
         </div>
       )}
 
+      {/* ---- mode pas encore branché : le formulaire est posé (inerte), la carte annonce la suite */}
       {mode === "evolutions" && (
         <div key="evolutions">
           <form className="filtres" onSubmit={(ev) => ev.preventDefault()}>

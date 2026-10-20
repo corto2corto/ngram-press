@@ -331,3 +331,49 @@ export function requetePresidentielle(options: {
   promesse.catch(() => p27Servies.delete(cle));
   return promesse;
 }
+
+// ---- Palmarès : les mots du jour d'une semaine ou d'un mois (route /mots_du_jour_ngram de
+// api/app_agora.py, méthode de Benoît de Courson reprise dans api/mots_du_jour.py). Les mots en
+// excès par rapport aux douze mois précédents, dans au moins cinq médias, sont groupés en sujets
+// par leurs pics communs ; chaque groupe porte des étiquettes tirées des bigrammes. Les semaines
+// (lundi-dimanche) et les mois civils sont calculés d'avance côté serveur : la route les sert en
+// quelques millisecondes, et /mots_du_jour_periodes dit lesquels existent.
+
+export type MotPalmares = {
+  mot: string;
+  score: number;
+  titres_en_exces: number; // médias où le mot est en excès
+  n: number; // occurrences sur la période, tous médias
+  n_reference: number; // occurrences sur les douze mois de référence
+};
+
+export type SujetPalmares = { etiquettes: string[]; score: number; mots: MotPalmares[] };
+
+export type Palmares = {
+  periode: [string, string]; // AAAAMMJJ
+  reference: [string, string]; // AAAAMM
+  titres: string[]; // médias ayant des données
+  titres_sans_donnees: string[];
+  groupes: SujetPalmares[];
+};
+
+export type PeriodesPalmares = { semaines: string[]; mois: string[] }; // "AAAA-MM-JJ" (lundis), "AAAA-MM"
+
+export function chargerPeriodesPalmares(): Promise<PeriodesPalmares> {
+  return lireJson<PeriodesPalmares>("/mots_du_jour_periodes");
+}
+
+// les résultats d'une période close sont figés : une période déjà lue n'est pas redemandée
+const palmaresServis = new Map<string, Promise<Palmares>>();
+
+export function requetePalmares(options: { de: string; a: string }): Promise<Palmares> {
+  // de, a : AAAA-MM-JJ
+  const params = new URLSearchParams({ from: options.de.replaceAll("-", ""), to: options.a.replaceAll("-", "") });
+  const cle = params.toString();
+  const connue = palmaresServis.get(cle);
+  if (connue) return connue;
+  const promesse = lireJson<Palmares>(`/mots_du_jour_ngram?${cle}`);
+  palmaresServis.set(cle, promesse);
+  promesse.catch(() => palmaresServis.delete(cle));
+  return promesse;
+}

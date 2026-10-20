@@ -2381,3 +2381,125 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   border-top: 0;
   display: block;
 }
+
+/* ---- Palmarès (Palmares.tsx) : la navigation de période et les cartes de sujets */
+.filtres-palmares {
+  align-items: flex-end;
+}
+
+.navigation-periode {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.6rem;
+}
+
+.navigation-periode .fleche {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition:
+    border-color var(--duree-courte) ease,
+    color var(--duree-courte) ease;
+}
+
+.navigation-periode .fleche:hover:not(:disabled) {
+  border-color: var(--axe);
+  color: var(--encre);
+}
+
+.navigation-periode .fleche:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.navigation-periode .fleche:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.periode-courante {
+  min-width: 16rem;
+  text-align: center;
+  font-family: var(--police-serif), Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--encre);
+}
+
+.sujets {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  align-items: start; /* une carte ne s'étire pas à la hauteur de sa voisine */
+  gap: 0.8rem;
+  transition: opacity var(--duree-courte) ease;
+}
+
+.sujets.charge {
+  opacity: 0.45;
+}
+
+.sujet {
+  border: 1px solid var(--bord);
+  border-radius: 14px;
+  padding: 0.8rem 0.95rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  animation: paraitre calc(var(--duree-trace) / 3) var(--sortie) both;
+}
+
+.sujet-tete {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.sujet-rang {
+  flex: none;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--encre-muette);
+}
+
+.sujet-titre {
+  font-family: var(--police-serif), Georgia, serif;
+  font-size: 1rem;
+  color: var(--encre);
+}
+
+.sujet-mots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.sujet-mot {
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.82rem;
+  color: var(--encre-2);
+  cursor: help;
+}
+
+.sujet-mot.fort {
+  border-color: var(--accent);
+  color: var(--encre);
+}
+
+@media (max-width: 600px) {
+  .periode-courante {
+    min-width: 0;
+    flex: 1;
+  }
+}

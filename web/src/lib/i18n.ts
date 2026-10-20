@@ -178,6 +178,23 @@ export const textes = {
     btn_tester: "Tester",
     avenir_note: "Cette vue arrive bientôt : le formulaire est posé, la méthode suit.",
 
+    // Palmarès : les sujets d'une semaine ou d'un mois (mots du jour)
+    ong_desc_palmares:
+      "Les sujets d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. Flèches ou date pour changer de période.",
+    palm_pas_aria: "Pas du palmarès",
+    palm_semaine: "Semaine",
+    palm_mois: "Mois",
+    palm_precedent: "Période précédente",
+    palm_suivant: "Période suivante",
+    palm_aller: "Aller à",
+    palm_aucune: "Aucune période disponible.",
+    palm_depart: "Choisissez une semaine ou un mois.",
+    palm_titre_semaine: (de: string, a: string) => `Semaine du ${de} au ${a}`,
+    palm_sous: (medias: string, sujets: string) => `${medias} médias · ${sujets} sujets`,
+    palm_bulle: (n: string, titres: number) => `${n} occurrences · en excès dans ${titres} média${titres > 1 ? "s" : ""}`,
+    palm_methode:
+      "Mots en excès par rapport aux douze mois précédents (log-odds, Monroe et al. 2008), dans au moins cinq médias ; sujets formés par les pics communs des mots, étiquettes tirées des bigrammes. Méthode de Benoît de Courson (Gallicagram).",
+
     // projection d'un pic sur la PCA gelée (Projection.tsx)
     proj_lbl_mot: "Mot",
     proj_lbl_pca: "PCA",
@@ -479,6 +496,23 @@ export const textes = {
     btn_comparer: "Compare",
     btn_tester: "Test",
     avenir_note: "This view is coming soon: the form is in place, the method follows.",
+
+    // Rankings: the topics of a week or a month (words of the day)
+    ong_desc_palmares:
+      "The topics of a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. Arrows or a date to change period.",
+    palm_pas_aria: "Ranking step",
+    palm_semaine: "Week",
+    palm_mois: "Month",
+    palm_precedent: "Previous period",
+    palm_suivant: "Next period",
+    palm_aller: "Go to",
+    palm_aucune: "No period available.",
+    palm_depart: "Pick a week or a month.",
+    palm_titre_semaine: (de: string, a: string) => `Week of ${de} to ${a}`,
+    palm_sous: (medias: string, sujets: string) => `${medias} outlets · ${sujets} topics`,
+    palm_bulle: (n: string, titres: number) => `${n} occurrences · in excess in ${titres} outlet${titres > 1 ? "s" : ""}`,
+    palm_methode:
+      "Words in excess compared with the previous twelve months (log-odds, Monroe et al. 2008), in at least five outlets; topics formed by the words' shared peaks, labels taken from bigrams. Method by Benoît de Courson (Gallicagram).",
 
     proj_lbl_mot: "Word",
     proj_lbl_pca: "PCA",
