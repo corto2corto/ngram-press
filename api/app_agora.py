@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from api.mots_du_jour import mots_du_jour as calcul_mots_du_jour
+from api.mots_du_jour import mots_du_jour as calcul_mots_du_jour, periodes_precalculees
 from scripts.tokenisation import tokeniser
 
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
@@ -903,6 +903,14 @@ def mots_du_jour_ngram():
         return str(e), 400
     JOURNAL.info("mots_du_jour %s %s-%s %ss", ",".join(corpora or ["tous"]), fr, to, resultat["duree_s"])
     return jsonify(resultat)
+
+
+@app.route("/mots_du_jour_periodes")
+def mots_du_jour_periodes():
+    # Semaines (lundi, AAAA-MM-JJ) et mois civils (AAAA-MM) dont les mots du jour sont calculés
+    # d'avance (bases/mots_du_jour, scripts/precalcul_mots_du_jour.py) : l'onglet Palmarès du
+    # site ne propose que celles-là, servies en quelques millisecondes.
+    return jsonify(periodes_precalculees())
 
 
 if __name__ == "__main__":

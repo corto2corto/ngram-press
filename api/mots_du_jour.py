@@ -354,6 +354,13 @@ def lire_precalcul(corpora, fr, to, network=False, source="auto", **params):
     return r
 
 
+def periodes_precalculees():
+    """Périodes figées disponibles : {'semaines': ['AAAA-MM-JJ' (lundi), ...], 'mois': ['AAAA-MM', ...]}, triées."""
+    noms = os.listdir(PRECALCUL) if os.path.isdir(PRECALCUL) else []
+    return {"semaines": sorted(n[8:-5] for n in noms if n.startswith("semaine_") and n.endswith(".json")),
+            "mois": sorted(n[5:-5] for n in noms if n.startswith("mois_") and n.endswith(".json"))}
+
+
 def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, ratio_min=1.5, top=80, seuil=0.4,
                  dice_fusion=0.5, volume_min=20000, min_occ=1, tendance="passe_haut", network=False, processus=8,
                  source="auto", fige=True):
