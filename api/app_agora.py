@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 import requests
 
+from api.mots_du_jour import mots_du_jour as calcul_mots_du_jour
 from scripts.tokenisation import tokeniser
 
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
@@ -855,6 +856,53 @@ def projection():
                     "z": np.round(Z[0], 5).tolist()},
         "reconstruction": np.round(moyenne + coordonnees @ composantes, 5).tolist(),
     })
+
+
+@app.route("/mots_du_jour_ngram")
+def mots_du_jour_ngram():
+    # Mots du jour : mots en excès sur une période par rapport aux `ref` mois qui précèdent son mois de
+    # début, groupés en sujets (méthode de Benoît de Courson, api/mots_du_jour.py ; même interface que
+    # la route du même nom de l'API Gallicagram). corpus : médias séparés par ',' (défaut : tous ceux de
+    # version.json hors pause) ; from/to : AAAAMMJJ (défaut : les 7 derniers jours complets) ; ref : mois
+    # de référence (défaut 12) ; min_titres : titres où le mot doit être en excès (défaut 5, ramené au
+    # nombre de titres disponibles) ; z_min : seuil d'excès dans un titre (5) ; min_n : occurrences
+    # minimales sur la période (10) ; ratio_min : rapport minimal entre taux de la période et taux de
+    # référence (1.5) ; top : mots retenus (80) ; seuil : corrélation minimale pour grouper deux sujets
+    # (0.4) ; tendance : niveau, diff ou passe_haut (défaut) ; network=true : nœuds et liens pour un
+    # affichage en réseau ; source : auto (défaut), sqlite ou cumuls (bases/cumuls, semaines entières).
+    # JSON : groupes (étiquettes tirées des bigrammes, mots avec score, titres en
+    # excès, comptes), titres, titres_sans_donnees, mois_relus_dans_la_grosse_base, etapes (durées).
+    args = request.args
+    corpora = [c for c in args.get("corpus", "").split(",") if c]
+    if not all(re.fullmatch(r"[a-z0-9_]+", c) for c in corpora):
+        return "corpus invalide", 400
+    hier = dt.date.today() - dt.timedelta(days=1)
+    fr = args.get("from", (hier - dt.timedelta(days=6)).strftime("%Y%m%d"))
+    to = args.get("to", hier.strftime("%Y%m%d"))
+    if not (re.fullmatch(r"\d{8}", fr) and re.fullmatch(r"\d{8}", to)):
+        return "from/to doivent être au format AAAAMMJJ", 400
+    try:
+        params = dict(ref=int(args.get("ref", 12)), min_titres=int(args.get("min_titres", 5)),
+                      z_min=float(args.get("z_min", 5)), min_n=int(args.get("min_n", 10)),
+                      ratio_min=float(args.get("ratio_min", 1.5)),
+                      top=int(args.get("top", 80)), seuil=float(args.get("seuil", 0.4)),
+                      tendance=args.get("tendance", "passe_haut"),
+                      network=args.get("network", "false").lower() in ("true", "1"),
+                      source=args.get("source", "auto"))
+    except ValueError:
+        return "ref, min_titres, min_n et top doivent être des entiers ; z_min, ratio_min et seuil des nombres", 400
+    if params["source"] not in ("auto", "sqlite", "cumuls"):
+        return "source doit être auto, sqlite ou cumuls", 400
+    if not (1 <= params["ref"] <= 120 and params["min_titres"] >= 1 and 1 <= params["top"] <= 300):
+        return "ref doit être entre 1 et 120, min_titres >= 1, top entre 1 et 300", 400
+    if params["tendance"] not in ("niveau", "diff", "passe_haut"):
+        return "tendance doit être niveau, diff ou passe_haut", 400
+    try:
+        resultat = calcul_mots_du_jour(corpora or None, fr, to, **params)
+    except ValueError as e:
+        return str(e), 400
+    JOURNAL.info("mots_du_jour %s %s-%s %ss", ",".join(corpora or ["tous"]), fr, to, resultat["duree_s"])
+    return jsonify(resultat)
 
 
 if __name__ == "__main__":
