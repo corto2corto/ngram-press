@@ -1,12 +1,12 @@
-# Résultats figés des mots du jour : toutes les semaines (lundi-dimanche) et tous les mois civils clos,
-# tous les titres, paramètres par défaut, network=True, écrits dans bases/mots_du_jour/ sous le nom
-# semaine_AAAA-MM-JJ.json ou mois_AAAA-MM.json (api/mots_du_jour.py : nom_precalcul, lire_precalcul).
-# Du plus récent au plus ancien, depuis janvier 2009 (première période dont la référence de 12 mois
-# tient dans les cumuls) jusqu'à la dernière période couverte par toutes les grosses bases ; un fichier
-# existant est gardé (--refaire pour recalculer). Les semaines passent par les cumuls (quelques
-# secondes), les mois par SQLite (environ une minute chacun).
-# Usage : python -m scripts.precalcul_mots_du_jour [--semaines] [--mois] [--refaire] [--max N]
-#         (sans --semaines ni --mois : les deux)
+# Résultats figés des mots du jour : tous les jours, toutes les semaines (lundi-dimanche) et tous les
+# mois civils clos, tous les titres, paramètres par défaut, network=True, écrits dans bases/mots_du_jour/
+# sous le nom jour_AAAA-MM-JJ.json, semaine_AAAA-MM-JJ.json ou mois_AAAA-MM.json (api/mots_du_jour.py :
+# nom_precalcul, lire_precalcul). Du plus récent au plus ancien, depuis janvier 2009 (première période
+# dont la référence de 12 mois tient dans les cumuls) jusqu'à la dernière période couverte par les
+# grosses bases ; un fichier existant est gardé (--refaire pour recalculer). Semaines et mois passent
+# par les cumuls (quelques secondes) ; un jour lit les bases et les tampons (4 à 14 s).
+# Usage : python -m scripts.precalcul_mots_du_jour [--jours] [--semaines] [--mois] [--refaire] [--max N]
+#         (sans --jours, --semaines ni --mois : semaines et mois)
 
 import datetime as dt
 import json
@@ -26,9 +26,14 @@ def date_max():
     return dt.date(d // 10000, d // 100 % 100, d % 100)
 
 
-def periodes(semaines, mois, fin):
+def periodes(jours, semaines, mois, fin):
     """[(fr, to)] en AAAAMMJJ, du plus récent au plus ancien."""
     out = []
+    if jours:
+        d = fin
+        while d >= DEBUT:
+            out.append((d, d))
+            d -= dt.timedelta(1)
     if semaines:
         d = fin - dt.timedelta((fin.weekday() + 1) % 7)             # dernier dimanche <= fin
         while d - dt.timedelta(6) >= DEBUT:
@@ -56,13 +61,13 @@ def calculer(fr, to):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    semaines, mois = "--semaines" in args, "--mois" in args
-    if not semaines and not mois:
+    jours, semaines, mois = "--jours" in args, "--semaines" in args, "--mois" in args
+    if not jours and not semaines and not mois:
         semaines = mois = True
     maxi = int(args[args.index("--max") + 1]) if "--max" in args else None
     os.makedirs(PRECALCUL, exist_ok=True)
     fin = date_max()
-    liste = periodes(semaines, mois, fin)
+    liste = periodes(jours, semaines, mois, fin)
     print(f"{len(liste)} périodes jusqu'au {fin}", flush=True)
     faits = 0
     for fr, to in liste:

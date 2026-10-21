@@ -17,7 +17,7 @@
 # Les comptes d'un titre sur la période sont gardés en tableaux numpy (ids triés, n) d'un bout à
 # l'autre : ils servent aux candidats, aux scores, et aux dénominateurs du Dice (plus de relecture
 # des partenaires dans les grosses bases).
-# Résultats figés : les semaines (lundi-dimanche) et mois civils clos sont calculés d'avance avec les
+# Résultats figés : les jours, semaines (lundi-dimanche) et mois civils clos sont calculés d'avance avec les
 # paramètres par défaut par scripts/precalcul_mots_du_jour.py dans bases/mots_du_jour/ ; mots_du_jour()
 # les renvoie tels quels quand la demande y correspond.
 #
@@ -327,9 +327,11 @@ def _regrouper(C, unites, seuil):
 
 
 def nom_precalcul(fr, to):
-    """'semaine_AAAA-MM-JJ' si [fr, to] va d'un lundi au dimanche suivant, 'mois_AAAA-MM' si c'est un mois
-    civil, sinon None."""
+    """'jour_AAAA-MM-JJ' si fr == to, 'semaine_AAAA-MM-JJ' si [fr, to] va d'un lundi au dimanche suivant,
+    'mois_AAAA-MM' si c'est un mois civil, sinon None."""
     d_fr, d_to = _date(fr), _date(to)
+    if d_fr == d_to:
+        return f"jour_{d_fr:%Y-%m-%d}"
     if d_fr.weekday() == 0 and d_to - d_fr == dt.timedelta(6):
         return f"semaine_{d_fr:%Y-%m-%d}"
     if d_fr.day == 1 and (d_to + dt.timedelta(1)).day == 1 and d_to.month == d_fr.month and d_to.year == d_fr.year:
@@ -355,9 +357,11 @@ def lire_precalcul(corpora, fr, to, network=False, source="auto", **params):
 
 
 def periodes_precalculees():
-    """Périodes figées disponibles : {'semaines': ['AAAA-MM-JJ' (lundi), ...], 'mois': ['AAAA-MM', ...]}, triées."""
+    """Périodes figées disponibles : {'jours': ['AAAA-MM-JJ', ...], 'semaines': ['AAAA-MM-JJ' (lundi), ...],
+    'mois': ['AAAA-MM', ...]}, triées."""
     noms = os.listdir(PRECALCUL) if os.path.isdir(PRECALCUL) else []
-    return {"semaines": sorted(n[8:-5] for n in noms if n.startswith("semaine_") and n.endswith(".json")),
+    return {"jours": sorted(n[5:-5] for n in noms if n.startswith("jour_") and n.endswith(".json")),
+            "semaines": sorted(n[8:-5] for n in noms if n.startswith("semaine_") and n.endswith(".json")),
             "mois": sorted(n[5:-5] for n in noms if n.startswith("mois_") and n.endswith(".json"))}
 
 
