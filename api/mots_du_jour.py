@@ -234,17 +234,19 @@ def _periode(corpus, version, fr, to, semaines=None, mois=None, source="sqlite")
 
 
 def _reference(corpus, version, cand, ref_mois, source="sqlite"):
-    """Comptes des candidats et total sur la référence (mois ref_mois[0]..[1]) : par les cumuls mensuels
-    (ou, à défaut, hebdomadaires : semaines entières couvrant ces mois) si demandé et possible ; sinon mois
-    synchronisés lus dans la table mensuelle (candidats dans une table temporaire : SQLite ne renvoie que
-    leurs comptes), les autres relus dans la grosse base par l'index date, les tampons en entier."""
+    """(y2, n2, mois relus, repli) : comptes des candidats et total sur la référence (mois ref_mois[0]..[1]),
+    par les cumuls mensuels (ou, à défaut, hebdomadaires : semaines entières couvrant ces mois) si demandé
+    et possible ; sinon, si la référence dépasse la dernière fusion, les 52 semaines qui y finissent (repli =
+    date de fin) ; sinon mois synchronisés lus dans la table mensuelle (candidats dans une table temporaire :
+    SQLite ne renvoie que leurs comptes), les autres relus dans la grosse base par l'index date, les tampons
+    en entier."""
     c = _cumuls_de(corpus) if source != "sqlite" else None
     if c:
         m0, m1 = ref_mois
         i0, i1 = _mois(m0), _mois(m1)
         if 0 <= i0 <= i1 < c.nb_mois and m1 * 100 + 31 <= c.meta["date_max"]:
             ids, n, tot = c.comptes_mois(i0, i1)
-            return _aligner(ids, n, cand), tot, []
+            return _aligner(ids, n, cand), tot, [], None
         d0 = dt.date(m0 // 100, m0 % 100, 1)
         d0 += dt.timedelta((7 - d0.weekday()) % 7)                       # premier lundi
         d1 = dt.date(m1 // 100, m1 % 100, 28) + dt.timedelta(4)
@@ -253,7 +255,15 @@ def _reference(corpus, version, cand, ref_mois, source="sqlite"):
         s0, s1 = _semaine(d0), _semaine(d1)
         if 0 <= s0 <= s1 < c.meta["semaines"]:
             ids, n, tot = c.comptes(s0, s1)
-            return _aligner(ids, n, cand), tot, []
+            return _aligner(ids, n, cand), tot, [], None
+        # repli (décidé avec Corto le 21/10) : la référence demandée dépasse la dernière fusion (période
+        # après t : semaine en cours, jours récents, début de mois) -> les 52 semaines qui finissent à la
+        # dernière ligne des cumuls, toujours disponibles. Pas pour un titre dont les cumuls s'arrêtent
+        # bien avant la référence demandée (Le Télégramme) : lecture SQLite comme avant.
+        s1 = c.meta["semaines"] - 1
+        if 0 <= i0 < c.nb_mois and m1 * 100 + 31 > c.meta["date_max"] and s1 - 51 >= 0:
+            ids, n, tot = c.comptes(s1 - 51, s1)
+            return _aligner(ids, n, cand), tot, [], c.meta["date_max"]
     if source == "cumuls":
         raise ValueError(f"{corpus} : pas de cumuls pour cette référence")
     g, tampons, mensuel = _connexions(corpus, version)
@@ -278,7 +288,7 @@ def _reference(corpus, version, cand, ref_mois, source="sqlite"):
     y2 = _aligner(*_sommer(lignes), cand)
     n2 = sum(tg.values()) + sum(t.execute("SELECT coalesce(sum(total), 0) FROM total_unigram WHERE date BETWEEN ? AND ?",
                                           (rd0, rd1)).fetchone()[0] for t in tampons)
-    return y2, n2, relus
+    return y2, n2, relus, None
 
 
 def _series(corpus, version, top, jours, fr, to, gmax):
@@ -356,6 +366,16 @@ def lire_precalcul(corpora, fr, to, network=False, source="auto", **params):
     return r
 
 
+def lire_en_cours(pas):
+    """Résultat du jour, de la semaine ou du mois en cours (bases/mots_du_jour/en_cours_<pas>.json, écrit toutes
+    les deux heures par scripts/maj_mots_du_jour.py), ou None."""
+    chemin = os.path.join(PRECALCUL, f"en_cours_{pas}.json")
+    if pas not in ("jour", "semaine", "mois") or not os.path.exists(chemin):
+        return None
+    with open(chemin) as f:
+        return json.load(f)
+
+
 def periodes_precalculees():
     """Périodes figées disponibles : {'jours': ['AAAA-MM-JJ', ...], 'semaines': ['AAAA-MM-JJ' (lundi), ...],
     'mois': ['AAAA-MM', ...]}, triées."""
@@ -374,14 +394,14 @@ def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, rat
         raise ValueError("source doit être auto, sqlite ou cumuls")
     cle = (tuple(corpora or ()), fr, to, ref, min_titres, z_min, min_n, ratio_min, top, seuil, dice_fusion, volume_min,
            min_occ, tendance, network, source)
-    if cle in _cache:
-        return _cache[cle]
-    if fige:
+    if fige:                 # les fichiers d'abord : un fichier refait la nuit prime sur la mémoire du processus
         pret = lire_precalcul(corpora, fr, to, network, source, ref=ref, min_titres=min_titres, z_min=z_min, min_n=min_n,
                               ratio_min=ratio_min, top=top, seuil=seuil, dice_fusion=dice_fusion, volume_min=volume_min,
                               min_occ=min_occ, tendance=tendance)
         if pret:
             return pret
+    if cle in _cache:
+        return _cache[cle]
     t0 = time.time()
     version = _version()
     corpora = list(corpora or version)
@@ -397,6 +417,7 @@ def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, rat
         resultat = _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_titres, z_min, min_n,
                            ratio_min, top, seuil, dice_fusion, volume_min, min_occ, tendance, network, source)
     resultat["duree_s"] = round(time.time() - t0, 1)
+    resultat["calcule"] = time.strftime("%Y-%m-%d %H:%M:%S")
     if d_to < dt.date.today() - dt.timedelta(1):       # période close : le résultat ne bougera plus
         if len(_cache) > 64:
             _cache.clear()
@@ -435,6 +456,7 @@ def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_
     n1 = np.array([total1[c] for c in avec], dtype=float)[:, None]
     n2 = np.array([r[1] for r in res], dtype=float)[:, None]
     relus = {c: r[2] for c, r in zip(avec, res) if r[2]}
+    repli = {c: str(r[3]) for c, r in zip(avec, res) if r[3]}
     actifs = n2[:, 0] > 0
     titres = [c for c, a in zip(avec, actifs) if a]
     Y1, Y2, n1, n2 = Y1[actifs], Y2[actifs], n1[actifs], n2[actifs]
@@ -475,8 +497,9 @@ def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_
         "periode": [fr, to], "reference": [str(ref_mois[0]), str(ref_mois[1])],
         "titres": titres, "titres_sans_donnees": [c for c in corpora if c not in titres],
         "min_titres": int(min_t), "candidats": int(len(cand)),
-        "mois_relus_dans_la_grosse_base": {c: [str(m) for m in v] for c, v in relus.items()}, "etapes": etapes,
-        "source": {c: sources[c] for c in titres}}
+        "mois_relus_dans_la_grosse_base": {c: [str(m) for m in v] for c, v in relus.items()},
+        "reference_repli": repli,        # titres dont la référence = 52 semaines jusqu'à cette date (après t)
+        "etapes": etapes, "source": {c: sources[c] for c in titres}}
     if not K:
         voc.close()
         return {**resultat, "titres_grille": [], "groupes": [], **({"noeuds": [], "liens": []} if network else {})}

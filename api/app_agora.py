@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from api.mots_du_jour import mots_du_jour as calcul_mots_du_jour, periodes_precalculees
+from api.mots_du_jour import lire_en_cours, mots_du_jour as calcul_mots_du_jour, periodes_precalculees
 from scripts.tokenisation import tokeniser
 
 DOSSIER = os.environ.get("NGRAM_DIR", "/opt/bazoulay/stage-mids/data")
@@ -911,6 +911,23 @@ def mots_du_jour_periodes():
     # d'avance (bases/mots_du_jour, scripts/precalcul_mots_du_jour.py) : l'onglet Palmarès du
     # site ne propose que celles-là, servies en quelques millisecondes.
     return jsonify(periodes_precalculees())
+
+
+@app.route("/mots_du_jour_en_cours")
+def mots_du_jour_en_cours():
+    # Mots du jour de la période en cours : pas=jour (aujourd'hui), semaine (depuis lundi) ou mois (depuis
+    # le 1er), tels que scripts/maj_mots_du_jour.py les a calculés en dernier (toutes les deux heures) ;
+    # provisoires par nature. 404 si rien n'a encore été calculé.
+    pas = request.args.get("pas", "semaine")
+    if pas not in ("jour", "semaine", "mois"):
+        return "pas doit être jour, semaine ou mois", 400
+    r = lire_en_cours(pas)
+    if r is None:
+        return "pas encore calculé", 404
+    if request.args.get("network", "false").lower() not in ("true", "1"):
+        r.pop("noeuds", None)
+        r.pop("liens", None)
+    return jsonify(r)
 
 
 if __name__ == "__main__":
