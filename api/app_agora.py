@@ -1,6 +1,6 @@
 # API Agora : sert les bases n-grammes du serveur shiny de l'ENS (stage-mids).
 # Différences avec api/app.py : bases fusionnées <corpus>_ngram.db (tables
-# unigram et bigram ensemble, pas de trigrammes) découvertes automatiquement
+# unigram, bigram et trigram ensemble, depuis le 22/10/2026) découvertes automatiquement
 # dans NGRAM_DIR — un corpus apparaît dès que sa base est construite, sans
 # redémarrage ni liste en dur.
 # Mise à jour continue (stage-mids, maj_bdd/bdd_ngram.qmd) : si BASES_DIR contient un
@@ -37,7 +37,8 @@ BASES_DIR = os.environ.get("BASES_DIR", "/opt/bazoulay/stage-mids/bases")
 MCP_LOCAL = os.environ.get("AGORA_MCP", "http://127.0.0.1:8011/mcp")
 # sous gunicorn, ce logger écrit dans --error-logfile (agora_error.log)
 JOURNAL = logging.getLogger("gunicorn.error")
-TABLE = {1: "unigram", 2: "bigram"}
+TABLE = {1: "unigram", 2: "bigram", 3: "trigram"}
+MAX_N = max(TABLE)   # taille maximale d'une expression (les bases vont jusqu'au trigramme)
 # jeu d'étude des PCA de sauts (pca/README.md) : composantes gelées et fenêtres du fit
 PCA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pca")
 PCAS = ("unifie1j", "unifie3j")
@@ -192,13 +193,13 @@ def decouper(expression):
 
 
 def analyser_serie(gram):
-    # « grève+grèves » -> [["grève"], ["grèves"]] ; Refus si une variante n'a pas 1 ou 2 mots,
+    # « grève+grèves » -> [["grève"], ["grèves"]] ; Refus si une variante n'a pas 1 à MAX_N mots,
     # si les variantes n'ont pas la même longueur, ou si un motif n'a que des « _ »
     expressions = []
     for v in gram.split("+"):
         mots = decouper(v)
-        if not 1 <= len(mots) <= 2:
-            raise Refus(f"« {v.strip()} » : 1 ou 2 mots attendus")
+        if not 1 <= len(mots) <= MAX_N:
+            raise Refus(f"« {v.strip()} » : 1 à {MAX_N} mots attendus")
         if all(m == "_" for m in mots):
             raise Refus(f"« {v.strip()} » : au moins un mot autre que _ attendu")
         expressions.append(mots)
@@ -309,8 +310,8 @@ def classement(args, mots):
     corpus = args.get("corpus", "")
     if corpus not in cat:
         raise Refus(f"corpus inconnu : {corpus} (choix : {', '.join(sorted(cat))})")
-    if not 1 <= len(mots) <= 2:
-        raise Refus("le motif doit contenir 1 ou 2 mots")
+    if not 1 <= len(mots) <= MAX_N:
+        raise Refus(f"le motif doit contenir 1 à {MAX_N} mots")
     if all(m == "_" for m in mots):
         raise Refus("le motif doit contenir au moins un mot autre que _")
     n_joker = args.get("n_joker", "50")
@@ -367,7 +368,7 @@ def liste_corpus():
 @app.route("/catalogue")
 def catalogue_detaille():
     # version enrichie de /corpus : bornes de dates, volume de mots (le front
-    # classe les médias du plus gros au plus petit) et présence de bigrammes,
+    # classe les médias du plus gros au plus petit) et présence des bigrammes et trigrammes,
     # lus dans total_unigram (une ligne par jour : MIN/MAX/SUM immédiats)
     iso = lambda d: f"{d // 10000:04d}-{d // 100 % 100:02d}-{d % 100:02d}"
     infos = []
@@ -382,7 +383,7 @@ def catalogue_detaille():
                       "debut": iso(d0) if d0 else None,
                       "fin": iso(d1) if d1 else None,
                       "mots": sum(b[2] or 0 for b in bornes),
-                      "avec_2gram": True})
+                      "avec_2gram": True, "avec_3gram": True})
     return jsonify(infos)
 
 
@@ -551,7 +552,7 @@ def ratio():
 def joker_ngram():
     # mots qui suivent le plus souvent « mot » (after=True, défaut) : « pouvoir » -> « pouvoir
     # d'achat », « pouvoir de »… ; « _ » peut aussi être placé dans mot (« pouvoir _ »). length :
-    # taille du n-gramme (défaut : mots + 1, au plus 2 ici). after=False (« _ pouvoir ») est refusé :
+    # taille du n-gramme (défaut : mots + 1, au plus MAX_N). after=False (« _ pouvoir ») est refusé :
     # le premier mot doit être fixé. CSV tot,gram comme /joker_ngram de Gallicagram.
     args = request.args
     mots = decouper(args.get("mot", ""))
@@ -579,22 +580,23 @@ def wildcard_ngram():
 
 @app.route("/associated_ngram")
 def associated_ngram():
-    # mots les plus fréquents juste après « mot » (un seul mot, bigrammes seulement) ; comme
-    # /associated_ngram de Gallicagram avec side=after : les autres côtés parcourraient toute la
-    # base. Sans ponctuation ni nombres ; stopwords=k écarte les k premiers mots vides. CSV gram,tot.
+    # mots les plus fréquents juste après « mot » (1 à MAX_N - 1 mots fixés, un mot cherché) ;
+    # comme /associated_ngram de Gallicagram avec side=after : les autres côtés parcourraient
+    # toute la base. Sans ponctuation ni nombres ; stopwords=k écarte les k premiers mots vides.
+    # CSV gram,tot.
     args = request.args
     mots = decouper(args.get("mot", ""))
-    if len(mots) != 1 or mots[0] == "_":
-        return "mot : un seul mot attendu (les bases vont jusqu'au bigramme)", 400
+    if not 1 <= len(mots) <= MAX_N - 1 or "_" in mots:
+        return f"mot : 1 à {MAX_N - 1} mots attendus, sans _ (les bases vont jusqu'à {MAX_N} mots)", 400
     if args.get("side", "after") != "after":
         return "side : seul after est disponible (chercher avant un mot parcourrait toute la base)", 400
-    if args.get("length", "2") != "2":
-        return "length : seul 2 est disponible (les bases vont jusqu'au bigramme)", 400
+    if args.get("length", str(len(mots) + 1)) != str(len(mots) + 1):
+        return f"length : seul {len(mots) + 1} est disponible (un mot cherché après les mots donnés)", 400
     try:
         df = classement(args, mots + ["_"])
     except Refus as e:
         return str(e), 400
-    df["gram"] = df["gram"].str.split(" ", n=1).str[1]
+    df["gram"] = df["gram"].str.split(" ", n=len(mots)).str[len(mots)]
     df = df[df["gram"].str.contains(r"[^\W\d_]", regex=True, na=False)]
     return reponse_csv(df[["gram", "tot"]])
 

@@ -89,15 +89,15 @@ paths:
         accepté et ignoré). Les comptes peuvent différer : Agora additionne les
         formes en l', d' et n' (voir « Tokenisation » plus haut).
 
-        **Limitation :** 1 ou 2 mots par expression. Les bigrammes ne sont
-        disponibles que pour les corpus dont la base 2-gram est construite —
-        voir `avec_2gram` sur la route racine.
+        **Limitation :** 1 à 3 mots par expression. Les bigrammes et trigrammes
+        ne sont disponibles que pour les corpus dont les bases 2-gram et 3-gram
+        sont construites — voir `avec_2gram` et `avec_3gram` sur `/catalogue`.
       parameters:
         - $ref: '#/components/parameters/CorpusParam'
         - name: mot
           in: query
           description: |
-            Mot ou syntagme de 1 à 2 mots. Plusieurs expressions peuvent être
+            Mot ou syntagme de 1 à 3 mots. Plusieurs expressions peuvent être
             demandées en une requête, séparées par une virgule ; le signe `+`
             additionne des variantes en une seule série.
           required: true
@@ -124,7 +124,7 @@ paths:
                 example: "n,annee,mois,gram,total\n412,2023,1,inflation,8104233\n388,2023,2,inflation,7620118"
         "400":
           description: |
-            Paramètre invalide : corpus inconnu, expression de plus de 2 mots,
+            Paramètre invalide : corpus inconnu, expression de plus de 3 mots,
             variantes `+` de longueurs différentes, base n-gram absente pour ce
             corpus, ou paramètre `mot` manquant.
           content:
@@ -163,7 +163,7 @@ paths:
       description: |
         Version enrichie de `/corpus` : pour chaque corpus, les bornes de dates
         réellement couvertes par la base (lues sur les volumes journaliers) et
-        la présence d'une base de bigrammes (syntagmes de 2 mots interrogeables).
+        la présence des bases de bigrammes et de trigrammes (syntagmes de 2 et 3 mots interrogeables).
       responses:
         "200":
           description: Tableau JSON, un objet par corpus
@@ -190,6 +190,10 @@ paths:
                       type: boolean
                       description: Vrai si la base de bigrammes est construite.
                       example: true
+                    avec_3gram:
+                      type: boolean
+                      description: Vrai si la base de trigrammes est construite.
+                      example: true
 
   /ratio:
     get:
@@ -209,7 +213,7 @@ paths:
       parameters:
         - name: mot
           in: query
-          description: Exactement deux expressions séparées par une virgule, 1 ou 2 mots chacune ; `+` et jokers acceptés comme sur `/query`.
+          description: Exactement deux expressions séparées par une virgule, 1 à 3 mots chacune ; `+` et jokers acceptés comme sur `/query`.
           required: true
           schema:
             type: string
@@ -249,7 +253,7 @@ paths:
                         freq_b: { type: number, nullable: true, example: 0.000181 }
                         ratio: { type: number, nullable: true, example: 1.66 }
         "400":
-          description: Paramètre invalide (autre chose que deux expressions, expression de plus de deux mots, corpus inconnu).
+          description: Paramètre invalide (autre chose que deux expressions, expression de plus de trois mots, corpus inconnu).
           content:
             text/plain:
               schema:
@@ -260,8 +264,8 @@ paths:
     get:
       summary: Mots qui suivent le plus souvent un mot
       description: |
-        Même route que `/joker_ngram` de l'API Gallicagram : les bigrammes qui
-        commencent par `mot`, classés par occurrences décroissantes sur la
+        Même route que `/joker_ngram` de l'API Gallicagram : les n-grammes (2 ou 3
+        mots) qui commencent par `mot`, classés par occurrences décroissantes sur la
         période (`pouvoir` → `pouvoir d'achat`, `pouvoir de`…). `_` peut aussi
         être placé dans `mot` (`pouvoir _`). Seul `after=True` est disponible :
         chercher ce qui précède un mot parcourrait toute la base.
@@ -272,7 +276,7 @@ paths:
         - name: mot
           in: query
           required: true
-          description: Un mot (les bases vont jusqu'au bigramme).
+          description: Un ou deux mots fixés, le mot qui suit est cherché (les bases vont jusqu'au trigramme).
           schema: { type: string }
           example: pouvoir
         - $ref: '#/components/parameters/FromParam'

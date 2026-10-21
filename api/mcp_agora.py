@@ -46,6 +46,7 @@ def list_corpora() -> list:
     - `avec_2gram` : si vrai, le corpus accepte les syntagmes de 2 mots
       (ex: "pouvoir d'achat" -> "pouvoir achat" après tokenisation) ;
       sinon, un seul mot par expression.
+    - `avec_3gram` : si vrai, le corpus accepte aussi les syntagmes de 3 mots.
     """
     reponse = requests.get(f"{API}/catalogue", timeout=30)
     reponse.raise_for_status()
@@ -59,8 +60,9 @@ def query_frequency(mot: str, corpus: str, debut: str = "1900",
     de presse française contemporaine.
 
     ### Syntaxe du paramètre `mot` :
-    - Un mot simple (`inflation`) ou un syntagme de 2 mots (`crise financière`),
-      si le corpus dispose de bigrammes (voir `avec_2gram` dans `list_corpora`).
+    - Un mot simple (`inflation`) ou un syntagme de 2 ou 3 mots (`crise financière`,
+      `pouvoir d'achat des`), si le corpus dispose de bigrammes et trigrammes
+      (voir `avec_2gram` et `avec_3gram` dans `list_corpora`).
     - Plusieurs expressions séparées par des virgules pour comparer des séries
       (`inflation,chômage,pouvoir achat`), 5 au maximum.
     - Le signe `+` additionne des variantes en une seule série
@@ -118,7 +120,7 @@ def compare_usage(mot_a: str, mot_b: str, debut: str = "1900", fin: str = "2100"
     - Pour un seul média dans le temps, préférer `query_frequency`.
 
     ### Paramètres :
-    - `mot_a`, `mot_b` : une expression chacun (1 ou 2 mots, tokenisée comme
+    - `mot_a`, `mot_b` : une expression chacun (1 à 3 mots, tokenisée comme
       dans `query_frequency`, élisions l', d', n' additionnées de même).
     - `debut` / `fin` : bornes incluses, au format AAAA, AAAA-MM ou AAAA-MM-JJ.
     - `corpus` : identifiants séparés par des virgules (voir `list_corpora`) ;

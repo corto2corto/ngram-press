@@ -2,7 +2,7 @@
 
 API de fréquences lexicales dans la presse française, à la manière de
 [Gallicagram](https://shiny.ens-paris-saclay.fr/app/gallicagram) : chaque mot
-(1 ou 2 mots) a sa série temporelle d'occurrences, journal par journal, au jour près.
+(1 à 3 mots) a sa série temporelle d'occurrences, journal par journal, au jour près.
 Les bases sont construites à partir des articles de 35 journaux et sites d'information
 français, collectés en continu, dans le cadre d'un mémoire de master sur l'impact des
 rachats de journaux sur le contenu éditorial.
@@ -24,7 +24,7 @@ Lancement local : `BASES_DIR=bases python -m api.app_agora` puis http://localhos
 ## Les bases et leur mise à jour
 
 Chaque corpus est lu dans deux sortes de bases SQLite (tables `token`, `unigram`,
-`bigram`, `total_unigram`, `total_bigram`, `articles`) :
+`bigram`, `trigram`, `total_unigram`, `total_bigram`, `total_trigram`, `articles`) :
 
 - une **grosse base**, qui contient tout jusqu'au dernier mois versé et n'est jamais
   modifiée : elle est seulement lue ;
