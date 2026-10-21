@@ -147,7 +147,7 @@ export const textes = {
     explorateur_reduire: "Réduire l'explorateur",
     ong_aria: "Modes de l'explorateur",
     ong_courbes: "Courbes",
-    ong_palmares: "Palmarès",
+    ong_palmares: "Tendances",
     ong_evolutions: "Évolutions",
     ong_tests: "Tests statistiques",
     // l'aide d'un formulaire (Aide.tsx) : le « ? » à côté du bouton ouvre un
@@ -178,10 +178,10 @@ export const textes = {
     btn_tester: "Tester",
     avenir_note: "Cette vue arrive bientôt : le formulaire est posé, la méthode suit.",
 
-    // Palmarès : les sujets d'une semaine ou d'un mois (mots du jour)
+    // Tendances : les sujets d'une semaine ou d'un mois (mots du jour), une barre par sujet
     ong_desc_palmares:
-      "Les sujets d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. Flèches ou date pour changer de période.",
-    palm_pas_aria: "Pas du palmarès",
+      "Les sujets d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. La barre mesure la force de l'excès ; un clic montre les mots du sujet. Flèches ou date pour changer de période.",
+    palm_pas_aria: "Pas des tendances",
     palm_semaine: "Semaine",
     palm_mois: "Mois",
     palm_precedent: "Période précédente",
@@ -191,7 +191,18 @@ export const textes = {
     palm_depart: "Choisissez une semaine ou un mois.",
     palm_titre_semaine: (de: string, a: string) => `Semaine du ${de} au ${a}`,
     palm_sous: (medias: string, sujets: string) => `${medias} médias · ${sujets} sujets`,
-    palm_bulle: (n: string, titres: number) => `${n} occurrences · en excès dans ${titres} média${titres > 1 ? "s" : ""}`,
+    palm_titre: (semaine: boolean): string => (semaine ? "Ce qui a fait la semaine" : "Ce qui a fait le mois"),
+    palm_nouveau: "Nouveau",
+    palm_nouveau_aide: (semaine: boolean) => `Absent ${semaine ? "de la semaine" : "du mois"} d'avant`,
+    palm_inedit: "inédit",
+    // la bulle du « ×25 » : la hausse en clair, puis le compte du mot sur la période
+    palm_fois_aide: (x: string, mot: string, n: string, semaine: boolean) =>
+      `${x} par rapport aux douze mois précédents\n« ${mot} » : ${n} occurrences ${semaine ? "cette semaine" : "ce mois-ci"}`,
+    palm_inedit_aide: (mot: string, n: string, semaine: boolean) =>
+      `presque absent des douze mois précédents\n« ${mot} » : ${n} occurrences ${semaine ? "cette semaine" : "ce mois-ci"}`,
+    palm_voir_courbe: (mot: string) => `Voir « ${mot} » dans les Courbes`,
+    palm_suivants: (n: number) => `Voir les ${n} suivants`,
+    palm_replier: "Revenir aux dix premiers",
     palm_methode:
       "Mots en excès par rapport aux douze mois précédents (log-odds, Monroe et al. 2008), dans au moins cinq médias ; sujets formés par les pics communs des mots, étiquettes tirées des bigrammes. Méthode de Benoît de Courson (Gallicagram).",
 
@@ -470,7 +481,7 @@ export const textes = {
     explorateur_reduire: "Collapse the explorer",
     ong_aria: "Explorer modes",
     ong_courbes: "Curves",
-    ong_palmares: "Rankings",
+    ong_palmares: "Trending",
     ong_evolutions: "Trends",
     ong_tests: "Statistical tests",
     aide_aria: "Help on this mode",
@@ -497,10 +508,10 @@ export const textes = {
     btn_tester: "Test",
     avenir_note: "This view is coming soon: the form is in place, the method follows.",
 
-    // Rankings: the topics of a week or a month (words of the day)
+    // Trending: the topics of a week or a month (words of the day), one bar per topic
     ong_desc_palmares:
-      "The topics of a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. Arrows or a date to change period.",
-    palm_pas_aria: "Ranking step",
+      "The topics of a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. The bar measures how strong the excess is; a click shows the topic's words. Arrows or a date to change period.",
+    palm_pas_aria: "Trending step",
     palm_semaine: "Week",
     palm_mois: "Month",
     palm_precedent: "Previous period",
@@ -510,7 +521,18 @@ export const textes = {
     palm_depart: "Pick a week or a month.",
     palm_titre_semaine: (de: string, a: string) => `Week of ${de} to ${a}`,
     palm_sous: (medias: string, sujets: string) => `${medias} outlets · ${sujets} topics`,
-    palm_bulle: (n: string, titres: number) => `${n} occurrences · in excess in ${titres} outlet${titres > 1 ? "s" : ""}`,
+    palm_titre: (semaine: boolean): string => (semaine ? "What made the week" : "What made the month"),
+    palm_nouveau: "New",
+    palm_nouveau_aide: (semaine: boolean) => `Absent from the previous ${semaine ? "week" : "month"}`,
+    palm_inedit: "unseen",
+    // the "×25" tooltip: the rise in plain words, then the word's count over the period
+    palm_fois_aide: (x: string, mot: string, n: string, semaine: boolean) =>
+      `${x} compared with the previous twelve months\n“${mot}”: ${n} occurrences ${semaine ? "this week" : "this month"}`,
+    palm_inedit_aide: (mot: string, n: string, semaine: boolean) =>
+      `almost absent from the previous twelve months\n“${mot}”: ${n} occurrences ${semaine ? "this week" : "this month"}`,
+    palm_voir_courbe: (mot: string) => `See “${mot}” in Curves`,
+    palm_suivants: (n: number) => `Show the next ${n}`,
+    palm_replier: "Back to the top ten",
     palm_methode:
       "Words in excess compared with the previous twelve months (log-odds, Monroe et al. 2008), in at least five outlets; topics formed by the words' shared peaks, labels taken from bigrams. Method by Benoît de Courson (Gallicagram).",
 

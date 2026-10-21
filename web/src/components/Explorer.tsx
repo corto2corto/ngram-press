@@ -374,6 +374,26 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [arreterDefile],
   );
 
+  // depuis les Tendances : le mot de tête d'un sujet passe dans les Courbes, sur l'année qui
+  // finit avec sa période (la référence de la méthode, puis le pic), dans le journal courant
+  const voirCourbe = useCallback(
+    (mot: string, fin: string) => {
+      arreterDefile();
+      const f = fondsParCorpus[corpus] ?? FONDS_DEFAUT;
+      const jusque = Math.min(f.hi, deIso(fin));
+      const depuis = Math.max(f.lo, jusque - 365);
+      // bornes posées d'un coup, pas au clavier : pas de délai de frappe
+      bornesPrecedentes.current = { de: depuis, a: jusque };
+      setDe(depuis);
+      setA(jusque);
+      setMots(mot);
+      setMotsTraces(mot);
+      setDemande((n) => n + 1);
+      setMode("courbes");
+    },
+    [arreterDefile, fondsParCorpus, corpus],
+  );
+
   // changer d'onglet compte comme une interaction : le défilement s'arrête
   const choisirMode = useCallback(
     (m: Mode) => {
@@ -559,11 +579,11 @@ export default function Explorer({ lang }: { lang: Lang }) {
         </figure>
       </div>
 
-      {/* ---- Palmarès : les sujets d'une semaine ou d'un mois, tous médias (Palmares.tsx) ;
+      {/* ---- Tendances : les sujets d'une semaine ou d'un mois, tous médias (Palmares.tsx) ;
           la clé remonte le panneau à la bascule */}
       {mode === "palmares" && (
         <div key="palmares">
-          <Palmares lang={lang} />
+          <Palmares lang={lang} voirCourbe={voirCourbe} />
         </div>
       )}
 

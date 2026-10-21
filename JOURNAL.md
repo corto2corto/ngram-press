@@ -1,5 +1,48 @@
 # Journal du projet
 
+## 20/10/2026 — Palmarès devient Tendances : une grande barre par sujet
+- Maquettes d'abord (canevas artifact, données réelles de l'API) : une Une de
+  journal, un classement façon hit-parade, puis des barres. Corto écarte les
+  deux premières (« trop sobre », « trop lourd en information ») et retient
+  les grandes barres numérotées aux couleurs « chaleur ».
+- Palmares.tsx : le nom de l'onglet passe à « Tendances » (EN « Trending » :
+  « Trends » est déjà le nom anglais d'Évolutions). Chaque sujet est une barre
+  « 1. Lycéens ». Sa longueur suit la force de l'excès, rapportée au premier
+  sujet, à 24 % au moins pour que le nom tienne. Sa teinte suit le rang, du
+  rouge brique au jaune paille, texte blanc sur les trois premières. Dix
+  barres d'abord, puis par dix. Elles poussent en vague (rien si
+  prefers-reduced-motion).
+- Nom du sujet : la première étiquette (bigramme) qui contient un des trois
+  mots de tête, sinon le mot de tête. Majuscule initiale, chiffre romain en
+  capitales après un nom (« Léon XIV »). Les noms propres restent en
+  minuscules après la première lettre (« Jordan bardella ») : les bases ne
+  gardent pas la casse.
+- Au bout de la barre, le « ×25 » discret du mot de tête : son taux sur la
+  période rapporté à celui des douze mois de référence. Approché, à volume
+  de presse égal (l'API ne sert pas les totaux) ; « inédit » au-delà de ×100.
+  La bulle, au survol ou au clavier, dit « ×25 par rapport aux douze mois
+  précédents » et le compte de la période.
+- « Nouveau » : aucun des cinq mots de tête parmi ceux de la période d'avant.
+  Cette période est chargée en même temps (précalculée, en cache).
+- Clic sur la barre : les mots liés en italique, puis « Voir « lycéens » dans
+  les Courbes ». Le lien passe aux Courbes avec le mot, sur l'année qui finit
+  avec la période, dans le journal courant (`voirCourbe` d'Explorer.tsx).
+- Ambition notée : relier un sujet aux candidats de la Présidentielle 2027
+  (issue stage-mids#81).
+- Vérifié : tsc, eslint, build. Rendu à regarder sur localhost.
+
+## 20/10/2026 — Palmarès : les sujets de la semaine ou du mois, tous médias
+- Route `/mots_du_jour_ngram` (méthode de Benoît de Courson, `api/mots_du_jour.py`) : lecture par
+  les cumuls hebdomadaires et mensuels de `bases/cumuls/` (1,9 s par semaine au lieu de 56 s), et
+  résultats figés de `bases/mots_du_jour/` servis en 4 ms (926 semaines et 213 mois, 01/2009 →
+  09/2026, calculés par `scripts/precalcul_mots_du_jour.py`). Route `/mots_du_jour_periodes` : la
+  liste des périodes figées. Détail des mesures dans le journal de stage-mids.
+- Onglet Palmarès branché (`Palmares.tsx`) : pas Semaine ou Mois, flèches et saut à une date,
+  seules les périodes figées proposées ; un sujet par carte (étiquettes tirées des bigrammes, mots
+  en pastilles, bordés d'accent quand ils sont en excès dans au moins dix médias). FR/EN.
+- Vérifié en local dans Chrome (dev + tunnel vers 8010) : semaine du 28/09/2026 (blocus lycéens,
+  Bardella, Léon XIV), août 2026 (sécheresse, éclipse, Ceuta). Évolutions reste « à venir ».
+
 ## 12/10/2026 — Courbes : huit médias comparés au lieu de quatre
 - `MAX_MEDIAS` passe de 4 à 8 dans `Explorer.tsx` (référence comprise, donc
   sept pilules cochables). La limite venait de la palette de séries, qui
