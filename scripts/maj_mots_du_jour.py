@@ -17,6 +17,7 @@
 import datetime as dt
 import json
 import os
+import sqlite3
 import sys
 import time
 
@@ -55,9 +56,20 @@ def calculer(fr, to, chemin, etiquette):
         with open(chemin) as f:
             avant = json.load(f)
     try:
-        r = mots_du_jour(None, fr, to, network=True, fige=False)
+        for essai in range(3):
+            try:
+                r = mots_du_jour(None, fr, to, network=True, fige=False)
+                break
+            except sqlite3.OperationalError as e:      # base verrouillée par une écriture : on attend un peu
+                if essai == 2:
+                    raise
+                journal(f"{etiquette} : {e}, nouvel essai dans 30 s")
+                time.sleep(30)
     except ValueError as e:                        # pas de données (tôt le matin, par exemple)
         r = {"periode": [fr, to], "titres": [], "groupes": [], "erreur": str(e), "duree_s": 0}
+    except sqlite3.OperationalError as e:          # toujours verrouillé : on garde le fichier précédent
+        journal(f"{etiquette} : abandon, {e}")
+        return
     r["provisoire"] = True
     r["calcule"] = time.strftime("%Y-%m-%d %H:%M:%S")
     ecrire(chemin, r)

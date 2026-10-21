@@ -13,6 +13,7 @@
 import datetime as dt
 import json
 import os
+import sqlite3
 import sys
 import time
 
@@ -53,7 +54,15 @@ def periodes(jours, semaines, mois, fin):
 def calculer(fr, to):
     nom = nom_precalcul(fr, to)
     chemin = os.path.join(PRECALCUL, f"{nom}.json")
-    r = mots_du_jour(None, fr, to, network=True, fige=False)      # jamais le fichier existant
+    for essai in range(5):
+        try:
+            r = mots_du_jour(None, fr, to, network=True, fige=False)      # jamais le fichier existant
+            break
+        except sqlite3.OperationalError as e:                            # base verrouillée par une écriture
+            if essai == 4:                                               # (rejeu d'un tampon, fusion) : on attend
+                raise
+            print(f"{time.strftime('%H:%M:%S')} {nom} : {e}, nouvel essai dans 60 s", flush=True)
+            time.sleep(60)
     r["precalcule"] = time.strftime("%Y-%m-%d %H:%M:%S")
     with open(chemin + ".part", "w") as f:
         json.dump(r, f, ensure_ascii=False)
