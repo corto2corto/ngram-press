@@ -1,11 +1,14 @@
 "use client";
 
-// Tendances : les sujets d'une semaine ou d'un mois, tous médias (route /mots_du_jour_ngram,
-// méthode de Benoît de Courson). On choisit le pas (semaine ou mois), puis on se déplace de
+// Tendances : les sujets d'un jour, d'une semaine ou d'un mois, tous médias (route
+// /mots_du_jour_ngram, méthode de Benoît de Courson). On choisit le pas, puis on se déplace de
 // période en période avec les flèches, ou on saute à une date : la période qui la contient
-// s'affiche. Seules les périodes calculées d'avance côté serveur (/mots_du_jour_periodes) sont
-// proposées : la réponse est immédiate. Chaque sujet est une grande barre numérotée, longue
-// selon la force de l'excès, colorée du rouge brique (le premier) au jaune paille ; au bout,
+// s'affiche. Les périodes closes sont calculées d'avance côté serveur (/mots_du_jour_periodes) :
+// la réponse est immédiate. La période en cours (/mots_du_jour_en_cours, recalculée toutes les
+// deux heures) vient au bout des flèches, et l'onglet s'ouvre sur la semaine en cours. Une période
+// finie hier ou avant-hier porte « Provisoire » : des articles en retard arrivent encore. Les
+// vingt premiers sujets sont de grandes barres numérotées, longues selon la force de l'excès,
+// colorées du rouge brique (le premier) au jaune paille, les suivants repliés en gris ; au bout,
 // le « ×25 » du mot de tête (bulle au survol) et « Nouveau » si la période d'avant ne l'avait
 // pas. Un clic sur la barre montre les mots du sujet en italique et mène aux Courbes.
 
@@ -14,7 +17,9 @@ import {
   chargerPeriodesPalmares,
   ErreurApi,
   requetePalmares,
+  requetePalmaresEnCours,
   type MotPalmares,
+  type PasPalmares as Pas,
   type Palmares as Resultat,
   type PeriodesPalmares,
   type SujetPalmares,
@@ -22,15 +27,19 @@ import {
 import { localeDe, textes, type Lang } from "@/lib/i18n";
 import Aide from "@/components/Aide";
 
-type Pas = "semaine" | "mois";
-const PAS: Pas[] = ["semaine", "mois"];
+const PAS: Pas[] = ["jour", "semaine", "mois"];
+const LISTE = { jour: "jours", semaine: "semaines", mois: "mois" } as const satisfies Record<Pas, keyof PeriodesPalmares>;
 
-// barres montrées d'abord, puis par paquets de cette taille
-const PAQUET = 10;
-// la chaleur, du premier sujet au dixième ; au-delà, la dernière teinte. Texte blanc sur les
-// trois premières (contraste ≥ 3:1 en gras 20 px), à l'encre ensuite
-const CHALEUR = ["#b8350b", "#cf4a10", "#e0611a", "#ea7b26", "#f19538", "#f5ad52", "#f7c272", "#f9d698", "#fae3b4", "#fbecca"];
-const TEXTE_BLANC = 3;
+// barres en couleurs ; les suivantes sont repliées
+const TOP = 20;
+// la chaleur, du premier sujet au vingtième (le rouge brique et le jaune paille d'origine, dix
+// teintes étirées sur vingt rangs). Texte blanc sur les cinq premières (contraste ≥ 3,6:1 en
+// gras 20 px), à l'encre ensuite ; les barres repliées en gris
+const CHALEUR = [
+  "#b8350b", "#c33f0d", "#ce4910", "#d65414", "#de5f19", "#e46b1e", "#e87724", "#ec832c", "#f09034", "#f29b3f",
+  "#f4a74b", "#f5b159", "#f6bb68", "#f7c578", "#f8cf8a", "#f9d79b", "#fadea8", "#fae3b5", "#fbe8c0", "#fbecca",
+];
+const TEXTE_BLANC = 5;
 
 const utc = (iso: string) => new Date(`${iso.length === 7 ? `${iso}-01` : iso}T00:00:00Z`);
 const isoDe = (d: Date) => d.toISOString().slice(0, 10);
@@ -39,8 +48,18 @@ const plusJours = (iso: string, n: number) => {
   d.setUTCDate(d.getUTCDate() + n);
   return isoDe(d);
 };
-// bornes d'une période : la semaine va du lundi au dimanche, le mois du 1er au dernier jour
+// AAAAMMJJ (API) → AAAA-MM-JJ
+const isoDe8 = (s: string) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+// aujourd'hui à Paris, le jour des calculs du serveur
+function aujourdhui(): string {
+  const morceaux = new Intl.DateTimeFormat("en", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date());
+  const v = (type: string) => morceaux.find((m) => m.type === type)?.value;
+  return `${v("year")}-${v("month")}-${v("day")}`;
+}
+// bornes d'une période : le jour seul, la semaine du lundi au dimanche, le mois du 1er au dernier jour
 function bornes(pas: Pas, cle: string): { de: string; a: string } {
+  if (pas === "jour") return { de: cle, a: cle };
   if (pas === "semaine") return { de: cle, a: plusJours(cle, 6) };
   const fin = utc(cle);
   fin.setUTCMonth(fin.getUTCMonth() + 1);
@@ -51,7 +70,8 @@ function periodeDe(pas: Pas, liste: string[], iso: string): string | undefined {
   if (!liste.length) return undefined;
   const d = utc(iso);
   let cle: string;
-  if (pas === "semaine") {
+  if (pas === "jour") cle = iso;
+  else if (pas === "semaine") {
     d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); // le lundi de sa semaine
     cle = isoDe(d);
   } else cle = iso.slice(0, 7);
@@ -59,6 +79,8 @@ function periodeDe(pas: Pas, liste: string[], iso: string): string | undefined {
   const avant = liste.filter((p) => p < cle);
   return avant.length ? avant[avant.length - 1] : liste[0];
 }
+// la clé d'un résultat dans la liste de son pas : son premier jour, ou son mois
+const cleDe = (pas: Pas, r: Resultat) => (pas === "mois" ? isoDe8(r.periode[0]).slice(0, 7) : isoDe8(r.periode[0]));
 
 // le nom du sujet : la première étiquette (bigramme) qui contient un des trois mots de tête,
 // sinon le mot de tête ; majuscule initiale, chiffre romain en capitales après un nom (« léon xiv »)
@@ -83,33 +105,58 @@ function hausse(m: MotPalmares, jours: number): number {
 // mots de tête d'une période, pour repérer les sujets nouveaux
 const tetes = (r: Resultat) => new Set(r.groupes.flatMap((g) => g.mots.slice(0, 8).map((m) => m.mot)));
 
+
 export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe: (mot: string, fin: string) => void }) {
   const t = textes[lang];
   const locale = localeDe(lang);
 
   const [periodes, setPeriodes] = useState<PeriodesPalmares | null>(null);
+  // la période en cours de chaque pas, lue la première fois que le pas s'affiche (null : rien de calculé)
+  const [enCours, setEnCours] = useState<Partial<Record<Pas, Resultat | null>>>({});
   const [pas, setPas] = useState<Pas>("semaine");
-  // la période affichée, par pas : clé de la liste (lundi AAAA-MM-JJ ou mois AAAA-MM)
-  const [choix, setChoix] = useState<Record<Pas, string | undefined>>({ semaine: undefined, mois: undefined });
+  // la période affichée, par pas : clé de la liste (jour ou lundi AAAA-MM-JJ, mois AAAA-MM)
+  const [choix, setChoix] = useState<Partial<Record<Pas, string>>>({});
   const [chargement, setChargement] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [resultat, setResultat] = useState<{ r: Resultat; avant: Set<string> | null; tirage: number } | null>(null);
-  // barre dépliée (rang dans la période, 0 au départ) et nombre de barres montrées
-  const [ouvert, setOuvert] = useState(0);
-  const [montres, setMontres] = useState(PAQUET);
+  // le résultat affiché, avec son pas et sa clé, la période d'avant (sujets nouveaux) et son état :
+  // en cours, provisoire (fini hier ou avant-hier) ou rien
+  const [resultat, setResultat] = useState<{
+    r: Resultat;
+    pas: Pas;
+    cle: string;
+    avant: Set<string> | null;
+    etat: "en_cours" | "provisoire" | null;
+    tirage: number;
+  } | null>(null);
+  // barre dépliée (rang dans la période, -1 : aucune, repliées au départ), sujets au-delà du TOP montrés, bulle de l'état
+  const [ouvert, setOuvert] = useState(-1);
+  const [tous, setTous] = useState(false);
+  const [bulle, setBulle] = useState(false);
   const appel = useRef(0);
+  const demandes = useRef(new Set<Pas>());
 
-  // les périodes disponibles ; on s'ouvre sur la dernière semaine et le dernier mois
   useEffect(() => {
     chargerPeriodesPalmares()
-      .then((p) => {
-        setPeriodes(p);
-        setChoix({ semaine: p.semaines.at(-1), mois: p.mois.at(-1) });
-      })
+      .then(setPeriodes)
       .catch(() => setMessage(t.msg_erreur));
   }, [t]);
 
-  const liste = periodes ? (pas === "semaine" ? periodes.semaines : periodes.mois) : [];
+  // la période en cours d'un pas, une fois ; on s'y place, sinon sur la dernière période close
+  useEffect(() => {
+    if (!periodes || demandes.current.has(pas)) return;
+    demandes.current.add(pas);
+    requetePalmaresEnCours(pas)
+      .catch(() => null)
+      .then((r) => {
+        setEnCours((e) => ({ ...e, [pas]: r }));
+        setChoix((c) => (c[pas] ? c : { ...c, [pas]: r ? cleDe(pas, r) : periodes[LISTE[pas]].at(-1) }));
+      });
+  }, [pas, periodes]);
+
+  const courante = enCours[pas];
+  const cleEnCours = courante ? cleDe(pas, courante) : undefined;
+  const closes = periodes ? periodes[LISTE[pas]] : [];
+  const liste = cleEnCours && !closes.includes(cleEnCours) ? [...closes, cleEnCours] : closes;
   const cle = choix[pas];
   const rang = cle ? liste.indexOf(cle) : -1;
   const precedente = rang > 0 ? liste[rang - 1] : undefined;
@@ -121,17 +168,21 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
     if (!cle) return;
     const minuteur = setTimeout(() => {
       const numero = ++appel.current;
+      const estEnCours = cle === cleEnCours;
       setChargement(true);
       setMessage(null);
       Promise.all([
-        requetePalmares(bornes(pas, cle)),
+        estEnCours && courante ? Promise.resolve(courante) : requetePalmares(bornes(pas, cle)),
         precedente ? requetePalmares(bornes(pas, precedente)).catch(() => null) : Promise.resolve(null),
       ])
         .then(([r, rp]) => {
           if (numero !== appel.current) return;
-          setResultat((p) => ({ r, avant: rp ? tetes(rp) : null, tirage: (p?.tirage ?? 0) + 1 }));
-          setOuvert(0);
-          setMontres(PAQUET);
+          const recente = isoDe8(r.periode[1]) >= plusJours(aujourdhui(), -2);
+          const etat = estEnCours ? "en_cours" : r.provisoire && recente ? "provisoire" : null;
+          setResultat((p) => ({ r, pas, cle, avant: rp ? tetes(rp) : null, etat, tirage: (p?.tirage ?? 0) + 1 }));
+          setOuvert(-1);
+          setTous(false);
+          setBulle(false);
         })
         .catch((e) => {
           if (numero !== appel.current) return;
@@ -143,7 +194,7 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
         });
     }, 150);
     return () => clearTimeout(minuteur);
-  }, [pas, cle, precedente, t]);
+  }, [pas, cle, precedente, cleEnCours, courante, t]);
 
   const aller = (k: number) => {
     const suivant = liste[rang + k];
@@ -154,16 +205,18 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
     const p = periodeDe(pas, liste, iso);
     if (p) setChoix((c) => ({ ...c, [pas]: p }));
   };
+  // fin de la dernière période proposée : aujourd'hui pour la période en cours
+  const derniere = liste.at(-1);
+  const finListe = derniere && courante && derniere === cleEnCours ? isoDe8(courante.periode[1]) : derniere ? bornes(pas, derniere).a : undefined;
 
   // la date est lue et rendue en UTC : pas de veille au soir selon le fuseau
+  const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const formaterJour = (iso: string, avecAnnee = true) =>
     utc(iso).toLocaleDateString(locale, { day: "numeric", month: "long", ...(avecAnnee ? { year: "numeric" } : {}), timeZone: "UTC" });
-  const formaterMois = (cleMois: string) => {
-    const s = utc(cleMois).toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" });
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  };
   const titre = (p: Pas, c: string) => {
-    if (p === "mois") return formaterMois(c);
+    if (p === "jour")
+      return majuscule(utc(c).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }));
+    if (p === "mois") return majuscule(utc(c).toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" }));
     const { de, a } = bornes(p, c);
     return t.palm_titre_semaine(formaterJour(de, de.slice(0, 4) !== a.slice(0, 4)), formaterJour(a));
   };
@@ -171,30 +224,33 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
   const formaterFois = (x: number) =>
     !Number.isFinite(x) || x >= 100 ? null : `×${x >= 10 ? Math.round(x) : x.toLocaleString(locale, { maximumFractionDigits: 1 })}`;
 
-  const r = resultat?.r;
-  const periodeDuResultat = r ? `${r.periode[0].slice(0, 4)}-${r.periode[0].slice(4, 6)}-${r.periode[0].slice(6, 8)}` : null;
-  const semaine = pas === "semaine";
+  const affiche = resultat && resultat.pas === pas && resultat.cle === cle ? resultat : null;
+  const r = affiche?.r;
+  const estEnCours = affiche?.etat === "en_cours";
+  // l'heure du calcul de la période en cours (heure de Paris, celle du serveur)
+  const maj = estEnCours && r?.calcule ? t.palm_maj(Number(r.calcule.slice(11, 13)), r.calcule.slice(14, 16)) : null;
 
   const barres = () => {
-    if (!r || !cle) return null;
-    const { de, a } = bornes(pas, cle);
+    if (!r || !affiche) return null;
+    const de = isoDe8(r.periode[0]);
+    const a = isoDe8(r.periode[1]);
+    // la durée réelle : la semaine en cours n'a que les jours écoulés
     const jours = (utc(a).getTime() - utc(de).getTime()) / 86_400_000 + 1;
+    const quand = t.palm_quand(pas, estEnCours);
     const max = r.groupes[0]?.score || 1;
-    const avant = resultat?.avant;
-    return r.groupes.slice(0, montres).map((g, i) => {
+    const avant = affiche.avant;
+    return r.groupes.slice(0, tous ? undefined : TOP).map((g, i) => {
       const nom = nomDe(g);
       const tete = g.mots[0];
       const x = formaterFois(hausse(tete, jours));
-      const aide = x
-        ? t.palm_fois_aide(x, tete.mot, formaterN(tete.n), semaine)
-        : t.palm_inedit_aide(tete.mot, formaterN(tete.n), semaine);
+      const aide = x ? t.palm_fois_aide(x, tete.mot, formaterN(tete.n), quand) : t.palm_inedit_aide(tete.mot, formaterN(tete.n), quand);
       const nouveau = avant ? !g.mots.slice(0, 5).some((m) => avant.has(m.mot)) : false;
       const estOuvert = ouvert === i;
       const style = {
         "--part": Math.max(0.24, g.score / max),
-        "--fond": CHALEUR[Math.min(i, CHALEUR.length - 1)],
+        "--fond": i < TOP ? CHALEUR[i] : "var(--bord)",
         "--texte": i < TEXTE_BLANC ? "#ffffff" : "var(--encre)",
-        "--rang": i % PAQUET,
+        "--rang": i < TOP ? i : i - TOP,
       } as CSSProperties;
       return (
         <li key={`${tete?.mot ?? i}-${i}`} className={`tendance${estOuvert ? " ouvert" : ""}`} style={style}>
@@ -207,7 +263,7 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
               {x ?? t.palm_inedit}
             </span>
             {nouveau && (
-              <span className="tendance-nouveau" title={t.palm_nouveau_aide(semaine)}>
+              <span className="tendance-nouveau" title={t.palm_nouveau_aide(pas)}>
                 {t.palm_nouveau}
               </span>
             )}
@@ -241,19 +297,46 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
             ‹
           </button>
           <span className="periode-courante" aria-live="polite">
-            {cle ? titre(pas, cle) : periodes ? t.palm_aucune : t.msg_chargement}
+            {cle ? titre(pas, cle) : periodes && enCours[pas] !== undefined ? t.palm_aucune : t.msg_chargement}
           </span>
           <button type="button" className="fleche" onClick={() => aller(1)} disabled={rang < 0 || rang >= liste.length - 1} aria-label={t.palm_suivant} title={t.palm_suivant}>
             ›
           </button>
         </div>
+        {(affiche?.etat || (cleEnCours && cle && cle !== cleEnCours)) && (
+          <div className="periode-etats">
+            {affiche?.etat && (
+              <span className="periode-etat">
+                <button
+                  type="button"
+                  className={`etat-periode ${affiche.etat}`}
+                  aria-expanded={bulle}
+                  onClick={() => setBulle((b) => !b)}
+                  onBlur={() => setBulle(false)}
+                >
+                  {estEnCours ? t.palm_en_cours : t.palm_provisoire}
+                </button>
+                {bulle && (
+                  <span className="etat-bulle" role="status">
+                    {estEnCours ? t.palm_en_cours_aide(pas) : t.palm_provisoire_aide(pas)}
+                  </span>
+                )}
+              </span>
+            )}
+            {cleEnCours && cle && cle !== cleEnCours && (
+              <button type="button" className="retour-en-cours" onClick={() => setChoix((c) => ({ ...c, [pas]: cleEnCours }))}>
+                {t.palm_ici(pas)}
+              </button>
+            )}
+          </div>
+        )}
         <label className="champ">
           <span>{t.palm_aller}</span>
           <input
             type="date"
             className="date"
             min={liste[0] ? bornes(pas, liste[0]).de : undefined}
-            max={liste.at(-1) ? bornes(pas, liste.at(-1) as string).a : undefined}
+            max={finListe}
             value={cle ? bornes(pas, cle).de : ""}
             onChange={(ev) => sauter(ev.target.value)}
           />
@@ -262,28 +345,39 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
       </form>
 
       <figure className="tendances">
-        {r && cle && periodeDuResultat === bornes(pas, cle).de ? (
+        {r && affiche ? (
           <>
-            <figcaption key={resultat.tirage}>
-              <span className="tendances-titre">{t.palm_titre(semaine)}</span>
-              <span className="pic-info">{t.palm_sous(formaterN(r.titres.length), formaterN(r.groupes.length))}</span>
+            <figcaption key={affiche.tirage}>
+              <span className="tendances-titre">{t.palm_titre(pas, estEnCours)}</span>
+              <span className="pic-info">
+                {t.palm_sous(formaterN(r.titres.length), formaterN(r.groupes.length))}
+                {maj && ` · ${maj}`}
+              </span>
             </figcaption>
-            <ol className={`tendances-liste${chargement ? " charge" : ""}`} key={`l${resultat.tirage}`}>
-              {barres()}
-            </ol>
-            {r.groupes.length > PAQUET && (
-              <button
-                type="button"
-                className="tendances-plus"
-                onClick={() => setMontres((n) => (n >= r.groupes.length ? PAQUET : n + PAQUET))}
-              >
-                {montres >= r.groupes.length ? t.palm_replier : t.palm_suivants(Math.min(PAQUET, r.groupes.length - montres))}
+            {estEnCours && pas === "jour" && r.groupes.length > 0 && <p className="tendances-indicatif">{t.palm_jour_indicatif}</p>}
+            {estEnCours && !r.groupes.length ? (
+              <div className="etat-projection tendances-vide">
+                <p>{t.palm_vide}</p>
+                {precedente && (
+                  <button type="button" className="tendance-courbe" onClick={() => aller(-1)}>
+                    {t.palm_voir_precedente(pas)}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ol className={`tendances-liste${chargement ? " charge" : ""}`} key={`l${affiche.tirage}`}>
+                {barres()}
+              </ol>
+            )}
+            {r.groupes.length > TOP && (
+              <button type="button" className="tendances-plus" onClick={() => setTous((v) => !v)}>
+                {tous ? t.palm_replier : t.palm_autres(r.groupes.length - TOP)}
               </button>
             )}
             <p className="note-ratio">{t.palm_methode}</p>
           </>
         ) : (
-          <p className="etat-projection">{chargement ? t.msg_chargement : (message ?? t.palm_depart)}</p>
+          <p className="etat-projection">{message ?? (cle || enCours[pas] === undefined ? t.msg_chargement : t.palm_aucune)}</p>
         )}
       </figure>
     </>

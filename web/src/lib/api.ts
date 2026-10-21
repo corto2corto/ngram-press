@@ -332,12 +332,13 @@ export function requetePresidentielle(options: {
   return promesse;
 }
 
-// ---- Palmarès : les mots du jour d'une semaine ou d'un mois (route /mots_du_jour_ngram de
-// api/app_agora.py, méthode de Benoît de Courson reprise dans api/mots_du_jour.py). Les mots en
+// ---- Palmarès : les mots du jour d'un jour, d'une semaine ou d'un mois (route /mots_du_jour_ngram
+// de api/app_agora.py, méthode de Benoît de Courson reprise dans api/mots_du_jour.py). Les mots en
 // excès par rapport aux douze mois précédents, dans au moins cinq médias, sont groupés en sujets
-// par leurs pics communs ; chaque groupe porte des étiquettes tirées des bigrammes. Les semaines
-// (lundi-dimanche) et les mois civils sont calculés d'avance côté serveur : la route les sert en
-// quelques millisecondes, et /mots_du_jour_periodes dit lesquels existent.
+// par leurs pics communs ; chaque groupe porte des étiquettes tirées des bigrammes. Les jours, les
+// semaines (lundi-dimanche) et les mois civils clos sont calculés d'avance côté serveur : la route
+// les sert en quelques millisecondes, et /mots_du_jour_periodes dit lesquels existent. La période
+// en cours vient de /mots_du_jour_en_cours, recalculée toutes les deux heures.
 
 export type MotPalmares = {
   mot: string;
@@ -355,15 +356,21 @@ export type Palmares = {
   titres: string[]; // médias ayant des données
   titres_sans_donnees: string[];
   groupes: SujetPalmares[];
+  calcule?: string; // "AAAA-MM-JJ HH:MM:SS", heure de Paris ; absent des fichiers définitifs anciens
+  provisoire?: boolean; // période après la dernière fusion des bases, recalculée les nuits suivantes
 };
 
-export type PeriodesPalmares = { semaines: string[]; mois: string[] }; // "AAAA-MM-JJ" (lundis), "AAAA-MM"
+export type PasPalmares = "jour" | "semaine" | "mois";
+
+// "AAAA-MM-JJ", "AAAA-MM-JJ" (lundis), "AAAA-MM"
+export type PeriodesPalmares = { jours: string[]; semaines: string[]; mois: string[] };
 
 export function chargerPeriodesPalmares(): Promise<PeriodesPalmares> {
   return lireJson<PeriodesPalmares>("/mots_du_jour_periodes");
 }
 
-// les résultats d'une période close sont figés : une période déjà lue n'est pas redemandée
+// une période close est figée, ou recalculée la nuit tant qu'elle est provisoire : une période
+// déjà lue n'est pas redemandée
 const palmaresServis = new Map<string, Promise<Palmares>>();
 
 export function requetePalmares(options: { de: string; a: string }): Promise<Palmares> {
@@ -376,4 +383,10 @@ export function requetePalmares(options: { de: string; a: string }): Promise<Pal
   palmaresServis.set(cle, promesse);
   promesse.catch(() => palmaresServis.delete(cle));
   return promesse;
+}
+
+// le jour, la semaine (depuis lundi) ou le mois (depuis le 1er) en cours, jusqu'à aujourd'hui :
+// recalculé toutes les deux heures, donc pas gardé ici ; 404 tant que rien n'est calculé
+export function requetePalmaresEnCours(pas: PasPalmares): Promise<Palmares> {
+  return lireJson<Palmares>(`/mots_du_jour_en_cours?pas=${pas}`);
 }

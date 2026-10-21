@@ -1,5 +1,33 @@
 # Journal du projet
 
+## 21/10/2026 — Tendances : le jour, et la période en cours au bout des flèches
+- Maquettes d'abord (artifact, données réelles du 21/10 à 13 h 55) : A « le fil » (l'onglet
+  d'hier avec le pas Jour), B « la frise », C « la phrase » (le titre sert de commande, trois
+  tailles de barres). Corto retient A.
+- Idée gardée (B) : une frise en haut de l'onglet, les huit dernières périodes en vignettes avec
+  leur sujet de tête, le filet du bas pour dire définitif, provisoire ou en cours ; un clic pour
+  remonter dans le temps. Coût : huit lectures de fichiers figés à l'ouverture.
+- Palmares.tsx : pas Jour, Semaine, Mois. La période en cours (`/mots_du_jour_en_cours`) vient
+  après la dernière période close, et l'onglet s'ouvre sur la semaine en cours. Pastille
+  « En cours » et « mis à jour à 13 h 54 » : l'heure du calcul, jamais celle des dernières
+  données reçues. Titre au présent (« Ce qui fait la semaine »), au passé sinon. Un bouton
+  « Cette semaine » (« Aujourd'hui », « Ce mois-ci ») y ramène.
+- Jour en cours : « À titre indicatif, les mesures seront plus fiables en fin de journée. »
+  Tôt le matin, sans sujet : un message et « Voir la veille ».
+- « Provisoire » seulement pour une période finie hier ou avant-hier : c'est la seule chose
+  que le visiteur gagne à savoir, des articles en retard arrivent jusqu'à J+2. Rien sur les
+  autres périodes d'après la dernière fusion. Au clic sur la pastille, une bulle : « Les tops
+  de ce jour sont susceptibles de changer : il date de moins de 72 h… ».
+- Top 20 : la chaleur étirée sur vingt rangs (texte blanc sur les cinq premières), la suite
+  repliée en gris derrière « Voir les N autres sujets ». Vague des barres à 40 ms.
+- Au passage : le « ×N » se calcule sur la durée réelle de la période (trois jours pour la
+  semaine en cours, pas sept) ; le lien vers les Courbes va jusqu'à aujourd'hui ; un résultat
+  ne s'affiche que sous son pas (un mois commençant un lundi passait un instant pour la semaine).
+- api.ts : `requetePalmaresEnCours`, champs `calcule` et `provisoire`, liste des jours. FR/EN.
+- Vérifié : tsc, eslint, build ; dans Chrome (dev + tunnel) : semaine en cours, semaine du
+  12/10 sans pastille, jour en cours (7 sujets à 13 h 54), 20 et 19/10 provisoires, 18/10
+  sans, « Voir les 20 autres », mois en cours et septembre, version anglaise. Console propre.
+
 ## 20/10/2026 — Palmarès devient Tendances : une grande barre par sujet
 - Maquettes d'abord (canevas artifact, données réelles de l'API) : une Une de
   journal, un classement façon hit-parade, puis des barres. Corto écarte les

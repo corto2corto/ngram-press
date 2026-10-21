@@ -2387,6 +2387,110 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   align-items: flex-end;
 }
 
+/* l'état de la période à droite des flèches : « En cours » (point d'argile) ou « Provisoire »
+   (filet pointillé) ; au clic, une bulle dit ce qu'il implique. Puis le retour à la période en
+   cours, quand on s'en est éloigné */
+.periode-etats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.6rem;
+}
+
+.periode-etat {
+  position: relative;
+}
+
+.etat-periode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.65rem;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--encre-2);
+  cursor: pointer;
+  transition: border-color var(--duree-courte) ease;
+}
+
+.etat-periode.en_cours {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--encre);
+}
+
+.etat-periode.en_cours::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.etat-periode.provisoire {
+  border-style: dashed;
+  border-color: var(--axe);
+}
+
+.etat-periode:hover {
+  border-color: var(--encre-muette);
+}
+
+.etat-periode:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.etat-bulle {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 4;
+  width: max-content;
+  max-width: min(19rem, 80vw);
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 4px 14px var(--ombre);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--encre);
+  animation: paraitre var(--duree-courte) var(--sortie) both;
+}
+
+.retour-en-cours {
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: none;
+  padding: 0.3rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--encre-2);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--duree-courte) ease,
+    color var(--duree-courte) ease;
+}
+
+.retour-en-cours:hover {
+  border-color: var(--axe);
+  color: var(--encre);
+}
+
+.retour-en-cours:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
 .navigation-periode {
   display: flex;
   align-items: center;
@@ -2435,7 +2539,8 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 
 /* les sujets en grandes barres numérotées : longueur = force de l'excès (--part, de 0,24 à 1,
    la place du « ×25 » et de « Nouveau » réservée), teinte = rang, du rouge brique au jaune
-   paille (--fond, --texte posés par Palmares.tsx) ; elles poussent en vague au chargement */
+   paille sur les vingt premières, gris ensuite (--fond, --texte posés par Palmares.tsx) ; elles
+   poussent en vague au chargement */
 .tendances {
   margin: 0;
 }
@@ -2475,6 +2580,24 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   opacity: 0.45;
 }
 
+/* le jour en cours : une ligne sous le titre ; tôt le matin, aucun sujet encore */
+.tendances-indicatif {
+  margin: 0.6rem 0 0;
+  font-family: var(--police-serif), Georgia, serif;
+  font-style: italic;
+  font-size: 1.08rem;
+  color: var(--encre-2);
+}
+
+.tendances-vide {
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.tendances-vide p {
+  margin: 0;
+}
+
 .tendance-ligne {
   display: flex;
   align-items: center;
@@ -2502,7 +2625,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   white-space: nowrap;
   cursor: pointer;
   transform-origin: left;
-  animation: pousser-barre 700ms var(--sortie) calc(var(--rang, 0) * 60ms) both;
+  animation: pousser-barre 700ms var(--sortie) calc(var(--rang, 0) * 40ms) both;
   transition:
     filter var(--duree-courte) ease,
     box-shadow var(--duree-courte) ease;

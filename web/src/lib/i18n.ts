@@ -1,6 +1,8 @@
 // Dictionnaires FR/EN du site (repris du front statique, complétés au fil des pages).
 // Importable côté serveur comme côté client : de simples objets TypeScript.
 
+import type { PasPalmares } from "@/lib/api";
+
 export const langs = ["fr", "en"] as const;
 export type Lang = (typeof langs)[number];
 
@@ -178,31 +180,57 @@ export const textes = {
     btn_tester: "Tester",
     avenir_note: "Cette vue arrive bientôt : le formulaire est posé, la méthode suit.",
 
-    // Tendances : les sujets d'une semaine ou d'un mois (mots du jour), une barre par sujet
+    // Tendances : les sujets d'un jour, d'une semaine ou d'un mois (mots du jour), une barre par sujet
     ong_desc_palmares:
-      "Les sujets d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. La barre mesure la force de l'excès ; un clic montre les mots du sujet. Flèches ou date pour changer de période.",
+      "Les sujets d'un jour, d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. La barre mesure la force de l'excès ; un clic montre les mots du sujet. Flèches ou date pour changer de période.",
     palm_pas_aria: "Pas des tendances",
+    palm_jour: "Jour",
     palm_semaine: "Semaine",
     palm_mois: "Mois",
     palm_precedent: "Période précédente",
     palm_suivant: "Période suivante",
     palm_aller: "Aller à",
     palm_aucune: "Aucune période disponible.",
-    palm_depart: "Choisissez une semaine ou un mois.",
     palm_titre_semaine: (de: string, a: string) => `Semaine du ${de} au ${a}`,
     palm_sous: (medias: string, sujets: string) => `${medias} médias · ${sujets} sujets`,
-    palm_titre: (semaine: boolean): string => (semaine ? "Ce qui a fait la semaine" : "Ce qui a fait le mois"),
+    // au présent pour la période en cours, au passé sinon
+    palm_titre: (pas: PasPalmares, enCours: boolean): string =>
+      `Ce qui ${enCours ? "fait" : "a fait"} ${{ jour: "la journée", semaine: "la semaine", mois: "le mois" }[pas]}`,
+    // la période en cours (retour, état, heure du calcul) ; « provisoire » : finie depuis moins de 72 h
+    palm_ici: (pas: PasPalmares) => ({ jour: "Aujourd'hui", semaine: "Cette semaine", mois: "Ce mois-ci" })[pas],
+    palm_en_cours: "En cours",
+    palm_en_cours_aide: (pas: PasPalmares) =>
+      ({
+        jour: "Les tops du jour sont recalculés toutes les deux heures.",
+        semaine: "La semaine jusqu'à aujourd'hui, recalculée toutes les deux heures.",
+        mois: "Le mois jusqu'à aujourd'hui, recalculé toutes les deux heures.",
+      })[pas],
+    palm_provisoire: "Provisoire",
+    palm_provisoire_aide: (pas: PasPalmares) =>
+      ({
+        jour: "Les tops de ce jour sont susceptibles de changer : il date de moins de 72 h et des articles en retard arrivent encore.",
+        semaine: "Les tops de cette semaine sont susceptibles de changer : ses derniers jours datent de moins de 72 h et des articles en retard arrivent encore.",
+        mois: "Les tops de ce mois sont susceptibles de changer : ses derniers jours datent de moins de 72 h et des articles en retard arrivent encore.",
+      })[pas],
+    palm_maj: (h: number, m: string) => `mis à jour à ${h} h ${m}`,
+    palm_jour_indicatif: "À titre indicatif, les mesures seront plus fiables en fin de journée.",
+    palm_vide: "Pas encore assez d'articles pour dégager des sujets.",
+    palm_voir_precedente: (pas: PasPalmares) =>
+      ({ jour: "Voir la veille", semaine: "Voir la semaine d'avant", mois: "Voir le mois d'avant" })[pas],
     palm_nouveau: "Nouveau",
-    palm_nouveau_aide: (semaine: boolean) => `Absent ${semaine ? "de la semaine" : "du mois"} d'avant`,
+    palm_nouveau_aide: (pas: PasPalmares) =>
+      `Absent ${{ jour: "de la veille", semaine: "de la semaine d'avant", mois: "du mois d'avant" }[pas]}`,
     palm_inedit: "inédit",
     // la bulle du « ×25 » : la hausse en clair, puis le compte du mot sur la période
-    palm_fois_aide: (x: string, mot: string, n: string, semaine: boolean) =>
-      `${x} par rapport aux douze mois précédents\n« ${mot} » : ${n} occurrences ${semaine ? "cette semaine" : "ce mois-ci"}`,
-    palm_inedit_aide: (mot: string, n: string, semaine: boolean) =>
-      `presque absent des douze mois précédents\n« ${mot} » : ${n} occurrences ${semaine ? "cette semaine" : "ce mois-ci"}`,
+    palm_quand: (pas: PasPalmares, enCours: boolean): string =>
+      pas === "jour" ? (enCours ? "aujourd'hui" : "ce jour-là") : pas === "semaine" ? "cette semaine" : "ce mois-ci",
+    palm_fois_aide: (x: string, mot: string, n: string, quand: string) =>
+      `${x} par rapport aux douze mois précédents\n« ${mot} » : ${n} occurrences ${quand}`,
+    palm_inedit_aide: (mot: string, n: string, quand: string) =>
+      `presque absent des douze mois précédents\n« ${mot} » : ${n} occurrences ${quand}`,
     palm_voir_courbe: (mot: string) => `Voir « ${mot} » dans les Courbes`,
-    palm_suivants: (n: number) => `Voir les ${n} suivants`,
-    palm_replier: "Revenir aux dix premiers",
+    palm_autres: (n: number) => `Voir les ${n} autres sujets`,
+    palm_replier: "Revenir aux vingt premiers",
     palm_methode:
       "Mots en excès par rapport aux douze mois précédents (log-odds, Monroe et al. 2008), dans au moins cinq médias ; sujets formés par les pics communs des mots, étiquettes tirées des bigrammes. Méthode de Benoît de Courson (Gallicagram).",
 
@@ -508,31 +536,56 @@ export const textes = {
     btn_tester: "Test",
     avenir_note: "This view is coming soon: the form is in place, the method follows.",
 
-    // Trending: the topics of a week or a month (words of the day), one bar per topic
+    // Trending: the topics of a day, a week or a month (words of the day), one bar per topic
     ong_desc_palmares:
-      "The topics of a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. The bar measures how strong the excess is; a click shows the topic's words. Arrows or a date to change period.",
+      "The topics of a day, a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. The bar measures how strong the excess is; a click shows the topic's words. Arrows or a date to change period.",
     palm_pas_aria: "Trending step",
+    palm_jour: "Day",
     palm_semaine: "Week",
     palm_mois: "Month",
     palm_precedent: "Previous period",
     palm_suivant: "Next period",
     palm_aller: "Go to",
     palm_aucune: "No period available.",
-    palm_depart: "Pick a week or a month.",
     palm_titre_semaine: (de: string, a: string) => `Week of ${de} to ${a}`,
     palm_sous: (medias: string, sujets: string) => `${medias} outlets · ${sujets} topics`,
-    palm_titre: (semaine: boolean): string => (semaine ? "What made the week" : "What made the month"),
+    // present tense for the ongoing period, past tense otherwise
+    palm_titre: (pas: PasPalmares, enCours: boolean): string =>
+      `${enCours ? "What's making" : "What made"} the ${{ jour: "day", semaine: "week", mois: "month" }[pas]}`,
+    // the ongoing period (way back, state, time of the computation); "provisional": ended less than 72 h ago
+    palm_ici: (pas: PasPalmares) => ({ jour: "Today", semaine: "This week", mois: "This month" })[pas],
+    palm_en_cours: "In progress",
+    palm_en_cours_aide: (pas: PasPalmares) =>
+      ({
+        jour: "Today's top topics are recalculated every two hours.",
+        semaine: "The week so far, recalculated every two hours.",
+        mois: "The month so far, recalculated every two hours.",
+      })[pas],
+    palm_provisoire: "Provisional",
+    palm_provisoire_aide: (pas: PasPalmares) =>
+      ({
+        jour: "This day's top topics may still change: it is less than 72 hours old and late articles are still coming in.",
+        semaine: "This week's top topics may still change: its last days are less than 72 hours old and late articles are still coming in.",
+        mois: "This month's top topics may still change: its last days are less than 72 hours old and late articles are still coming in.",
+      })[pas],
+    palm_maj: (h: number, m: string) => `updated at ${String(h).padStart(2, "0")}:${m}`,
+    palm_jour_indicatif: "For guidance only: the figures will be more reliable at the end of the day.",
+    palm_vide: "Not enough articles yet to bring out topics.",
+    palm_voir_precedente: (pas: PasPalmares) =>
+      ({ jour: "See the day before", semaine: "See the previous week", mois: "See the previous month" })[pas],
     palm_nouveau: "New",
-    palm_nouveau_aide: (semaine: boolean) => `Absent from the previous ${semaine ? "week" : "month"}`,
+    palm_nouveau_aide: (pas: PasPalmares) => `Absent from the previous ${{ jour: "day", semaine: "week", mois: "month" }[pas]}`,
     palm_inedit: "unseen",
     // the "×25" tooltip: the rise in plain words, then the word's count over the period
-    palm_fois_aide: (x: string, mot: string, n: string, semaine: boolean) =>
-      `${x} compared with the previous twelve months\n“${mot}”: ${n} occurrences ${semaine ? "this week" : "this month"}`,
-    palm_inedit_aide: (mot: string, n: string, semaine: boolean) =>
-      `almost absent from the previous twelve months\n“${mot}”: ${n} occurrences ${semaine ? "this week" : "this month"}`,
+    palm_quand: (pas: PasPalmares, enCours: boolean): string =>
+      pas === "jour" ? (enCours ? "today" : "that day") : pas === "semaine" ? "this week" : "this month",
+    palm_fois_aide: (x: string, mot: string, n: string, quand: string) =>
+      `${x} compared with the previous twelve months\n“${mot}”: ${n} occurrences ${quand}`,
+    palm_inedit_aide: (mot: string, n: string, quand: string) =>
+      `almost absent from the previous twelve months\n“${mot}”: ${n} occurrences ${quand}`,
     palm_voir_courbe: (mot: string) => `See “${mot}” in Curves`,
-    palm_suivants: (n: number) => `Show the next ${n}`,
-    palm_replier: "Back to the top ten",
+    palm_autres: (n: number) => `Show the other ${n} topics`,
+    palm_replier: "Back to the top twenty",
     palm_methode:
       "Words in excess compared with the previous twelve months (log-odds, Monroe et al. 2008), in at least five outlets; topics formed by the words' shared peaks, labels taken from bigrams. Method by Benoît de Courson (Gallicagram).",
 
