@@ -6,7 +6,9 @@
 # grosses bases ; un fichier existant est gardé (--refaire pour recalculer). Semaines et mois passent
 # par les cumuls (quelques secondes) ; un jour lit les bases et les tampons (4 à 14 s).
 # Usage : python -m scripts.precalcul_mots_du_jour [--jours] [--semaines] [--mois] [--refaire] [--max N]
-#         (sans --jours, --semaines ni --mois : semaines et mois)
+#                                                  [--depuis AAAAMMJJ]
+#         (sans --jours, --semaines ni --mois : semaines et mois ; --depuis : seulement les périodes qui
+#         commencent à cette date ou après, pour refaire ce qu'une fusion a changé)
 
 import datetime as dt
 import json
@@ -65,9 +67,10 @@ if __name__ == "__main__":
     if not jours and not semaines and not mois:
         semaines = mois = True
     maxi = int(args[args.index("--max") + 1]) if "--max" in args else None
+    depuis = args[args.index("--depuis") + 1] if "--depuis" in args else "00000000"
     os.makedirs(PRECALCUL, exist_ok=True)
     fin = date_max()
-    liste = periodes(jours, semaines, mois, fin)
+    liste = [(fr, to) for fr, to in periodes(jours, semaines, mois, fin) if fr >= depuis]
     print(f"{len(liste)} périodes jusqu'au {fin}", flush=True)
     faits = 0
     for fr, to in liste:

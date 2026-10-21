@@ -150,10 +150,16 @@ class _Cumuls:
 
 
 def _cumuls_de(media):
-    if media not in _cumuls:
-        d = os.path.join(BASES_DIR, "cumuls", media)
-        _cumuls[media] = _Cumuls(media) if os.path.exists(os.path.join(d, "meta.json")) else None
-    return _cumuls[media]
+    """Cumuls d'un titre, rouverts d'eux-mêmes quand meta.json change (reconstruction après une fusion :
+    scripts/apres_fusion_mots_du_jour.py), sans redémarrer l'API."""
+    meta = os.path.join(BASES_DIR, "cumuls", media, "meta.json")
+    try:
+        version = os.path.getmtime(meta)
+    except OSError:
+        version = None
+    if media not in _cumuls or _cumuls[media][0] != version:
+        _cumuls[media] = (version, _Cumuls(media) if version else None)
+    return _cumuls[media][1]
 
 
 def _semaines_entieres(d_fr, d_to):
