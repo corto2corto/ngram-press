@@ -38,8 +38,17 @@
   trois mois + « toussaint » (50e mot, sujet 14 cerclé, ×16 au lieu de ×17 avec 92 jours de
   référence), douze mois + « émeutiers » (121e mot, barre en pointillés sous la liste), semaine
   précédente + « macron » (2 sujets seulement, « ne ressort pas : ×1,3 »), les bulles « ? ».
-  Trois mois libres avec 300 mots : 44 s. La semaine du 12/10 recalculée à la demande donne 28
-  sujets contre 35 dans le fichier figé (calculé une autre nuit, avant les articles en retard ?).
+  Trois mois libres avec 300 mots : 44 s.
+- Enquête : la semaine du 12/10 recalculée à la demande donne 28 sujets contre 35 dans le
+  fichier figé (écrit le 21/10 à 13 h 53 par apres_fusion). Mêmes 80 mots, mêmes comptes, mêmes
+  scores, même référence : seule la grille de regroupement diffère, Télérama y est entré entre
+  temps (titres_grille : 20 → 21). Sa médiane de volume sur les 28 jours de la fenêtre est à
+  20 552 mots, juste au-dessus de volume_min = 20000 ; la récolte du 22/10 à 1 h 08 (tampon
+  telerama_2026-10.db) l'a fait passer le seuil. Un titre de plus dans la grille change les
+  corrélations, donc les regroupements : 35 → 28. Le fichier figé reste « provisoire » et ne
+  sera refait qu'à la prochaine fusion (apres_fusion) : d'ici là, la recherche avancée et le
+  fichier peuvent différer sur les semaines récentes. Décision de Corto : ce n'est pas grave,
+  de légers écarts entre le provisoire et le regroupement final sont acceptés.
   Le mot suivi est cerclé par `.cercle` : `.marque` existait déjà (le logotype, petites capitales).
 
 ## 21/10/2026 — Tendances : le jour, et la période en cours au bout des flèches
