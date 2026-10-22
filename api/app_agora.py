@@ -194,9 +194,12 @@ def decouper(expression):
 
 def analyser_serie(gram):
     # « grève+grèves » -> [["grève"], ["grèves"]] ; Refus si une variante n'a pas 1 à MAX_N mots,
-    # si les variantes n'ont pas la même longueur, ou si un motif n'a que des « _ »
+    # si les variantes n'ont pas la même longueur, ou si un motif n'a que des « _ ».
+    # « | » vaut « + » : dans une URL tapée à la main, un « + » nu est décodé en espace (par le
+    # relais Gallicagram et par Vercel avant nous, impossible de le rattraper ici), « grève+grèves »
+    # devenait le bigramme « grève grèves » ; « grève|grèves » traverse toute URL intact
     expressions = []
-    for v in gram.split("+"):
+    for v in gram.replace("|", "+").split("+"):
         mots = decouper(v)
         if not 1 <= len(mots) <= MAX_N:
             raise Refus(f"« {v.strip()} » : 1 à {MAX_N} mots attendus")
@@ -221,12 +224,34 @@ def variantes(tokens):
 
 def serie(conn, schemas, expressions, date_min, date_max):
     # somme jour par jour des formes des expressions (variantes « + » et leurs élisions), chaque
-    # forme comptée une fois : « économie+l'économie » ne compte pas deux fois « l'économie »
+    # ligne (mots, jour) comptée une fois même si plusieurs formes la couvrent : « économie+l'économie »
+    # ne compte pas deux fois « l'économie », « grèv*+grève » pas deux fois « grève ». Pour cela,
+    # dans chaque base, un SELECT par forme (chacun sur la clé primaire w1, w2..., date, comme
+    # avant) réunis par UNION, qui retire les lignes identiques ; les bases sont ensuite mises bout
+    # à bout (UNION ALL : un jour n'est que dans une base). Une forme dont un mot exact est inconnu
+    # de toutes les bases ne couvre rien et est laissée de côté ; aucune forme -> série à zéro
+    # (colonnes entières : une série vide sans type ferait passer n en objet, avertissement de
+    # pandas au fillna).
     formes = []
     for tokens in expressions:
         formes += [f for f in variantes(tokens) if f not in formes]
-    df = pd.concat([serie_forme(conn, schemas, f, date_min, date_max) for f in formes])
-    return df.groupby("date", as_index=False)["n"].sum().astype({"date": "int64", "n": "int64"})
+    n = len(formes[0])
+    cles = ", ".join(f"w{i}" for i in range(1, n + 1))
+    selects, params = [], []
+    for mots in formes:
+        conditions, p = conditions_mots(conn, schemas, mots)
+        if conditions is None:
+            continue
+        ou = " AND ".join(conditions + ["date BETWEEN ? AND ?"])
+        selects.append(f"SELECT {cles}, date, n FROM {{s}}.{TABLE[n]} WHERE {ou}")
+        params += p + [date_min, date_max]
+    if not selects:
+        return pd.DataFrame({"date": pd.Series(dtype="int64"), "n": pd.Series(dtype="int64")})
+    return pd.read_sql_query(
+        "SELECT date, SUM(n) AS n FROM ("
+        + union(schemas, "SELECT date, n FROM (" + " UNION ".join(selects) + ")")
+        + ") GROUP BY date", conn, params=params * len(schemas)
+    ).astype({"date": "int64", "n": "int64"})   # résultat vide : colonnes sans type sinon
 
 
 def id_mot(conn, schemas, mot):
@@ -268,19 +293,6 @@ def conditions_mots(conn, schemas, mots):
             conditions.append(f"w{i} = ?")
             params.append(id_)
     return conditions, params
-
-
-def serie_forme(conn, schemas, mots, date_min, date_max):
-    conditions, params = conditions_mots(conn, schemas, mots)
-    if conditions is None:  # mot inconnu -> série à zéro (colonnes entières : une série vide
-        # sans type ferait passer n en objet, avertissement de pandas au fillna)
-        return pd.DataFrame({"date": pd.Series(dtype="int64"), "n": pd.Series(dtype="int64")})
-    ou = " AND ".join(conditions + ["date BETWEEN ? AND ?"])
-    return pd.read_sql_query(
-        "SELECT date, SUM(n) AS n FROM ("
-        + union(schemas, f"SELECT date, n FROM {{s}}.{TABLE[len(mots)]} WHERE {ou}")
-        + ") GROUP BY date", conn, params=(params + [date_min, date_max]) * len(schemas)
-    ).astype({"date": "int64", "n": "int64"})   # résultat vide : colonnes sans type sinon
 
 
 def mots_vides(conn, schemas, k):
@@ -463,7 +475,7 @@ def proxy_mcp():
 @app.route("/query_ngram")
 def query():
     # Même interface que /query_ngram de l'API Gallicagram (guni) : ',' sépare des séries, '+'
-    # additionne des variantes en une série (« grève+grèves »), jokers « _ », « * », « ? »
+    # ou '|' additionne des variantes en une série (« grève+grèves »), jokers « _ », « * », « ? »
     # (voir JOKERS), résolution par défaut la plus fine (jour), colonnes
     # n,annee[,mois[,jour]],gram,total. Les comptes peuvent différer de
     # guni (élisions l', d', n' ici, voir variantes()). Son paramètre elias=true est ignoré.

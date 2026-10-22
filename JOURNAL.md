@@ -1,5 +1,36 @@
 # Journal du projet
 
+## 22/10/2026 — « + » et jokers sur « Usage relatif » : vérification, double comptage « grèv*+grève » corrigé
+- Retour transmis par Benoît : les jokers ne marcheraient pas sur « Usage relatif » (Tests
+  statistiques), et on aurait parfois les mêmes courbes avec et sans « + ». Vérifié sans rien
+  reproduire : `/ratio` passe par le même `analyser_serie` que `/query` (jokers depuis le
+  06/10), le front encode les mots (URLSearchParams) ; en production, 20minutes 2024 contre
+  « ukraine » : « grèv* » 993, « gr?ve » 2 274, « grève _ » 734, « grève+grèves » 990, par
+  l'adresse shiny comme par `www.agoragram.fr/api/ngram` ; dans Chrome, la vue trace « grèv* »
+  et « grève _ » et son tableau est juste. Tous les médias ont des bigrammes ; un joker sur les
+  33 médias et trois ans répond en moins de 4 s. Seuls refus, voulus : motif commençant par un
+  joker, motif de plus de 100 000 formes.
+- Le « + » additionne partout : notre API (Le Monde 2024, grève 1 975, grèves 208, somme 2 183 ;
+  migrant 109, migrants 2 745, somme 2 854). Gallicagram.com n'appelle plus notre API pour les
+  corpus Agora : son front React (`regicid/gallicagram_react`, `ngramRoute.js`) découpe le « + »,
+  envoie une requête par variante à sa propre route `query_ngram` avec `elias=true`, qui lit nos
+  bases directement, puis additionne côté client ; mêmes chiffres que nous, et dans le navigateur
+  « grève » 208 073, « grève+grèves » 239 837. Rien touché côté Gallicagram, lecture seule.
+- Deux cas où « + » ne change rien, par construction : la forme élidée (« école » compte déjà
+  « l'école », donc « école+l'école » = « école » = 6 651, alors que « l'école » seul vaut 4 411 ;
+  même règle chez Benoît) ; un pluriel rare (« grèves » pèse 10 % de « grève » dans Le Monde,
+  les courbes se superposent à l'œil). Sans doute l'observation de Benoît ; sa saisie exacte
+  reste à obtenir.
+- Vrai défaut trouvé au passage, dans l'autre sens : « grèv*+grève » donnait 4 174 = 2 199 + 1 975,
+  « grève » compté deux fois (par le joker et en clair). `serie()` ne dédoublonnait que les
+  motifs tels que tapés. Corrigé : dans chaque base, un SELECT par forme (clé primaire w1, w2...,
+  date, comme avant) réunis par UNION, qui retire les lignes identiques, bases mises bout à bout
+  par UNION ALL ; une forme dont un mot est inconnu est laissée de côté ; `serie_forme` retirée.
+  Mini-base : « grèv*+grève » 45 (plus 75), « premier _+premier ministre » 21, « inconnu+grève »
+  30, « | » et `/ratio` inchangés.
+- Le « + » nu dans une adresse tapée à la main reste une espace (voir l'entrée « | » plus bas) ;
+  l'alias « | » est gardé comme option supplémentaire.
+
 ## 22/10/2026 — Courbes : « Télécharger les données » (CSV)
 - Demande : sous le graphe, télécharger en CSV ce qui a été demandé (par exemple « orange » du
   1er au 31 janvier 2026). Maquette d'abord (artifact : le lien à côté de « Voir les données »,

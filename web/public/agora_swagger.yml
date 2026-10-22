@@ -74,8 +74,12 @@ paths:
         identifié par la colonne `gram`.
 
         **Somme de variantes :** le signe `+` additionne plusieurs formes en une
-        seule série (`mot=grève+grèves`), nommée comme saisie dans `gram`. Les
-        variantes d'une même série doivent avoir le même nombre de mots.
+        seule série (`grève+grèves`), nommée comme saisie dans `gram`. Les
+        variantes d'une même série doivent avoir le même nombre de mots. Dans
+        une URL écrite à la main (navigateur, curl, R), un `+` est décodé en
+        espace : écrire `|` à sa place (`mot=grève|grèves`) ou `%2B`. Les
+        bibliothèques qui encodent les paramètres (requests, URLSearchParams)
+        et le bouton « Try it out » ci-dessous s'en chargent d'elles-mêmes.
 
         **Jokers :** `*` (zéro ou plusieurs lettres) et `?` (une lettre) dans un
         mot (`grèv*` additionne grève, grèves, grévistes… en une série), `_` à
@@ -101,7 +105,8 @@ paths:
           description: |
             Mot ou syntagme de 1 à 3 mots. Plusieurs expressions peuvent être
             demandées en une requête, séparées par une virgule ; le signe `+`
-            additionne des variantes en une seule série.
+            (ou `|`, qui survit à une URL tapée à la main) additionne des
+            variantes en une seule série.
           required: true
           schema:
             type: string
@@ -215,7 +220,7 @@ paths:
       parameters:
         - name: mot
           in: query
-          description: Exactement deux expressions séparées par une virgule, 1 à 3 mots chacune ; `+` et jokers acceptés comme sur `/query`.
+          description: Exactement deux expressions séparées par une virgule, 1 à 3 mots chacune ; `+` (ou `|` dans une URL tapée à la main) et jokers acceptés comme sur `/query`.
           required: true
           schema:
             type: string

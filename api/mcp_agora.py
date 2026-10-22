@@ -66,7 +66,8 @@ def query_frequency(mot: str, corpus: str, debut: str = "1900",
     - Plusieurs expressions séparées par des virgules pour comparer des séries
       (`inflation,chômage,pouvoir achat`), 5 au maximum.
     - Le signe `+` additionne des variantes en une seule série
-      (`grève+grèves`, `migrant+migrants+réfugié+réfugiés`).
+      (`grève+grèves`, `migrant+migrants+réfugié+réfugiés`) ; `|` est un
+      synonyme de `+`.
     - Jokers : `*` (zéro ou plusieurs lettres) et `?` (une lettre) dans un mot
       (`grèv*` additionne grève, grèves, grévistes…), `_` à la place d'un mot
       entier (`guerre _`). Le premier mot doit être fixé ; avec 3 mots, seul le
