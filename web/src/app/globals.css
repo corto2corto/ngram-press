@@ -3221,3 +3221,343 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
     flex: 1;
   }
 }
+
+/* ---- partage d'un graphe (Partager.tsx) : le bouton au coin du graphe, le panneau et
+   son aperçu (Carte.tsx) */
+
+.bouton-partager {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--encre-2);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    color var(--duree-courte) ease,
+    border-color var(--duree-courte) ease;
+}
+
+.bouton-partager:hover:not(:disabled) {
+  color: var(--encre);
+  border-color: var(--axe);
+}
+
+.bouton-partager:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.bouton-partager:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* dans la carte des Courbes : à gauche du bouton d'agrandissement, au-dessus du titre */
+.carte-cadre .coin-partager {
+  position: absolute;
+  top: clamp(1rem, 3vw, 1.6rem);
+  right: calc(clamp(1rem, 3vw, 1.6rem) + 1.75rem + 0.5rem);
+  z-index: 3;
+}
+
+.carte-cadre .titre-graphe {
+  padding-right: 10rem;
+}
+
+/* dans les Tendances : au bout de la ligne du titre */
+.tendances figcaption .bouton-partager {
+  margin-left: auto;
+  align-self: center;
+}
+
+dialog.partage {
+  width: min(58rem, calc(100vw - 2rem));
+  max-width: none;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--encre);
+}
+
+dialog.partage::backdrop {
+  background: rgba(25, 25, 23, 0.38);
+}
+
+.partage-cadre {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1.5rem 1.75rem 1.6rem;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+  animation: pose-mode 300ms var(--sortie) both;
+}
+
+.partage-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.partage-tete h2 {
+  margin: 0;
+  font-family: var(--police-serif), Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.partage-fermer {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--encre-2);
+  cursor: pointer;
+}
+
+.partage-fermer:hover {
+  color: var(--encre);
+}
+
+.partage-corps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+}
+
+.partage-reglages {
+  flex: 1 1 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.partage-etiquette {
+  font-size: 0.85rem;
+  color: var(--encre-2);
+}
+
+.partage-formats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.partage-format {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.6rem 0.25rem 0.5rem;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--encre-2);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color var(--duree-courte) ease,
+    border-color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
+}
+
+.partage-format:hover {
+  border-color: var(--axe);
+  color: var(--encre);
+}
+
+.partage-format.actif {
+  border-color: var(--encre);
+  color: var(--encre);
+  box-shadow: 0 0 0 1px var(--encre);
+}
+
+.partage-format:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.partage-format .vignette {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+
+.partage-format .vignette span {
+  display: block;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  background: var(--grille);
+}
+
+.partage-format .nom {
+  font-size: 0.85rem;
+}
+
+.partage-format .ratio {
+  font-size: 0.72rem;
+  color: var(--encre-muette);
+}
+
+.partage-aide {
+  margin: 0;
+  min-height: 2.4em;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--encre-2);
+}
+
+.partage-cases {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.partage-cases label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.partage-cases input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--encre);
+}
+
+.partage-apercu-bloc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.partage-apercu-bloc .partage-etiquette {
+  align-self: flex-start;
+}
+
+.partage-apercu {
+  display: grid;
+  place-items: center;
+  color: var(--encre-muette);
+}
+
+.partage-carte {
+  overflow: hidden;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  background: var(--fond);
+  box-shadow: 0 6px 18px var(--ombre);
+}
+
+.partage-carte svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.partage-taille {
+  font-size: 0.8rem;
+  color: var(--encre-muette);
+}
+
+.partage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--bord);
+}
+
+.partage-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.partage-action.secondaire {
+  height: 2.6rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--bord);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color var(--duree-courte) ease;
+}
+
+.partage-action.secondaire:hover:not(:disabled) {
+  border-color: var(--axe);
+}
+
+.partage-action:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.partage-avis {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--encre-muette);
+}
+
+@media (max-width: 600px) {
+  .partage-cadre {
+    padding: 1.1rem 1rem 1.2rem;
+  }
+
+  .partage-formats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .partage-corps {
+    flex-direction: column;
+  }
+
+  .partage-apercu-bloc {
+    align-items: stretch;
+  }
+
+  .partage-apercu {
+    width: 100% !important;
+  }
+
+  .partage-avis {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .carte-cadre .titre-graphe {
+    padding-right: 0;
+    padding-top: 2.2rem;
+  }
+}
+
+.partage-action .anneau {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: currentColor;
+}

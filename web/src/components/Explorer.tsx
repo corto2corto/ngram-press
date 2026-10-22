@@ -29,7 +29,10 @@ import { corpusNoms, MAX_SERIES, textes, type Lang } from "@/lib/i18n";
 import { ICONE_AGRANDIR, ICONE_REDUIRE } from "@/lib/icones";
 import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import Aide from "@/components/Aide";
+import type { Contenu } from "@/components/Carte";
 import Chart from "@/components/Chart";
+import Partager from "@/components/Partager";
+import { ecrireLien, lireLien, type Lien } from "@/lib/lien";
 import DataTable from "@/components/DataTable";
 import SelecteurPas from "@/components/SelecteurPas";
 import { nomFichierCsv, seriesEnCsv, telechargerTexte } from "@/lib/csv";
@@ -275,6 +278,15 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [],
   );
 
+  // l'adresse d'arrivée (lib/lien.ts) : une courbe ou une période des Tendances à rouvrir
+  // telle quelle, lue une fois avant le catalogue ; le défilement ne part pas dans ce cas.
+  // Un lien vers les Tendances passe au Palmarès, qui s'y place lui-même.
+  const lienInitial = useRef<Lien | null | undefined>(undefined);
+  const [lienTendances, setLienTendances] = useState<Lien | null>(null);
+  useEffect(() => {
+    if (lienInitial.current === undefined) lienInitial.current = lireLien(window.location.search);
+  }, []);
+
   // au premier rendu : catalogue des corpus (noms et bornes, si l'API le sert).
   // Le premier tracé viendra du défilement, lancé une fois le corpus retenu connu.
   const initialise = useRef(false);
@@ -325,6 +337,33 @@ export default function Explorer({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     if (!pret) return;
+    const lien = lienInitial.current;
+    if (lien) {
+      // arrivée par un lien : la recherche du lien se rejoue, le défilement reste muet
+      lienInitial.current = null;
+      setEnDefile(false);
+      if (lien.genre === "courbes") {
+        const medias = lien.medias.filter((c) => corpusListe.includes(c)).slice(0, MAX_MEDIAS);
+        if (medias.length) {
+          const f = fondsParCorpus[medias[0]] ?? FONDS_DEFAUT;
+          const depuis = Math.max(f.lo, Math.min(f.hi, lien.de));
+          const jusque = Math.max(f.lo, Math.min(f.hi, lien.a));
+          // bornes posées d'un coup, pas au clavier : pas de délai de frappe
+          bornesPrecedentes.current = { de: depuis, a: jusque };
+          setCorpus(medias[0]);
+          setComparaison(medias.slice(1));
+          setDe(depuis);
+          setA(jusque);
+          setMots(lien.mots);
+          setMotsTraces(lien.mots);
+          setMetrique(lien.mesure);
+        }
+      } else {
+        setMode("palmares");
+        setLienTendances(lien);
+      }
+      return;
+    }
     const d = defile.current;
     d.etape = () => {
       d.position = (d.position + 1) % DEFILE.length;
@@ -452,6 +491,20 @@ export default function Explorer({ lang }: { lang: Lang }) {
     },
     [arreterDefile],
   );
+
+  // ce que le bouton « Partager » de la carte emporte : la courbe affichée et le lien qui la
+  // rouvre (lib/lien.ts) ; l'adresse de la page le suit, hors défilement (les Tendances
+  // écrivent la leur)
+  const contenuCourbes: Contenu | null = resultat
+    ? { genre: "courbes", series: resultat.series, corpus: resultat.corpus, metrique, resolution: resultat.resolution }
+    : null;
+  const lienCourbes: Lien | null = resultat
+    ? { genre: "courbes", mots: resultat.mots.join(", "), medias: resultat.medias, de: deIso(resultat.de), a: deIso(resultat.a), mesure: metrique }
+    : null;
+  useEffect(() => {
+    if (mode !== "courbes" || !resultat || enDefile) return;
+    ecrireLien({ genre: "courbes", mots: resultat.mots.join(", "), medias: resultat.medias, de: deIso(resultat.de), a: deIso(resultat.a), mesure: metrique });
+  }, [mode, resultat, enDefile, metrique]);
 
   // médias proposés à la comparaison : tous sauf la référence, les principaux
   // d'abord puis par taille de fonds (sans catalogue : l'ordre du select)
@@ -604,6 +657,16 @@ export default function Explorer({ lang }: { lang: Lang }) {
           >
             {agrandi ? ICONE_REDUIRE : ICONE_AGRANDIR}
           </button>
+          {/* ouvrir le partage compte comme une interaction : le défilement s'arrête */}
+          <div className="coin-partager" onPointerDownCapture={arreterDefile}>
+            <Partager
+              lang={lang}
+              contenu={contenuCourbes}
+              lien={lienCourbes}
+              nom={resultat ? [resultat.mots.join("-"), ...resultat.medias] : []}
+              titre={t.partage_titre_courbe}
+            />
+          </div>
           <Chart
             series={resultat?.series ?? []}
             corpus={resultat?.corpus ?? corpus}
@@ -657,7 +720,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
           la clé remonte le panneau à la bascule */}
       {mode === "palmares" && (
         <div key="palmares">
-          <Palmares lang={lang} voirCourbe={voirCourbe} />
+          <Palmares lang={lang} voirCourbe={voirCourbe} lienInitial={lienTendances} actif={mode === "palmares"} />
         </div>
       )}
 

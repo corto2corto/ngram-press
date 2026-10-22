@@ -1,5 +1,42 @@
 # Journal du projet
 
+## 22/10/2026 — Partager un graphe : PNG aux formats des réseaux, lien qui rouvre la recherche
+- Demande : un bouton « Partager » façon Canva sous les courbes et les tendances, pour télécharger
+  l'image au bon format (story, publication, carré…) avec un contenu adapté (5 à 10 tendances,
+  pas 20). Maquette d'abord (canevas : bouton, panneau interactif, cartes par format, un mot dans
+  six médias, tendances en barres, feuille de partage du téléphone), retenue avec trois retouches :
+  le format « Site » en premier, le média dans le titre plutôt qu'un logo, la mesure en petit
+  sous le graphe. Ce que les réseaux acceptent : Instagram ne prend qu'un fichier (téléchargé, ou
+  par la feuille de partage du téléphone, où l'app apparaît) ; X, Bluesky, Threads, LinkedIn
+  prennent un texte et un lien et montrent l'aperçu du lien. D'où deux sorties : le PNG, et le lien.
+- Tout se fait dans le navigateur, rien côté API ni Vercel. `Carte.tsx` dessine la carte en SVG
+  complet aux dimensions réelles du format (1080 × 1920…), avec les jetons du site lus sur la
+  racine (`lib/partage.ts`, `lireTheme`) et la géométrie du graphe sortie de `Chart.tsx` dans
+  `lib/trace.ts` (lissage, échelle, graduations, barres, couleur par média et trait par mot) ;
+  les règles des tendances (nom du sujet, hausse, « ×25 », chaleur) sortent de `Palmares.tsx`
+  dans `lib/tendances.ts`. Les textes se coupent à la largeur près avec un mesureur canvas. Le
+  même SVG sert d'aperçu (mis à l'échelle par CSS) et de source : `svgEnPng` recopie les
+  `@font-face` de next/font avec les woff2 incorporés en data: (une image SVG ne charge rien
+  d'externe ; les adresses « ../media/… » se résolvent contre la feuille qui les déclare),
+  peint dans un canvas, sort le PNG. `Partager.tsx` : `<dialog>` natif, cinq formats (Site 16:9,
+  Story, Publication, Carré, Paysage), cases Légende / Période / autre langue, aperçu en direct,
+  « Télécharger le PNG », « Partager… » (Web Share API avec le fichier, quand l'appareil l'offre),
+  « Copier le lien ». Formats et contenu : story 10 tendances, publication 8, site 6, carré et
+  paysage 5 ; story avec 250 px libres en haut et en bas pour l'interface d'Instagram.
+- L'état dans l'adresse (`lib/lien.ts`) : `?mots=…&medias=…&de=…&a=…&mesure=…` pour une courbe
+  (le premier média est la référence), `?vue=tendances&pas=semaine&periode=…`, et la recherche
+  avancée avec ses réglages (`avancee=1`, seuils hors défaut seulement, `mot`). Écrit par
+  `replaceState` à chaque résultat affiché, jamais pendant le défilement automatique ; lu une fois
+  à l'arrivée : le défilement ne part pas, la courbe du lien se trace, ou l'onglet Tendances
+  s'ouvre sur la période (le Palmarès se monte avec le lien, `useState` initialisés dessus, la
+  période posée quand les périodes closes arrivent, le calcul avancé lancé quand les médias du
+  catalogue sont là). Vérifié dans Chrome : courbe seule, trois médias et deux mots (couleur par
+  média, tirets par mot), anglais, tendances de la semaine en story et paysage, polices EB Garamond
+  et IM Fell bien rendues dans le PNG. Le profil Chrome piloté bloque les téléchargements (même
+  un texte vide) : le PNG a été vérifié en l'affichant dans la page, à tester à la main.
+- Hors champ, pour plus tard : l'aperçu de lien (image Open Graph générée côté serveur, même
+  carte paysage) et la Présidentielle 2027, qui n'a pas encore de bouton.
+
 ## 22/10/2026 — « + » et jokers sur « Usage relatif » : vérification, double comptage « grèv*+grève » corrigé
 - Retour transmis par Benoît : les jokers ne marcheraient pas sur « Usage relatif » (Tests
   statistiques), et on aurait parfois les mêmes courbes avec et sans « + ». Vérifié sans rien

@@ -16,7 +16,7 @@
 // demande (de quelques secondes à une minute), un anneau tourne en attendant. Le mot suivi est
 // placé : sa barre est cerclée s'il est dans un sujet, sinon il paraît en pointillés sous la liste.
 
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import {
   chargerCatalogue,
   chargerPeriodesPalmares,
@@ -25,7 +25,6 @@ import {
   requetePalmares,
   requetePalmaresAvance,
   requetePalmaresEnCours,
-  type MotPalmares,
   type MotSuivi,
   type PasPalmares as Pas,
   type Palmares as Resultat,
@@ -36,21 +35,29 @@ import {
 } from "@/lib/api";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
 import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
+import {
+  bornes,
+  CHALEUR,
+  formaterFois as formaterFoisAvec,
+  formaterX as formaterXAvec,
+  hausse,
+  isoDe,
+  isoDe8,
+  joursEntre,
+  nomDe,
+  PART_MIN,
+  plusJours,
+  TEXTE_BLANC,
+  TOP,
+  utc,
+} from "@/lib/tendances";
 import Aide from "@/components/Aide";
+import Partager from "@/components/Partager";
+import type { Contenu } from "@/components/Carte";
+import { ecrireLien, type Lien } from "@/lib/lien";
 
 const PAS: Pas[] = ["jour", "semaine", "mois"];
 const LISTE = { jour: "jours", semaine: "semaines", mois: "mois" } as const satisfies Record<Pas, keyof PeriodesPalmares>;
-
-// barres en couleurs ; les suivantes sont repliées
-const TOP = 20;
-// la chaleur, du premier sujet au vingtième (le rouge brique et le jaune paille d'origine, dix
-// teintes étirées sur vingt rangs). Texte blanc sur les cinq premières (contraste ≥ 3,6:1 en
-// gras 20 px), à l'encre ensuite ; les barres repliées en gris
-const CHALEUR = [
-  "#b8350b", "#c33f0d", "#ce4910", "#d65414", "#de5f19", "#e46b1e", "#e87724", "#ec832c", "#f09034", "#f29b3f",
-  "#f4a74b", "#f5b159", "#f6bb68", "#f7c578", "#f8cf8a", "#f9d79b", "#fadea8", "#fae3b5", "#fbe8c0", "#fbecca",
-];
-const TEXTE_BLANC = 5;
 
 // la recherche avancée : les références proposées, la durée maximale d'une période libre (le
 // calcul lit chaque jour dans les bases), les curseurs des seuils (bornes et pas)
@@ -65,30 +72,12 @@ const CURSEURS: { id: keyof ReglagesPalmares; min: number; max: number; pas: num
   { id: "seuil", min: 0.1, max: 0.9, pas: 0.05 },
 ];
 
-const utc = (iso: string) => new Date(`${iso.length === 7 ? `${iso}-01` : iso}T00:00:00Z`);
-const isoDe = (d: Date) => d.toISOString().slice(0, 10);
-const plusJours = (iso: string, n: number) => {
-  const d = utc(iso);
-  d.setUTCDate(d.getUTCDate() + n);
-  return isoDe(d);
-};
-// AAAAMMJJ (API) → AAAA-MM-JJ
-const isoDe8 = (s: string) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
-const joursEntre = (de: string, a: string) => (utc(a).getTime() - utc(de).getTime()) / 86_400_000 + 1;
 // aujourd'hui à Paris, le jour des calculs du serveur
 function aujourdhui(): string {
   const morceaux = new Intl.DateTimeFormat("en", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" })
     .formatToParts(new Date());
   const v = (type: string) => morceaux.find((m) => m.type === type)?.value;
   return `${v("year")}-${v("month")}-${v("day")}`;
-}
-// bornes d'une période : le jour seul, la semaine du lundi au dimanche, le mois du 1er au dernier jour
-function bornes(pas: Pas, cle: string): { de: string; a: string } {
-  if (pas === "jour") return { de: cle, a: cle };
-  if (pas === "semaine") return { de: cle, a: plusJours(cle, 6) };
-  const fin = utc(cle);
-  fin.setUTCMonth(fin.getUTCMonth() + 1);
-  return { de: `${cle}-01`, a: plusJours(isoDe(fin), -1) };
 }
 // la période (clé de la liste) qui contient une date, ou la plus proche
 function periodeDe(pas: Pas, liste: string[], iso: string): string | undefined {
@@ -113,40 +102,58 @@ function bornesReference(r: Resultat): { de: string; a: string } {
   return { de: `${m0.slice(0, 4)}-${m0.slice(4, 6)}-01`, a: bornes("mois", `${m1.slice(0, 4)}-${m1.slice(4, 6)}`).a };
 }
 
-// le nom du sujet : la première étiquette (bigramme) qui contient un des trois mots de tête,
-// sinon le mot de tête ; majuscule initiale, chiffre romain en capitales après un nom (« léon xiv »)
-const ROMAIN = /^(x{0,3})(ix|iv|v?i{0,3})$/;
-function nomDe(g: SujetPalmares): string {
-  const tete = g.mots.slice(0, 3).map((m) => m.mot);
-  const etiquette = g.etiquettes.find((e) => e.split(" ").some((w) => tete.includes(w)));
-  const mots = (etiquette ?? tete[0] ?? "").split(" ").map((w, i) => (i > 0 && w.length > 1 && ROMAIN.test(w) ? w.toUpperCase() : w));
-  const nom = mots.join(" ");
-  return nom.charAt(0).toUpperCase() + nom.slice(1);
-}
-// les mots liés : ceux du sujet, hors ceux du nom
+// les mots liés : ceux du sujet, hors ceux du nom (le nom : lib/tendances.ts, nomDe)
 function motsLies(g: SujetPalmares, nom: string): string[] {
   const pris = new Set(nom.toLowerCase().split(/[\s']+/));
   return g.mots.map((m) => m.mot).filter((w) => !pris.has(w) && !pris.has(w.replace(/^[ldjn]'/, "")));
-}
-// hausse du mot de tête : son taux sur la période rapporté à son taux sur la référence, à volume
-// de presse égal (approché : le total de mots des périodes n'est pas servi)
-function hausse(m: MotPalmares, jours: number, joursReference: number): number {
-  return m.n_reference > 0 ? m.n / jours / (m.n_reference / joursReference) : Infinity;
 }
 // mots de tête d'une période, pour repérer les sujets nouveaux
 const tetes = (r: Resultat) => new Set(r.groupes.flatMap((g) => g.mots.slice(0, 8).map((m) => m.mot)));
 
 
-export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe: (mot: string, fin: string) => void }) {
+// ce qu'une recherche avancée a demandé : rejoué par le lien de partage
+type RequeteAvancee = { de: string; a: string; medias: string[]; reglages: ReglagesPalmares; mot: string };
+// le formulaire de la recherche avancée
+type Forme = {
+  de: string;
+  a: string;
+  ref: ReferencePalmares;
+  cochés: Set<string> | null; // null : tous
+  reglages: ReglagesPalmares;
+  mot: string;
+};
+const FORME_VIDE: Forme = { de: "", a: "", ref: "12", cochés: null, reglages: REGLAGES_DEFAUT, mot: "" };
+// le formulaire qu'un lien de recherche avancée décrit (lib/lien.ts)
+const formeDuLien = (l: Lien | null): Forme | null =>
+  l?.genre === "tendances_avancee"
+    ? { de: l.de, a: l.a, ref: l.ref, cochés: l.medias.length ? new Set(l.medias) : null, reglages: l.reglages, mot: l.mot }
+    : null;
+
+export default function Palmares({
+  lang,
+  voirCourbe,
+  lienInitial = null,
+  actif = true,
+}: {
+  lang: Lang;
+  voirCourbe: (mot: string, fin: string) => void;
+  // une période ou une recherche avancée à rouvrir à l'arrivée (lib/lien.ts, posé par Explorer.tsx)
+  lienInitial?: Lien | null;
+  // l'onglet est celui qu'on regarde : l'adresse de la page suit alors la période affichée
+  actif?: boolean;
+}) {
   const t = textes[lang];
   const locale = localeDe(lang);
 
   const [periodes, setPeriodes] = useState<PeriodesPalmares | null>(null);
   // la période en cours de chaque pas, lue la première fois que le pas s'affiche (null : rien de calculé)
   const [enCours, setEnCours] = useState<Partial<Record<Pas, Resultat | null>>>({});
-  const [pas, setPas] = useState<Pas>("semaine");
+  // l'onglet se monte avec le lien d'arrivée déjà connu (Explorer.tsx le pose en même temps
+  // qu'il ouvre l'onglet) : le pas, la recherche avancée et son formulaire partent du lien
+  const lien = useRef(lienInitial);
+  const [pas, setPas] = useState<Pas>(lienInitial?.genre === "tendances" ? lienInitial.pas : "semaine");
   // la quatrième pilule : le bandeau de la recherche avancée remplace les flèches
-  const [avancee, setAvancee] = useState(false);
+  const [avancee, setAvancee] = useState(lienInitial?.genre === "tendances_avancee");
   // la période affichée, par pas : clé de la liste (jour ou lundi AAAA-MM-JJ, mois AAAA-MM)
   const [choix, setChoix] = useState<Partial<Record<Pas, string>>>({});
   const [chargement, setChargement] = useState(false);
@@ -171,16 +178,11 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
   // la recherche avancée : les médias du catalogue (principaux d'abord, puis du plus gros fonds au
   // plus petit), le formulaire, le résultat avec ce qui l'a demandé, et le calcul en cours
   const [medias, setMedias] = useState<string[]>([]);
-  const [forme, setForme] = useState<{
-    de: string;
-    a: string;
-    ref: ReferencePalmares;
-    cochés: Set<string> | null; // null : tous
-    reglages: ReglagesPalmares;
-    mot: string;
-  }>({ de: "", a: "", ref: "12", cochés: null, reglages: REGLAGES_DEFAUT, mot: "" });
-  const [avance, setAvance] = useState<{ r: Resultat; ref: ReferencePalmares; tirage: number } | null>(null);
+  const [forme, setForme] = useState<Forme>(() => formeDuLien(lienInitial) ?? FORME_VIDE);
+  const [avance, setAvance] = useState<{ r: Resultat; ref: ReferencePalmares; requete: RequeteAvancee; tirage: number } | null>(null);
   const [calcul, setCalcul] = useState(false);
+  // un lien de recherche avancée lance son calcul de lui-même, dès que les médias du catalogue sont là
+  const calculEnAttente = useRef<Forme | null>(formeDuLien(lienInitial));
   const [messageAvance, setMessageAvance] = useState<string | null>(null);
   const appelAvance = useRef(0);
   const catalogueDemande = useRef(false);
@@ -190,6 +192,12 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
     chargerPeriodesPalmares()
       .then((p) => {
         setPeriodes(p);
+        // la période du lien d'arrivée, si elle est connue
+        const l = lien.current;
+        if (l?.genre === "tendances" && l.periode) {
+          const cle = periodeDe(l.pas, p[LISTE[l.pas]], l.pas === "mois" ? `${l.periode.slice(0, 7)}-01` : l.periode);
+          if (cle) setChoix((c) => ({ ...c, [l.pas]: cle }));
+        }
         const derniere = p.semaines.at(-1);
         if (derniere) setForme((f) => (f.de ? f : { ...f, ...bornes("semaine", derniere) }));
       })
@@ -209,14 +217,54 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
   }, [pas, periodes]);
 
   // les médias du catalogue, lus à la première ouverture de la recherche avancée
+  // le calcul d'une recherche avancée, depuis un formulaire donné (le bouton Calculer, ou le
+  // lien d'arrivée) ; le résultat garde ce qui l'a demandé, pour le lien de partage
+  const calculerAvec = useCallback(
+    (f: Forme) => {
+      const numero = ++appelAvance.current;
+      const ref = f.ref;
+      const requete: RequeteAvancee = {
+        de: f.de,
+        a: f.a,
+        medias: f.cochés ? [...f.cochés] : [],
+        reglages: f.reglages,
+        mot: f.mot.trim().toLowerCase(),
+      };
+      setCalcul(true);
+      setMessageAvance(null);
+      requetePalmaresAvance({ de: requete.de, a: requete.a, ref, corpus: requete.medias, reglages: requete.reglages, mot: requete.mot })
+        .then((res) => {
+          if (numero !== appelAvance.current) return;
+          setAvance((p) => ({ r: res, ref, requete, tirage: (p?.tirage ?? 0) + 1 }));
+          setOuvert(-1);
+          setTous(false);
+        })
+        .catch((e) => {
+          if (numero !== appelAvance.current) return;
+          setAvance(null);
+          setMessageAvance(e instanceof ErreurApi && e.message ? e.message : t.msg_erreur);
+        })
+        .finally(() => {
+          if (numero === appelAvance.current) setCalcul(false);
+        });
+    },
+    [t],
+  );
+
   useEffect(() => {
     if (!avancee || catalogueDemande.current) return;
     catalogueDemande.current = true;
     chargerCatalogue().then((catalogue) => {
       const parTaille = [...catalogue].sort((x, y) => y.mots - x.mots).map((c) => c.corpus);
       setMedias([...MEDIAS_PRINCIPAUX.filter((c) => parTaille.includes(c)), ...parTaille.filter((c) => !MEDIAS_PRINCIPAUX.includes(c))]);
+      // le calcul demandé par le lien d'arrivée part maintenant
+      const attente = calculEnAttente.current;
+      if (attente) {
+        calculEnAttente.current = null;
+        calculerAvec(attente);
+      }
     });
-  }, [avancee]);
+  }, [avancee, calculerAvec]);
 
   const courante = enCours[pas];
   const cleEnCours = courante ? cleDe(pas, courante) : undefined;
@@ -286,8 +334,8 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
     return t.palm_titre_semaine(formaterJour(de, de.slice(0, 4) !== a.slice(0, 4)), formaterJour(a));
   };
   const formaterN = (n: number) => n.toLocaleString(locale);
-  const formaterX = (x: number) => `×${x >= 10 ? Math.round(x) : x.toLocaleString(locale, { maximumFractionDigits: 1 })}`;
-  const formaterFois = (x: number) => (!Number.isFinite(x) || x >= 100 ? null : formaterX(x));
+  const formaterX = (x: number) => formaterXAvec(x, locale);
+  const formaterFois = (x: number) => formaterFoisAvec(x, locale);
 
   const affiche = resultat && resultat.pas === pas && resultat.cle === cle ? resultat : null;
   const r = affiche?.r;
@@ -314,7 +362,7 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
       const estOuvert = ouvert === i;
       const estMarque = marque === i + 1;
       const style = {
-        "--part": Math.max(0.24, g.score / max),
+        "--part": Math.max(PART_MIN, g.score / max),
         "--fond": i < TOP ? CHALEUR[i] : "var(--bord)",
         "--texte": i < TEXTE_BLANC ? "#ffffff" : "var(--encre)",
         "--rang": i < TOP ? i : i - TOP,
@@ -382,34 +430,22 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
     `${CURSEURS.find((c) => c.id === id)?.fois ? "×" : ""}${v.toLocaleString(locale, { maximumFractionDigits: 2 })}`;
   const lancer = (ev: FormEvent) => {
     ev.preventDefault();
-    if (!peutCalculer) return;
-    const numero = ++appelAvance.current;
-    const ref = forme.ref;
-    setCalcul(true);
-    setMessageAvance(null);
-    requetePalmaresAvance({
-      de: forme.de,
-      a: forme.a,
-      ref,
-      corpus: forme.cochés ? [...forme.cochés] : [],
-      reglages: forme.reglages,
-      mot: forme.mot.trim().toLowerCase(),
-    })
-      .then((res) => {
-        if (numero !== appelAvance.current) return;
-        setAvance((p) => ({ r: res, ref, tirage: (p?.tirage ?? 0) + 1 }));
-        setOuvert(-1);
-        setTous(false);
-      })
-      .catch((e) => {
-        if (numero !== appelAvance.current) return;
-        setAvance(null);
-        setMessageAvance(e instanceof ErreurApi && e.message ? e.message : t.msg_erreur);
-      })
-      .finally(() => {
-        if (numero === appelAvance.current) setCalcul(false);
-      });
+    if (peutCalculer) calculerAvec(forme);
   };
+
+  // l'adresse de la page suit ce que l'onglet montre (lib/lien.ts), quand il est celui qu'on regarde
+  useEffect(() => {
+    if (!actif) return;
+    if (avancee) {
+      if (avance) {
+        const { requete, ref } = avance;
+        ecrireLien({ genre: "tendances_avancee", de: requete.de, a: requete.a, ref, medias: requete.medias, reglages: requete.reglages, mot: requete.mot });
+      }
+      return;
+    }
+    if (affiche) ecrireLien({ genre: "tendances", pas, periode: cle ?? null });
+  }, [actif, avancee, avance, affiche, pas, cle]);
+
   // la phrase sur le mot suivi
   const placeDuMot = (m: MotSuivi, res: Resultat): string => {
     if (!m.n) return t.palm_av_mot_absent(m.mot);
@@ -595,6 +631,13 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
                 <span className="tendances-titre">{t.palm_av_titre(formaterJour(isoDe8(res.periode[0]), false), formaterJour(isoDe8(res.periode[1])))}</span>
                 <span className="pic-info">{t.palm_sous(formaterN(res.titres.length), formaterN(res.groupes.length))}</span>
                 <span className="etat-periode avancee">{t.palm_av_etat(res.duree_s ? Math.round(res.duree_s) : null)}</span>
+                <Partager
+                  lang={lang}
+                  contenu={{ genre: "tendances", resultat: res, pas: "avancee", cle: avance.requete.de, ref: avance.ref }}
+                  lien={{ genre: "tendances_avancee", ...avance.requete, ref: avance.ref }}
+                  nom={["tendances", avance.requete.de, avance.requete.a]}
+                  titre={t.partage_titre_tendances}
+                />
               </figcaption>
               <p className="tendances-indicatif">{t.palm_av_phrase(refA, formaterJour(refBornes.de, false), formaterJour(refBornes.a))}</p>
               {res.mot && (
@@ -690,6 +733,13 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
                 {t.palm_sous(formaterN(r.titres.length), formaterN(r.groupes.length))}
                 {maj && ` · ${maj}`}
               </span>
+              <Partager
+                lang={lang}
+                contenu={cle ? ({ genre: "tendances", resultat: r, pas, cle, ref: "12" } satisfies Contenu) : null}
+                lien={{ genre: "tendances", pas, periode: cle ?? null }}
+                nom={["tendances", pas, cle ?? ""]}
+                titre={t.partage_titre_tendances}
+              />
             </figcaption>
             {estEnCours && pas === "jour" && r.groupes.length > 0 && <p className="tendances-indicatif">{t.palm_jour_indicatif}</p>}
             {estEnCours && !r.groupes.length ? (

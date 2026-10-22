@@ -2,6 +2,7 @@
 // Importable côté serveur comme côté client : de simples objets TypeScript.
 
 import type { PasPalmares, ReferencePalmares, ReglagesPalmares, Resolution } from "@/lib/api";
+import type { Format } from "@/lib/partage";
 
 export const langs = ["fr", "en"] as const;
 export type Lang = (typeof langs)[number];
@@ -499,6 +500,48 @@ export const textes = {
     pas_csv: (pas: Resolution) => ({ annee: "par année", mois: "par mois", jour: "par jour" })[pas],
     pas_csv_aria: "Pas du fichier",
 
+    // partage d'un graphe (Partager.tsx) : le bouton, le panneau, les formats ; puis la
+    // carte elle-même (Carte.tsx) : titres, périodes et notes de l'image
+    partager: "Partager",
+    partage_titre_courbe: "Partager cette courbe",
+    partage_titre_tendances: "Partager ces tendances",
+    partage_fermer: "Fermer",
+    partage_format: "Format",
+    partage_format_nom: (f: Format): string =>
+      ({ site: "Site", story: "Story", publication: "Publication", carre: "Carré", paysage: "Paysage" })[f],
+    partage_format_ratio: (f: Format): string =>
+      ({ site: "16:9", story: "9:16", publication: "4:5", carre: "1:1", paysage: "1,91:1" })[f],
+    partage_format_aide: (f: Format): string =>
+      ({
+        site: "Le graphe tel qu'il est affiché, pour tout usage",
+        story: "Story Instagram, TikTok, Snapchat",
+        publication: "Publication Instagram, LinkedIn",
+        carre: "Instagram, X, LinkedIn, Facebook",
+        paysage: "X, LinkedIn, Bluesky, Threads, et l'aperçu quand on colle le lien",
+      })[f],
+    partage_pixels: (l: number, h: number) => `${l} × ${h} px`,
+    partage_sur_image: "Sur l'image",
+    partage_legende: "Légende",
+    partage_periode: "Période",
+    partage_autre_langue: "Texte en anglais",
+    partage_apercu: "Aperçu",
+    partage_telecharger: "Télécharger le PNG",
+    partage_preparation: "Préparation…",
+    partage_feuille: "Partager…",
+    partage_copier: "Copier le lien",
+    partage_copie: "Lien copié.",
+    partage_copie_echec: "Impossible de copier : l'adresse est dans la barre du navigateur.",
+    partage_lien_note: "Le lien rouvre cette recherche telle quelle.",
+    partage_erreur: "L'image n'a pas pu être produite.",
+    carte_titre: (mots: string, media: string) => `${mots} dans ${media}`,
+    carte_titre_mot_medias: (mot: string, n: number) => `Le mot « ${mot} » dans ${n} médias`,
+    carte_titre_medias: (mots: string, n: number) => `${mots} dans ${n} médias`,
+    carte_et: " et ",
+    carte_du_au: (de: string, a: string) => `Du ${de} au ${a}`,
+    carte_de_a: (de: string, a: string) => `De ${de} à ${a}`,
+    carte_tendances: "Tendances",
+    carte_fois_note: (ref: string) => `× : par rapport ${ref}`,
+
     // contact
     contact_etiquette: "À propos de l'auteur",
     contact_nom: "Corto",
@@ -930,6 +973,46 @@ export const textes = {
     telecharger_donnees: "Download the data",
     pas_csv: (pas: Resolution) => ({ annee: "by year", mois: "by month", jour: "by day" })[pas],
     pas_csv_aria: "Time step of the file",
+
+    partager: "Share",
+    partage_titre_courbe: "Share this chart",
+    partage_titre_tendances: "Share these trends",
+    partage_fermer: "Close",
+    partage_format: "Format",
+    partage_format_nom: (f: Format): string =>
+      ({ site: "Site", story: "Story", publication: "Post", carre: "Square", paysage: "Landscape" })[f],
+    partage_format_ratio: (f: Format): string =>
+      ({ site: "16:9", story: "9:16", publication: "4:5", carre: "1:1", paysage: "1.91:1" })[f],
+    partage_format_aide: (f: Format): string =>
+      ({
+        site: "The chart as displayed, for any use",
+        story: "Instagram, TikTok, Snapchat story",
+        publication: "Instagram, LinkedIn post",
+        carre: "Instagram, X, LinkedIn, Facebook",
+        paysage: "X, LinkedIn, Bluesky, Threads, and the preview shown when the link is pasted",
+      })[f],
+    partage_pixels: (l: number, h: number) => `${l} × ${h} px`,
+    partage_sur_image: "On the image",
+    partage_legende: "Legend",
+    partage_periode: "Period",
+    partage_autre_langue: "Text in French",
+    partage_apercu: "Preview",
+    partage_telecharger: "Download the PNG",
+    partage_preparation: "Preparing…",
+    partage_feuille: "Share…",
+    partage_copier: "Copy the link",
+    partage_copie: "Link copied.",
+    partage_copie_echec: "Could not copy: the address is in the browser bar.",
+    partage_lien_note: "The link reopens this exact search.",
+    partage_erreur: "The image could not be produced.",
+    carte_titre: (mots: string, media: string) => `${mots} in ${media}`,
+    carte_titre_mot_medias: (mot: string, n: number) => `The word “${mot}” in ${n} outlets`,
+    carte_titre_medias: (mots: string, n: number) => `${mots} in ${n} outlets`,
+    carte_et: " and ",
+    carte_du_au: (de: string, a: string) => `${de} – ${a}`,
+    carte_de_a: (de: string, a: string) => `${de} – ${a}`,
+    carte_tendances: "Trends",
+    carte_fois_note: (ref: string) => `×: compared with ${ref}`,
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",

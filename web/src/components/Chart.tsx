@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Point, Serie } from "@/lib/api";
 import { formaterValeur, valeurPoint, type Metrique } from "@/lib/mesures";
 import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+import { cheminBarre, echelleY, familles, graduationsX, lisser, OPACITES, TIRETS } from "@/lib/trace";
 
 const MARGE = { haut: 24, droite: 16, bas: 30, gauche: 52 };
 const HAUTEUR = 380;
@@ -23,10 +24,10 @@ const HAUTEUR = 380;
 const COURBE_EPAISSEUR = 3;
 
 // barres : épaisseur plafonnée (le reste du créneau est de l'air), sommet
-// arrondi et base carrée, jour de surface entre barres voisines dès qu'elles
-// ont la place — sinon elles se touchent, en histogramme serré (pas jour)
+// arrondi et base carrée (lib/trace.ts, cheminBarre), jour de surface entre
+// barres voisines dès qu'elles ont la place — sinon elles se touchent, en
+// histogramme serré (pas jour)
 const BARRE_MAX = 24;
-const BARRE_RAYON = 4;
 const BARRE_JOUR = 2;
 
 // une barre prête à peindre : son chemin fermé et son rang dans la série, de
@@ -37,50 +38,6 @@ type Barre = { d: string; part: number };
 type Trace =
   | { genre: "courbe"; couleur: string; tirets: string; d: string }
   | { genre: "barres"; couleur: string; opacite: number; barres: Barre[] };
-
-// motifs de trait des mots quand la couleur est prise par le média (dasharray,
-// en px), et opacités des barres dans le même cas
-const TIRETS = ["", "9 7", "2 6", "9 5 2 5"];
-const OPACITES = [1, 0.62, 0.38, 0.22];
-
-// lissage « appuyé » : moyenne mobile centrée à noyau triangulaire,
-// renormalisée aux bords pour que les extrémités ne s'affaissent pas.
-// Réservé aux fréquences : un décompte brut se peint tel quel, sinon une
-// occurrence isolée s'étale en valeurs fractionnaires sur ses voisines
-const NOYAU = [1, 2, 3, 2, 1];
-
-function lisser(valeurs: number[]): number[] {
-  const demi = (NOYAU.length - 1) / 2;
-  return valeurs.map((_, i) => {
-    let somme = 0;
-    let poids = 0;
-    NOYAU.forEach((w, k) => {
-      const j = i + k - demi;
-      if (j >= 0 && j < valeurs.length) {
-        somme += w * valeurs[j];
-        poids += w;
-      }
-    });
-    return somme / poids;
-  });
-}
-
-function pasArrondi(brut: number): number {
-  const puissance = 10 ** Math.floor(Math.log10(brut));
-  for (const m of [1, 2, 5]) if (m * puissance >= brut) return m * puissance;
-  return 10 * puissance;
-}
-
-// chemin d'une barre, de la base au sommet : les deux coins hauts s'arrondissent
-// d'autant que l'épaisseur et la hauteur le permettent, la base reste carrée
-function cheminBarre(x: number, base: number, sommet: number, epaisseur: number): string {
-  const r = Math.min(BARRE_RAYON, epaisseur / 2, base - sommet);
-  const x2 = x + epaisseur;
-  return (
-    `M${x},${base}V${sommet + r}Q${x},${sommet} ${x + r},${sommet}` +
-    `H${x2 - r}Q${x2},${sommet} ${x2},${sommet + r}V${base}Z`
-  );
-}
 
 export default function Chart({
   series,
@@ -126,9 +83,7 @@ export default function Chart({
 
   // médias et mots distincts des séries, dans l'ordre d'arrivée ; au-delà d'un
   // média, la couleur passe au média et le trait au mot
-  const medias = [...new Set(series.map((s) => s.corpus ?? corpus))];
-  const mots = [...new Set(series.map((s) => s.gram))];
-  const multi = medias.length > 1;
+  const { medias, mots, multi } = familles(series, corpus);
   const nomDe = (c: string) => corpusNoms[c] ?? c;
   const nomCorpus = medias.map(nomDe).join(", ");
   const mesure = t[`axe_${metrique}`];
@@ -164,12 +119,8 @@ export default function Chart({
   const xMin = Math.min(...xs);
   const xMax = Math.max(...xs);
   const yMax = Math.max(...valsSeries.flat(), 1e-6);
-  // un décompte se gradue en entiers : pas de « 0, 1, 1, 2 » sur un mot rare
-  const pas = Math.max(enBarres ? 1 : 0, pasArrondi(yMax / 4));
-  const yHaut = pas * Math.ceil(yMax / pas);
-
-  const graduationsY: number[] = [];
-  if (pret) for (let v = 0; v <= yHaut + 1e-9; v += pas) graduationsY.push(v);
+  const { yHaut, graduations } = echelleY(yMax, enBarres);
+  const graduationsY = pret ? graduations : [];
 
   // marge gauche adaptée à la plus large étiquette (« 120 000 », « 0,012 % »…)
   const margeGauche = Math.max(
@@ -194,45 +145,8 @@ export default function Chart({
   const epaisseur = Math.min(BARRE_MAX, (creneau - nSeries * jour) / nSeries);
   const groupe = nSeries * (epaisseur + jour) - jour;
 
-  // graduations de l'axe X selon l'étendue : des années, sinon des mois,
-  // sinon des jours — à chaque fois une étiquette sur `saut`, pour en garder
-  // six à huit. Les positions sont en années décimales, comme les points.
-  const graduationsX: { x: number; texte: string }[] = [];
-  if (pret) {
-    const etendue = xMax - xMin;
-    const moisCourt = (m: number) =>
-      new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" })
-        .format(new Date(Date.UTC(2000, m - 1, 1)))
-        .replace(/\.$/, "");
-    if (etendue >= 2) {
-      const saut = Math.max(1, Math.ceil(etendue / 6));
-      for (let an = Math.ceil(xMin); an <= xMax; an += saut) graduationsX.push({ x: an, texte: String(an) });
-    } else if (etendue * 12 >= 2) {
-      const saut = Math.max(1, Math.ceil((etendue * 12) / 8));
-      const premier = Math.ceil(xMin * 12);
-      for (let i = premier; i <= xMax * 12; i++) {
-        if ((i - premier) % saut) continue;
-        const an = Math.floor(i / 12);
-        const m = (i % 12) + 1;
-        graduationsX.push({ x: i / 12, texte: m === 1 || i === premier ? `${moisCourt(m)} ${an}` : moisCourt(m) });
-      }
-    } else {
-      const an = Math.floor(xMin);
-      const debut = Date.UTC(an, 0, 1);
-      const duree = Date.UTC(an + 1, 0, 1) - debut;
-      const premier = Math.ceil((xMin - an) * duree / 86_400_000);
-      const dernier = Math.floor((xMax - an) * duree / 86_400_000);
-      const saut = Math.max(1, Math.ceil((dernier - premier) / 8));
-      for (let j = premier; j <= dernier; j += saut) {
-        const d = new Date(debut + j * 86_400_000);
-        const jourDuMois = d.getUTCDate();
-        const texte = jourDuMois === 1 || j === premier
-          ? `${jourDuMois} ${moisCourt(d.getUTCMonth() + 1)}`
-          : String(jourDuMois);
-        graduationsX.push({ x: an + (j * 86_400_000) / duree, texte });
-      }
-    }
-  }
+  // graduations de l'axe du temps (lib/trace.ts) : années, mois ou jours selon l'étendue
+  const graduationsTemps = pret ? graduationsX(xMin, xMax, locale) : [];
 
   // réticule : position (en x) la plus proche du pointeur parmi la 1re série
   const positions = series[0]?.points.map((p) => p.x) ?? [];
@@ -426,7 +340,7 @@ export default function Chart({
                   </text>
                 </g>
               ))}
-              {graduationsX.map((g) => (
+              {graduationsTemps.map((g) => (
                 <text
                   key={g.x}
                   x={px(g.x)}
