@@ -1329,11 +1329,20 @@ main > section,
   cursor: progress;
 }
 
-/* le pas du fichier (année, mois, jour : celui de la courbe ou plus fin), un
-   menu discret dans le fil de la ligne, souligné comme le lien, chevron au bout */
-.pas-csv {
+/* le pas du fichier (année, mois, jour : celui de la courbe ou plus fin) : un
+   lien souligné avec chevron, qui ouvre la liste du sélecteur de média
+   (.media-liste) réduite à ses trois entrées, coche sur le choix */
+.selecteur-pas {
+  position: relative;
+  display: inline-block;
   margin-left: 0.5rem;
-  padding: 0 1.1rem 0 0;
+}
+
+.pas-csv {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
   border: 0;
   background: none;
   font: inherit;
@@ -1341,11 +1350,6 @@ main > section,
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2393908a' stroke-width='1.3'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right center;
   transition: color var(--duree-courte) ease;
 }
 
@@ -1353,6 +1357,22 @@ main > section,
 .pas-csv:focus-visible {
   color: var(--accent);
   outline: none;
+}
+
+.pas-csv .chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--duree-courte) ease;
+}
+
+.selecteur-pas.ouvert .chevron {
+  transform: rotate(180deg);
+}
+
+.selecteur-pas .media-liste {
+  width: max-content;
+  min-width: 8rem;
+  padding-right: 0.3rem;
 }
 
 .tableau-conteneur summary .anneau.petit {

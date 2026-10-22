@@ -23,6 +23,11 @@
   l'API (`chargerSeries`, factorisé avec le tracé ; cache de lib/api.ts), petit anneau pendant
   la réponse, suffixe `_jour` / `_mois` / `_annee` dans le nom. Vérifié : « inflation »
   2010–2026 par jour, 6 134 lignes en 354 ms, tableau toujours replié.
+- Le menu natif jurait avec la liste du Journal (teinte et police du système). `SelecteurPas.tsx` :
+  un lien souligné avec chevron qui ouvre la même liste que le sélecteur de média (`.media-liste`,
+  coche sur le choix, flèches, Entrée, Échap, clic dehors), réduite à ses trois entrées ; les
+  clics sont neutralisés dans le `summary`. Vérifié dans Chrome : liste ouverte au clic, choix
+  « par jour », tableau toujours replié, fichier `_jour` de 6 134 lignes.
 
 ## 22/10/2026 — « + » dans une URL tapée à la main : « | » accepté comme synonyme
 - Signalement : « les + ne marchent pas ». Vérifié : les jokers vont bien, et `mot=grève%2Bgrèves`

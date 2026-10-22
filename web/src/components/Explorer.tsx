@@ -31,6 +31,7 @@ import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
+import SelecteurPas from "@/components/SelecteurPas";
 import { nomFichierCsv, seriesEnCsv, telechargerTexte } from "@/lib/csv";
 import Palmares from "@/components/Palmares";
 import Periode, { type Fonds } from "@/components/Periode";
@@ -637,19 +638,12 @@ export default function Explorer({ lang }: { lang: Lang }) {
                   {t.telecharger_donnees}
                 </button>
                 {pasOfferts.length > 1 && (
-                  <select
-                    className="pas-csv"
-                    aria-label={t.pas_csv_aria}
-                    value={pasCsv ?? resultat.resolution}
-                    onClick={(ev) => ev.preventDefault()}
-                    onChange={(ev) => setPasCsv(ev.target.value as Resolution)}
-                  >
-                    {pasOfferts.map((p) => (
-                      <option key={p} value={p}>
-                        {t.pas_csv(p)}
-                      </option>
-                    ))}
-                  </select>
+                  <SelecteurPas
+                    valeur={pasCsv ?? resultat.resolution}
+                    choix={pasOfferts}
+                    lang={lang}
+                    onChange={setPasCsv}
+                  />
                 )}
                 {chargementCsv && <span className="anneau petit" aria-hidden="true" />}
               </summary>
