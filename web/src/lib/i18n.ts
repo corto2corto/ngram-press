@@ -196,9 +196,9 @@ export const textes = {
     palm_aucune: "Aucune période disponible.",
     palm_titre_semaine: (de: string, a: string) => `Semaine du ${de} au ${a}`,
     palm_sous: (medias: string, sujets: string) => `${medias} médias · ${sujets} sujets`,
-    // au présent pour la période en cours, au passé sinon
-    palm_titre: (pas: PasPalmares, enCours: boolean): string =>
-      `Ce qui ${enCours ? "fait" : "a fait"} ${{ jour: "la journée", semaine: "la semaine", mois: "le mois" }[pas]}`,
+    // même libellé que la période soit en cours ou finie
+    palm_titre: (pas: PasPalmares): string =>
+      `Tendances ${{ jour: "de la journée", semaine: "de la semaine", mois: "du mois" }[pas]}`,
     // la période en cours (retour, état, heure du calcul) ; « provisoire » : finie depuis moins de 72 h
     palm_ici: (pas: PasPalmares) => ({ jour: "Aujourd'hui", semaine: "Cette semaine", mois: "Ce mois-ci" })[pas],
     palm_en_cours: "En cours",
@@ -629,9 +629,9 @@ export const textes = {
     palm_aucune: "No period available.",
     palm_titre_semaine: (de: string, a: string) => `Week of ${de} to ${a}`,
     palm_sous: (medias: string, sujets: string) => `${medias} outlets · ${sujets} topics`,
-    // present tense for the ongoing period, past tense otherwise
-    palm_titre: (pas: PasPalmares, enCours: boolean): string =>
-      `${enCours ? "What's making" : "What made"} the ${{ jour: "day", semaine: "week", mois: "month" }[pas]}`,
+    // same label whether the period is ongoing or over
+    palm_titre: (pas: PasPalmares): string =>
+      `${{ jour: "Daily", semaine: "Weekly", mois: "Monthly" }[pas]} trends`,
     // the ongoing period (way back, state, time of the computation); "provisional": ended less than 72 h ago
     palm_ici: (pas: PasPalmares) => ({ jour: "Today", semaine: "This week", mois: "This month" })[pas],
     palm_en_cours: "In progress",

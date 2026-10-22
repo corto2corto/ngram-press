@@ -685,7 +685,7 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
         {r && affiche ? (
           <>
             <figcaption key={affiche.tirage}>
-              <span className="tendances-titre">{t.palm_titre(pas, estEnCours)}</span>
+              <span className="tendances-titre">{t.palm_titre(pas)}</span>
               <span className="pic-info">
                 {t.palm_sous(formaterN(r.titres.length), formaterN(r.groupes.length))}
                 {maj && ` · ${maj}`}
