@@ -1,7 +1,7 @@
 // Dictionnaires FR/EN du site (repris du front statique, complétés au fil des pages).
 // Importable côté serveur comme côté client : de simples objets TypeScript.
 
-import type { PasPalmares, ReferencePalmares, ReglagesPalmares } from "@/lib/api";
+import type { PasPalmares, ReferencePalmares, ReglagesPalmares, Resolution } from "@/lib/api";
 
 export const langs = ["fr", "en"] as const;
 export type Lang = (typeof langs)[number];
@@ -496,6 +496,8 @@ export const textes = {
     col_periode: "Période",
     voir_donnees: "Voir les données",
     telecharger_donnees: "Télécharger les données",
+    pas_csv: (pas: Resolution) => ({ annee: "par année", mois: "par mois", jour: "par jour" })[pas],
+    pas_csv_aria: "Pas du fichier",
 
     // contact
     contact_etiquette: "À propos de l'auteur",
@@ -926,6 +928,8 @@ export const textes = {
     col_periode: "Period",
     voir_donnees: "View the data",
     telecharger_donnees: "Download the data",
+    pas_csv: (pas: Resolution) => ({ annee: "by year", mois: "by month", jour: "by day" })[pas],
+    pas_csv_aria: "Time step of the file",
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",

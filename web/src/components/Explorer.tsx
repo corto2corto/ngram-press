@@ -21,7 +21,7 @@
 // catalogue). Refermer la rangée garde la comparaison, le bouton reste bordé d'encre.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { chargerCatalogue, requeteSeries, type Serie } from "@/lib/api";
+import { chargerCatalogue, requeteSeries, type Resolution, type Serie } from "@/lib/api";
 import { deIso, iso, jour, resolutionAuto } from "@/lib/dates";
 import { DEFILE, DUREE_ETAPE, type ConfigDefile } from "@/lib/defilement";
 import { type Metrique } from "@/lib/mesures";
@@ -45,6 +45,26 @@ type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 // branchés sur l'API, les Évolutions posent leur formulaire et annoncent la suite
 type Mode = "courbes" | "palmares" | "evolutions" | "tests";
 const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
+
+// pas possibles du CSV, du plus large au plus fin
+const PAS_CSV: Resolution[] = ["annee", "mois", "jour"];
+
+// les séries d'une requête, un appel par média : la référence d'abord, puis les
+// médias comparés ; les séries s'étiquettent de leur média, rangées média par média
+async function chargerSeries(q: {
+  mots: string[];
+  medias: string[];
+  resolution: Resolution;
+  de: string;
+  a: string;
+}): Promise<Serie[]> {
+  const { mots, resolution, de, a } = q;
+  if (q.medias.length === 1) return requeteSeries({ mots, corpus: q.medias[0], resolution, de, a });
+  const lots = await Promise.all(
+    q.medias.map((corpus) => requeteSeries({ mots, corpus, resolution, de, a })),
+  );
+  return lots.flatMap((lot, i) => lot.map((s) => ({ ...s, corpus: q.medias[i] })));
+}
 // les trois vues des Tests : la projection d'un pic sur la PCA gelée, le
 // catalogue des PCA de sauts (figures seules) et l'usage relatif de deux mots
 // média par média
@@ -162,10 +182,17 @@ export default function Explorer({ lang }: { lang: Lang }) {
   const [resultat, setResultat] = useState<{
     series: Serie[];
     corpus: string;
-    de: string; // bornes ISO de la requête tracée (nom du fichier CSV)
+    // la requête tracée telle quelle : le CSV la rejoue à un autre pas
+    mots: string[];
+    medias: string[];
+    resolution: Resolution;
+    de: string;
     a: string;
     tirage: number;
   } | null>(null);
+  // pas choisi pour le CSV (null : celui de la courbe) ; anneau pendant la requête
+  const [pasCsv, setPasCsv] = useState<Resolution | null>(null);
+  const [chargementCsv, setChargementCsv] = useState(false);
 
   // explorateur étendu à toute la fenêtre : la page dessous ne défile plus,
   // Échap le referme (sauf si une aide épinglée attend, elle part d'abord), et
@@ -206,8 +233,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
     a: iso(q.a, "jour"),
   });
 
-  // une requête par média : la référence d'abord, puis les médias comparés ;
-  // les séries s'étiquettent de leur média, rangées média par média
   const tracer = useCallback(
     async (formulaire: { mots: string; corpus: string; medias: string[]; de: number; a: number }) => {
       const liste = formulaire.mots.split(",").map((m) => m.trim()).filter(Boolean);
@@ -221,14 +246,8 @@ export default function Explorer({ lang }: { lang: Lang }) {
       setMessage("chargement");
       try {
         const medias = [formulaire.corpus, ...formulaire.medias];
-        const series =
-          medias.length === 1
-            ? await requeteSeries(parametres({ ...formulaire, mots: liste }))
-            : (
-                await Promise.all(
-                  medias.map((c) => requeteSeries(parametres({ ...formulaire, corpus: c, mots: liste }))),
-                )
-              ).flatMap((lot, i) => lot.map((s) => ({ ...s, corpus: medias[i] })));
+        const requete = { ...parametres({ ...formulaire, mots: liste }), medias };
+        const series = await chargerSeries(requete);
         if (numero !== appel.current) return;
         if (!series.length) {
           setMessage("vide");
@@ -237,10 +256,14 @@ export default function Explorer({ lang }: { lang: Lang }) {
         setResultat((precedent) => ({
           series,
           corpus: formulaire.corpus,
-          de: iso(formulaire.de, "jour"),
-          a: iso(formulaire.a, "jour"),
+          mots: requete.mots,
+          medias,
+          resolution: requete.resolution,
+          de: requete.de,
+          a: requete.a,
           tirage: (precedent?.tirage ?? 0) + 1,
         }));
+        setPasCsv(null);
         setMessage(null);
       } catch {
         if (numero === appel.current) setMessage("erreur");
@@ -360,6 +383,27 @@ export default function Explorer({ lang }: { lang: Lang }) {
   // frappe ou une courbe qu'on lit ne doivent jamais être écrasées. Les
   // changements posés par le défilement lui-même passent hors événements DOM
   // et ne repassent pas par ici.
+  // CSV : le pas de la courbe ou un pas plus fin, rejoué auprès de l'API au
+  // besoin (cache de lib/api.ts) ; un échec arrête l'anneau sans message
+  const pasOfferts = resultat ? PAS_CSV.slice(PAS_CSV.indexOf(resultat.resolution)) : [];
+  const telechargerCsv = async () => {
+    if (!resultat || chargementCsv) return;
+    const pas = pasCsv ?? resultat.resolution;
+    setChargementCsv(true);
+    try {
+      const series =
+        pas === resultat.resolution ? resultat.series : await chargerSeries({ ...resultat, resolution: pas });
+      telechargerTexte(
+        nomFichierCsv(series, resultat.corpus, resultat.de, resultat.a, pas),
+        seriesEnCsv(series),
+      );
+    } catch {
+      // le lien reste cliquable : l'utilisateur réessaie
+    } finally {
+      setChargementCsv(false);
+    }
+  };
+
   const arreterDefile = useCallback(() => {
     setEnDefile(false);
     const d = defile.current;
@@ -579,21 +623,35 @@ export default function Explorer({ lang }: { lang: Lang }) {
             <details className="tableau-conteneur" onPointerDownCapture={arreterDefile}>
               <summary>
                 {t.voir_donnees}
-                {/* le lien vit dans le résumé pour rester sur sa ligne ; son clic
-                    ne replie ni ne déplie le tableau */}
+                {/* le lien et le menu du pas vivent dans le résumé pour rester sur
+                    sa ligne ; leurs clics ne replient ni ne déplient le tableau */}
                 <button
                   type="button"
                   className="telecharger-donnees"
+                  disabled={chargementCsv}
                   onClick={(ev) => {
                     ev.preventDefault();
-                    telechargerTexte(
-                      nomFichierCsv(resultat.series, resultat.corpus, resultat.de, resultat.a),
-                      seriesEnCsv(resultat.series),
-                    );
+                    void telechargerCsv();
                   }}
                 >
                   {t.telecharger_donnees}
                 </button>
+                {pasOfferts.length > 1 && (
+                  <select
+                    className="pas-csv"
+                    aria-label={t.pas_csv_aria}
+                    value={pasCsv ?? resultat.resolution}
+                    onClick={(ev) => ev.preventDefault()}
+                    onChange={(ev) => setPasCsv(ev.target.value as Resolution)}
+                  >
+                    {pasOfferts.map((p) => (
+                      <option key={p} value={p}>
+                        {t.pas_csv(p)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {chargementCsv && <span className="anneau petit" aria-hidden="true" />}
               </summary>
               <DataTable series={resultat.series} lang={lang} metrique={metrique} />
             </details>

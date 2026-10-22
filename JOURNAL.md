@@ -14,6 +14,15 @@
 - Le bouton vit dans le `summary` pour rester sur sa ligne ; `preventDefault` sur le clic pour
   ne pas déplier le tableau. Vérifié dans Chrome (téléchargement intercepté : nom, en-tête,
   62 lignes pour « gilets jaunes » 2017–2021, tableau toujours replié). i18n FR/EN.
+- Le pas du fichier, ensuite : la courbe est par mois ou par année dès que l'étendue dépasse
+  200 jours, et l'API sert le jour sur n'importe quelle étendue. Trois variantes en artifact :
+  A toujours par jour (le fichier contredit le tableau), B trois liens « par année · par mois ·
+  par jour », C un petit menu à côté du lien. Corto retient C. Le menu (`.pas-csv`, souligné,
+  chevron) propose le pas de la courbe et les pas plus fins, celui de la courbe par défaut ;
+  il disparaît quand la courbe est déjà par jour. Un pas plus fin rejoue la requête auprès de
+  l'API (`chargerSeries`, factorisé avec le tracé ; cache de lib/api.ts), petit anneau pendant
+  la réponse, suffixe `_jour` / `_mois` / `_annee` dans le nom. Vérifié : « inflation »
+  2010–2026 par jour, 6 134 lignes en 354 ms, tableau toujours replié.
 
 ## 22/10/2026 — « + » dans une URL tapée à la main : « | » accepté comme synonyme
 - Signalement : « les + ne marchent pas ». Vérifié : les jokers vont bien, et `mot=grève%2Bgrèves`

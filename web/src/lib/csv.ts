@@ -3,7 +3,7 @@
 // trois valeurs (brut, total de mots, pour 100 000) quelle que soit la
 // métrique affichée. Virgule, point décimal, BOM UTF-8 pour Excel.
 
-import type { Serie } from "@/lib/api";
+import type { Resolution, Serie } from "@/lib/api";
 
 // champ CSV : guillemets seulement si nécessaire
 const champ = (v: string): string => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
@@ -36,13 +36,13 @@ export function seriesEnCsv(series: Serie[]): string {
   return [entete, ...lignes].map((l) => l.map(champ).join(",")).join("\n") + "\n";
 }
 
-// nom du fichier d'après la requête : orange_leparisien_2026-01-01_2026-01-31.csv
-export function nomFichierCsv(series: Serie[], corpus: string, de: string, a: string): string {
+// nom du fichier d'après la requête : orange_leparisien_2026-01-01_2026-01-31_jour.csv
+export function nomFichierCsv(series: Serie[], corpus: string, de: string, a: string, pas: Resolution): string {
   const mots = [...new Set(series.map((s) => s.gram))]
     .join("-")
     .replace(/\s+/g, "-")
     .replace(/[^\p{L}\p{N}_-]/gu, "");
-  return `${mots || "ngram"}_${corpus}_${de}_${a}.csv`;
+  return `${mots || "ngram"}_${corpus}_${de}_${a}_${pas}.csv`;
 }
 
 // déclenche le téléchargement d'un texte en fichier
