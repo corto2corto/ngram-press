@@ -69,7 +69,8 @@ def query_frequency(mot: str, corpus: str, debut: str = "1900",
       (`grève+grèves`, `migrant+migrants+réfugié+réfugiés`).
     - Jokers : `*` (zéro ou plusieurs lettres) et `?` (une lettre) dans un mot
       (`grèv*` additionne grève, grèves, grévistes…), `_` à la place d'un mot
-      entier (`guerre _`). Le premier mot doit être fixé.
+      entier (`guerre _`). Le premier mot doit être fixé ; avec 3 mots, seul le
+      dernier peut être `_` ou à joker (`premier ministre _`, pas `le _ _`).
     - Les expressions sont tokenisées (minuscules, ponctuation retirée) ; un mot
       absent du corpus renvoie une série à zéro, pas une erreur.
     - Les élisions sont gérées : un mot qui commence par une voyelle ou un h

@@ -81,7 +81,9 @@ paths:
         mot (`grèv*` additionne grève, grèves, grévistes… en une série), `_` à
         la place d'un mot entier (`guerre _`). Le premier mot doit être fixé
         (ni `_`, ni motif commençant par `*` ou `?`) et un motif ne peut couvrir
-        plus de 100 000 formes : la recherche parcourrait toute la base.
+        plus de 100 000 formes : la recherche parcourrait toute la base. Avec 3
+        mots, seul le dernier peut être `_` ou à joker (`premier ministre _` oui,
+        `le _ _` ou `de _ la` non).
 
         **Compatibilité Gallicagram :** la même route répond aussi sous
         `/query_ngram`, avec les mêmes paramètres et le même format que la route
@@ -305,8 +307,9 @@ paths:
         bigrammes qui correspondent au motif, classés par occurrences
         décroissantes sur la période. `*` vaut zéro ou plusieurs lettres, `?`
         une lettre, `_` un mot entier (`inflat*` → inflation, inflationniste… ;
-        `grève _` → grève des, grève du…). Le premier mot doit être fixé et un
-        motif ne peut couvrir plus de 100 000 formes.
+        `grève _` → grève des, grève du…). Le premier mot doit être fixé, avec 3
+        mots seul le dernier peut être `_` ou à joker, et un motif ne peut couvrir
+        plus de 100 000 formes.
 
         **CSV retourné :** `tot`, `gram`.
       parameters:

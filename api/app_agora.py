@@ -245,6 +245,11 @@ def conditions_mots(conn, schemas, mots):
     # token, rien pour « _ ». None si un mot exact est inconnu de toutes les bases.
     if mots[0] == "_" or mots[0][0] in JOKERS:
         raise Refus("le premier mot doit être fixé : ni « _ », ni motif commençant par * ou ?")
+    # au-delà de 2 mots, seul le dernier peut être libre ou à joker : un trou plus tôt oblige à
+    # lire toutes les suites du premier mot (« de _ _ » : plus d'une minute sur Le Monde)
+    if len(mots) > 2 and any(m == "_" or any(j in m for j in JOKERS) for m in mots[:-1]):
+        raise Refus(f"avec {len(mots)} mots, seul le dernier peut être « _ » ou contenir * ou ? "
+                    "(« premier ministre _ » oui, « le _ _ » ou « de _ la » non)")
     conditions, params = [], []
     for i, m in enumerate(mots, 1):
         if m == "_":
