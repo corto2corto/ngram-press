@@ -1,5 +1,47 @@
 # Journal du projet
 
+## 22/10/2026 — Tendances : la recherche avancée (dates libres, référence, médias, seuils, mot suivi)
+- Maquettes d'abord (canevas Design, semaine du 12 au 18/10 calculée deux fois par l'API : 17 s
+  avec douze mois de référence, 15 s avec trois) : A « Sur mesure » en quatrième pilule et bandeau,
+  B « la phrase réglable » (le titre sert de commande), C « l'établi » (panneau à gauche, curseurs).
+  Corto retient le format de A, les commandes de C, et nomme la pilule « Recherche avancée ».
+  Puis D, la synthèse : trois blocs sur la première ligne (Période avec Du et Au l'un sous
+  l'autre, Comparer à en liste à puces sans commentaire, Médias en pastilles), les six seuils en
+  curseurs avec « Par défaut : … » et un « ? » pédagogique chacun, Suivre un mot, et le bouton
+  Calculer avec « Peut prendre jusqu'à une minute » à côté, sans bandeau. Vocabulaire : « mois
+  précédents » (pas « d'avant »), « par défaut » (pas « publié »).
+- Ce que les données disent : de douze à trois mois de référence, Toussaint, Halloween et
+  Parcoursup remontent (la Toussaint de l'an dernier est dans les douze mois), Glucksmann passe
+  du 6e sujet au 23e (21e mot → 70e). Le choix de la référence change vraiment la liste.
+- API, `mots_du_jour.py` : `ref="semaine"` (les sept jours avant la période, lus comme une période :
+  cumuls si semaine entière, sinon SQLite) à côté des `ref` mois ; `reference_jours` dans le
+  résultat (le ×N du front s'y rapporte, il supposait 365 jours) ; `mot=` : la place d'un mot
+  (`_infos_mot` : n, médias, candidat, n_reference, titres_en_exces, ratio, rang parmi les mots
+  retenus — les mots écartés par `_retenu` ne comptent pas —, sujet à partir de 1), recalcul
+  obligatoire, jamais le fichier figé. Route : `ref` entier ou `semaine`, `mot` (60 caractères).
+- Front, `Palmares.tsx` : la pilule Recherche avancée remplace les flèches par le bandeau ; le
+  calcul part au clic, un anneau tourne sur le bouton et à la place de la liste (pas de compteur
+  de secondes, dit Corto), la pastille du résultat donne la durée après coup. Titre « Du 12 au 18 octobre 2026 », phrase « Par rapport aux trois mois précédents (du
+  1 juillet au 30 septembre 2026) ». Le mot suivi : sa phrase (cinq cas : absent, trop rare, pas
+  en excès, hors des sujets, dans un sujet), sa barre cerclée avec le mot en pastille, ou une
+  barre blanche en pointillés sous la liste. Période libre de 92 jours au plus (le calcul lit
+  chaque jour dans les bases). Moins de cinq médias : la note de méthode suit `min_titres`.
+  `api.ts` : `requetePalmaresAvance`, types `MotSuivi`, `ReferencePalmares`, `ReglagesPalmares`.
+  `palm_methode` et `palm_fois_aide` reçoivent la référence. FR/EN.
+- Fuite trouvée au passage : `_connexions` ouvrait des connexions SQLite à chaque lecture sans
+  jamais les fermer, une centaine par calcul ; le serveur d'essai butait sur « Too many open
+  files » (limite 1024) au sixième recalcul, et un worker gunicorn de production en était à
+  899. `_fermer` dans un `finally` de `_periode`, `_reference`, `_series` : 70 fichiers ouverts
+  stables après trois calculs (les memmaps des cumuls).
+- Vérifié : tsc, eslint, build. L'API modifiée a tourné sur gram contre les vraies bases (copie
+  dans /tmp/mdj_test, Flask sur le port 8017, `relance.sh`), le site de dev branché dessus :
+  trois mois + « toussaint » (50e mot, sujet 14 cerclé, ×16 au lieu de ×17 avec 92 jours de
+  référence), douze mois + « émeutiers » (121e mot, barre en pointillés sous la liste), semaine
+  précédente + « macron » (2 sujets seulement, « ne ressort pas : ×1,3 »), les bulles « ? ».
+  Trois mois libres avec 300 mots : 44 s. La semaine du 12/10 recalculée à la demande donne 28
+  sujets contre 35 dans le fichier figé (calculé une autre nuit, avant les articles en retard ?).
+  Le mot suivi est cerclé par `.cercle` : `.marque` existait déjà (le logotype, petites capitales).
+
 ## 21/10/2026 — Tendances : le jour, et la période en cours au bout des flèches
 - Maquettes d'abord (artifact, données réelles du 21/10 à 13 h 55) : A « le fil » (l'onglet
   d'hier avec le pas Jour), B « la frise », C « la phrase » (le titre sert de commande, trois

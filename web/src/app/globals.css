@@ -2776,6 +2776,344 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   color: var(--encre);
 }
 
+/* ---- la recherche avancée (Palmares.tsx) : un bandeau de réglages, trois blocs sur la première
+   ligne (période, référence, médias), les seuils en curseurs, puis le mot suivi et Calculer */
+.filtres-avancee {
+  margin-bottom: 1.8rem;
+  padding: 1.3rem 1.4rem 1.2rem;
+  border: 1px solid var(--bord);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+
+.avancee-rang {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.3rem 2.4rem;
+}
+
+.avancee-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.avancee-rang > .avancee-bloc {
+  flex: 1 1 13rem;
+}
+
+.avancee-rang > .avancee-medias {
+  flex: 3 1 22rem;
+}
+
+/* le titre d'un bloc, avec son « ? » (l'aide des formulaires, remise à hauteur) et un compte ou un lien */
+.avancee-titre {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--encre-muette);
+}
+
+.avancee-titre h3,
+.avancee-titre span,
+.avancee-titre label {
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+}
+
+.avancee-titre .aide {
+  align-self: center;
+  margin-bottom: 0;
+}
+
+.avancee-titre .aide-bouton {
+  width: 1.3rem;
+  height: 1.3rem;
+  font-size: 0.72rem;
+}
+
+.avancee-titre .lien-medias,
+.avancee-compte {
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.avancee-compte {
+  font-size: 0.8rem;
+}
+
+.avancee-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 12rem;
+}
+
+.avancee-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--encre-2);
+}
+
+.avancee-note.erreur {
+  color: #a3330a;
+}
+
+.avancee-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.avancee-radio input {
+  margin: 0;
+  accent-color: var(--encre);
+}
+
+.avancee-liens {
+  display: flex;
+  gap: 0.9rem;
+  font-size: 0.8rem;
+}
+
+.avancee-pilules {
+  max-height: 7.4rem;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.avancee-fins {
+  border-top: 1px solid var(--bord);
+  padding-top: 1.2rem;
+}
+
+.avancee-reglages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem 2.2rem;
+}
+
+.reglage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.reglage-tete {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.reglage-tete .aide {
+  align-self: center;
+  margin-bottom: 0;
+}
+
+.reglage-tete .aide-bouton {
+  width: 1.3rem;
+  height: 1.3rem;
+  font-size: 0.72rem;
+}
+
+.reglage-valeur {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.reglage input[type="range"] {
+  width: 100%;
+  margin: 0.35rem 0;
+  accent-color: var(--encre);
+}
+
+.reglage input[type="range"]:focus-visible {
+  outline: 2px solid var(--anneau);
+  outline-offset: 4px;
+}
+
+.avancee-pied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 2rem;
+  border-top: 1px solid var(--bord);
+  padding-top: 1.2rem;
+}
+
+.avancee-mot {
+  flex: 1 1 16rem;
+}
+
+.avancee-mot input {
+  max-width: 20rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--encre);
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: 11px;
+  padding: 0.55rem 0.8rem;
+  transition:
+    border-color var(--duree-courte) ease,
+    box-shadow var(--duree-courte) ease;
+}
+
+.avancee-mot input:hover {
+  border-color: var(--axe);
+}
+
+.avancee-mot input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+.avancee-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1.2rem;
+  margin-left: auto;
+}
+
+.avancee-duree {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--encre-2);
+}
+
+.avancee-duree svg {
+  color: var(--accent);
+}
+
+.avancee-calculer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--encre);
+  color: var(--fond);
+  padding: 0.7rem 1.7rem;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: opacity var(--duree-courte) ease;
+}
+
+.avancee-calculer:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.avancee-calculer:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--anneau);
+}
+
+/* l'anneau qui tourne pendant le calcul : un trait qui s'efface en tournant (bouton, et en
+   grand à la place de la liste) */
+.anneau {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: conic-gradient(from 90deg, transparent 0deg, currentColor 300deg, transparent 300deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  animation: tourner 0.9s linear infinite;
+}
+
+.anneau.grand {
+  display: block;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: 0 auto 0.9rem;
+  color: var(--encre);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px));
+}
+
+@keyframes tourner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.etat-periode.avancee {
+  gap: 0.45rem;
+  border-color: var(--encre);
+  color: var(--encre);
+  cursor: default;
+}
+
+/* le mot suivi : sa phrase sous le titre, sa barre cerclée avec le mot en pastille, ou, hors
+   des sujets, une barre blanche en pointillés sous la liste */
+.tendances-suivi {
+  margin: 0.8rem 0 0;
+  max-width: 48rem;
+  font-size: 0.95rem;
+}
+
+.tendance.cercle .tendance-barre {
+  box-shadow: 0 0 0 3px var(--fond), 0 0 0 5px var(--encre);
+}
+
+.tendance-suivi {
+  padding: 0.05rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.tendance-fantome {
+  margin-top: 0.4rem;
+}
+
+.tendance-fantome .tendance-barre {
+  width: auto;
+  border: 1.5px dashed var(--encre-muette);
+  background: var(--surface);
+  color: var(--encre);
+  cursor: default;
+  animation: none;
+}
+
+.tendance-fantome .tendance-fois {
+  cursor: default;
+}
+
+.tendance-fantome .tendance-fois::after {
+  content: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anneau {
+    animation-duration: 3s;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tendance-barre {
     animation: none;

@@ -358,9 +358,32 @@ export type Palmares = {
   groupes: SujetPalmares[];
   calcule?: string; // "AAAA-MM-JJ HH:MM:SS", heure de Paris ; absent des fichiers définitifs anciens
   provisoire?: boolean; // période après la dernière fusion des bases, recalculée les nuits suivantes
+  reference_jours?: number; // durée de la référence en jours (365 pour douze mois) ; absent des fichiers anciens
+  min_titres?: number; // le seuil de médias appliqué (ramené au nombre de médias disponibles)
+  duree_s?: number; // durée du calcul, absente d'un résultat servi de mémoire
+  mot?: MotSuivi; // la place du mot demandé (recherche avancée)
+};
+
+// la place d'un mot sur la période : absent ou dans trop peu de médias (candidat faux), présent sans
+// passer les seuils (rang nul), en excès (rang parmi les mots retenus), dans un sujet (numéro à partir de 1)
+export type MotSuivi = {
+  mot: string;
+  n: number;
+  medias: number;
+  candidat: boolean;
+  rang: number | null;
+  sujet: number | null;
+  n_reference?: number;
+  titres_en_exces?: number;
+  ratio?: number;
 };
 
 export type PasPalmares = "jour" | "semaine" | "mois";
+// la référence de la recherche avancée : douze mois, trois mois ou la semaine avant la période
+export type ReferencePalmares = "12" | "3" | "semaine";
+// les seuils de la recherche avancée (noms de la route)
+export type ReglagesPalmares = { top: number; min_titres: number; ratio_min: number; min_n: number; z_min: number; seuil: number };
+export const REGLAGES_DEFAUT: ReglagesPalmares = { top: 80, min_titres: 5, ratio_min: 1.5, min_n: 10, z_min: 5, seuil: 0.4 };
 
 // "AAAA-MM-JJ", "AAAA-MM-JJ" (lundis), "AAAA-MM"
 export type PeriodesPalmares = { jours: string[]; semaines: string[]; mois: string[] };
@@ -376,6 +399,29 @@ const palmaresServis = new Map<string, Promise<Palmares>>();
 export function requetePalmares(options: { de: string; a: string }): Promise<Palmares> {
   // de, a : AAAA-MM-JJ
   const params = new URLSearchParams({ from: options.de.replaceAll("-", ""), to: options.a.replaceAll("-", "") });
+  const cle = params.toString();
+  const connue = palmaresServis.get(cle);
+  if (connue) return connue;
+  const promesse = lireJson<Palmares>(`/mots_du_jour_ngram?${cle}`);
+  palmaresServis.set(cle, promesse);
+  promesse.catch(() => palmaresServis.delete(cle));
+  return promesse;
+}
+
+// la recherche avancée : dates libres, référence, médias, seuils et mot suivi ; calculée à la demande
+// (de quelques secondes à une minute), gardée en mémoire comme les périodes closes
+export function requetePalmaresAvance(options: {
+  de: string; // AAAA-MM-JJ
+  a: string;
+  ref: ReferencePalmares;
+  corpus: string[]; // les médias choisis (tous si vide)
+  reglages: ReglagesPalmares;
+  mot: string; // vide : aucun
+}): Promise<Palmares> {
+  const params = new URLSearchParams({ from: options.de.replaceAll("-", ""), to: options.a.replaceAll("-", ""), ref: options.ref });
+  if (options.corpus.length) params.set("corpus", [...options.corpus].sort().join(","));
+  for (const [k, v] of Object.entries(options.reglages)) if (v !== REGLAGES_DEFAUT[k as keyof ReglagesPalmares]) params.set(k, String(v));
+  if (options.mot) params.set("mot", options.mot);
   const cle = params.toString();
   const connue = palmaresServis.get(cle);
   if (connue) return connue;

@@ -11,20 +11,31 @@
 // colorées du rouge brique (le premier) au jaune paille, les suivants repliés en gris ; au bout,
 // le « ×25 » du mot de tête (bulle au survol) et « Nouveau » si la période d'avant ne l'avait
 // pas. Un clic sur la barre montre les mots du sujet en italique et mène aux Courbes.
+// La « Recherche avancée », quatrième pilule, ouvre un bandeau de réglages (dates libres,
+// référence au choix, médias, seuils, mot suivi) : le calcul part au clic sur Calculer, à la
+// demande (de quelques secondes à une minute), un anneau tourne en attendant. Le mot suivi est
+// placé : sa barre est cerclée s'il est dans un sujet, sinon il paraît en pointillés sous la liste.
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import {
+  chargerCatalogue,
   chargerPeriodesPalmares,
   ErreurApi,
+  REGLAGES_DEFAUT,
   requetePalmares,
+  requetePalmaresAvance,
   requetePalmaresEnCours,
   type MotPalmares,
+  type MotSuivi,
   type PasPalmares as Pas,
   type Palmares as Resultat,
   type PeriodesPalmares,
+  type ReferencePalmares,
+  type ReglagesPalmares,
   type SujetPalmares,
 } from "@/lib/api";
-import { localeDe, textes, type Lang } from "@/lib/i18n";
+import { corpusNoms, localeDe, textes, type Lang } from "@/lib/i18n";
+import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import Aide from "@/components/Aide";
 
 const PAS: Pas[] = ["jour", "semaine", "mois"];
@@ -41,6 +52,19 @@ const CHALEUR = [
 ];
 const TEXTE_BLANC = 5;
 
+// la recherche avancée : les références proposées, la durée maximale d'une période libre (le
+// calcul lit chaque jour dans les bases), les curseurs des seuils (bornes et pas)
+const REFERENCES: ReferencePalmares[] = ["12", "3", "semaine"];
+const JOURS_MAX = 92;
+const CURSEURS: { id: keyof ReglagesPalmares; min: number; max: number; pas: number; fois?: boolean }[] = [
+  { id: "top", min: 20, max: 300, pas: 10 },
+  { id: "min_titres", min: 1, max: 40, pas: 1 },
+  { id: "ratio_min", min: 1, max: 5, pas: 0.1, fois: true },
+  { id: "min_n", min: 1, max: 100, pas: 1 },
+  { id: "z_min", min: 1, max: 10, pas: 0.5 },
+  { id: "seuil", min: 0.1, max: 0.9, pas: 0.05 },
+];
+
 const utc = (iso: string) => new Date(`${iso.length === 7 ? `${iso}-01` : iso}T00:00:00Z`);
 const isoDe = (d: Date) => d.toISOString().slice(0, 10);
 const plusJours = (iso: string, n: number) => {
@@ -50,6 +74,7 @@ const plusJours = (iso: string, n: number) => {
 };
 // AAAAMMJJ (API) → AAAA-MM-JJ
 const isoDe8 = (s: string) => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+const joursEntre = (de: string, a: string) => (utc(a).getTime() - utc(de).getTime()) / 86_400_000 + 1;
 // aujourd'hui à Paris, le jour des calculs du serveur
 function aujourdhui(): string {
   const morceaux = new Intl.DateTimeFormat("en", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" })
@@ -81,6 +106,12 @@ function periodeDe(pas: Pas, liste: string[], iso: string): string | undefined {
 }
 // la clé d'un résultat dans la liste de son pas : son premier jour, ou son mois
 const cleDe = (pas: Pas, r: Resultat) => (pas === "mois" ? isoDe8(r.periode[0]).slice(0, 7) : isoDe8(r.periode[0]));
+// les bornes de la référence d'un résultat : des mois (AAAAMM) ou des jours (AAAAMMJJ)
+function bornesReference(r: Resultat): { de: string; a: string } {
+  const [m0, m1] = r.reference.map(String);
+  if (m0.length === 8) return { de: isoDe8(m0), a: isoDe8(m1) };
+  return { de: `${m0.slice(0, 4)}-${m0.slice(4, 6)}-01`, a: bornes("mois", `${m1.slice(0, 4)}-${m1.slice(4, 6)}`).a };
+}
 
 // le nom du sujet : la première étiquette (bigramme) qui contient un des trois mots de tête,
 // sinon le mot de tête ; majuscule initiale, chiffre romain en capitales après un nom (« léon xiv »)
@@ -97,10 +128,10 @@ function motsLies(g: SujetPalmares, nom: string): string[] {
   const pris = new Set(nom.toLowerCase().split(/[\s']+/));
   return g.mots.map((m) => m.mot).filter((w) => !pris.has(w) && !pris.has(w.replace(/^[ldjn]'/, "")));
 }
-// hausse du mot de tête : son taux sur la période rapporté à son taux sur les douze mois de
-// référence, à volume de presse égal (approché : le total de mots des périodes n'est pas servi)
-function hausse(m: MotPalmares, jours: number): number {
-  return m.n_reference > 0 ? m.n / jours / (m.n_reference / 365) : Infinity;
+// hausse du mot de tête : son taux sur la période rapporté à son taux sur la référence, à volume
+// de presse égal (approché : le total de mots des périodes n'est pas servi)
+function hausse(m: MotPalmares, jours: number, joursReference: number): number {
+  return m.n_reference > 0 ? m.n / jours / (m.n_reference / joursReference) : Infinity;
 }
 // mots de tête d'une période, pour repérer les sujets nouveaux
 const tetes = (r: Resultat) => new Set(r.groupes.flatMap((g) => g.mots.slice(0, 8).map((m) => m.mot)));
@@ -114,6 +145,8 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
   // la période en cours de chaque pas, lue la première fois que le pas s'affiche (null : rien de calculé)
   const [enCours, setEnCours] = useState<Partial<Record<Pas, Resultat | null>>>({});
   const [pas, setPas] = useState<Pas>("semaine");
+  // la quatrième pilule : le bandeau de la recherche avancée remplace les flèches
+  const [avancee, setAvancee] = useState(false);
   // la période affichée, par pas : clé de la liste (jour ou lundi AAAA-MM-JJ, mois AAAA-MM)
   const [choix, setChoix] = useState<Partial<Record<Pas, string>>>({});
   const [chargement, setChargement] = useState(false);
@@ -135,9 +168,31 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
   const appel = useRef(0);
   const demandes = useRef(new Set<Pas>());
 
+  // la recherche avancée : les médias du catalogue (principaux d'abord, puis du plus gros fonds au
+  // plus petit), le formulaire, le résultat avec ce qui l'a demandé, et le calcul en cours
+  const [medias, setMedias] = useState<string[]>([]);
+  const [forme, setForme] = useState<{
+    de: string;
+    a: string;
+    ref: ReferencePalmares;
+    cochés: Set<string> | null; // null : tous
+    reglages: ReglagesPalmares;
+    mot: string;
+  }>({ de: "", a: "", ref: "12", cochés: null, reglages: REGLAGES_DEFAUT, mot: "" });
+  const [avance, setAvance] = useState<{ r: Resultat; ref: ReferencePalmares; tirage: number } | null>(null);
+  const [calcul, setCalcul] = useState(false);
+  const [messageAvance, setMessageAvance] = useState<string | null>(null);
+  const appelAvance = useRef(0);
+  const catalogueDemande = useRef(false);
+
+  // les périodes closes ; la recherche avancée s'ouvrira sur la dernière semaine close
   useEffect(() => {
     chargerPeriodesPalmares()
-      .then(setPeriodes)
+      .then((p) => {
+        setPeriodes(p);
+        const derniere = p.semaines.at(-1);
+        if (derniere) setForme((f) => (f.de ? f : { ...f, ...bornes("semaine", derniere) }));
+      })
       .catch(() => setMessage(t.msg_erreur));
   }, [t]);
 
@@ -152,6 +207,16 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
         setChoix((c) => (c[pas] ? c : { ...c, [pas]: r ? cleDe(pas, r) : periodes[LISTE[pas]].at(-1) }));
       });
   }, [pas, periodes]);
+
+  // les médias du catalogue, lus à la première ouverture de la recherche avancée
+  useEffect(() => {
+    if (!avancee || catalogueDemande.current) return;
+    catalogueDemande.current = true;
+    chargerCatalogue().then((catalogue) => {
+      const parTaille = [...catalogue].sort((x, y) => y.mots - x.mots).map((c) => c.corpus);
+      setMedias([...MEDIAS_PRINCIPAUX.filter((c) => parTaille.includes(c)), ...parTaille.filter((c) => !MEDIAS_PRINCIPAUX.includes(c))]);
+    });
+  }, [avancee]);
 
   const courante = enCours[pas];
   const cleEnCours = courante ? cleDe(pas, courante) : undefined;
@@ -221,8 +286,8 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
     return t.palm_titre_semaine(formaterJour(de, de.slice(0, 4) !== a.slice(0, 4)), formaterJour(a));
   };
   const formaterN = (n: number) => n.toLocaleString(locale);
-  const formaterFois = (x: number) =>
-    !Number.isFinite(x) || x >= 100 ? null : `×${x >= 10 ? Math.round(x) : x.toLocaleString(locale, { maximumFractionDigits: 1 })}`;
+  const formaterX = (x: number) => `×${x >= 10 ? Math.round(x) : x.toLocaleString(locale, { maximumFractionDigits: 1 })}`;
+  const formaterFois = (x: number) => (!Number.isFinite(x) || x >= 100 ? null : formaterX(x));
 
   const affiche = resultat && resultat.pas === pas && resultat.cle === cle ? resultat : null;
   const r = affiche?.r;
@@ -230,22 +295,24 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
   // l'heure du calcul de la période en cours (heure de Paris, celle du serveur)
   const maj = estEnCours && r?.calcule ? t.palm_maj(Number(r.calcule.slice(11, 13)), r.calcule.slice(14, 16)) : null;
 
-  const barres = () => {
-    if (!r || !affiche) return null;
-    const de = isoDe8(r.periode[0]);
-    const a = isoDe8(r.periode[1]);
+  // les barres d'un résultat ; `marque` : le numéro du sujet du mot suivi (cerclé), et le mot en
+  // pointillés sous la liste quand il est en excès sans entrer dans un sujet
+  const barres = (res: Resultat, avant: Set<string> | null, quand: string, ref: string, suivi: MotSuivi | null) => {
+    const de = isoDe8(res.periode[0]);
+    const a = isoDe8(res.periode[1]);
     // la durée réelle : la semaine en cours n'a que les jours écoulés
-    const jours = (utc(a).getTime() - utc(de).getTime()) / 86_400_000 + 1;
-    const quand = t.palm_quand(pas, estEnCours);
-    const max = r.groupes[0]?.score || 1;
-    const avant = affiche.avant;
-    return r.groupes.slice(0, tous ? undefined : TOP).map((g, i) => {
+    const jours = joursEntre(de, a);
+    const joursReference = res.reference_jours ?? 365;
+    const max = res.groupes[0]?.score || 1;
+    const marque = suivi?.sujet ?? null;
+    const lignes = res.groupes.slice(0, tous ? undefined : TOP).map((g, i) => {
       const nom = nomDe(g);
       const tete = g.mots[0];
-      const x = formaterFois(hausse(tete, jours));
-      const aide = x ? t.palm_fois_aide(x, tete.mot, formaterN(tete.n), quand) : t.palm_inedit_aide(tete.mot, formaterN(tete.n), quand);
+      const x = formaterFois(hausse(tete, jours, joursReference));
+      const aide = x ? t.palm_fois_aide(x, tete.mot, formaterN(tete.n), quand, ref) : t.palm_inedit_aide(tete.mot, formaterN(tete.n), quand, ref);
       const nouveau = avant ? !g.mots.slice(0, 5).some((m) => avant.has(m.mot)) : false;
       const estOuvert = ouvert === i;
+      const estMarque = marque === i + 1;
       const style = {
         "--part": Math.max(0.24, g.score / max),
         "--fond": i < TOP ? CHALEUR[i] : "var(--bord)",
@@ -253,7 +320,7 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
         "--rang": i < TOP ? i : i - TOP,
       } as CSSProperties;
       return (
-        <li key={`${tete?.mot ?? i}-${i}`} className={`tendance${estOuvert ? " ouvert" : ""}`} style={style}>
+        <li key={`${tete?.mot ?? i}-${i}`} className={`tendance${estOuvert ? " ouvert" : ""}${estMarque ? " cercle" : ""}`} style={style}>
           <div className="tendance-ligne">
             <button type="button" className="tendance-barre" aria-expanded={estOuvert} onClick={() => setOuvert(estOuvert ? -1 : i)}>
               <span className="tendance-rang">{i + 1}.</span>
@@ -267,6 +334,7 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
                 {t.palm_nouveau}
               </span>
             )}
+            {estMarque && suivi && <span className="tendance-suivi">« {suivi.mot} »</span>}
           </div>
           {estOuvert && (
             <div className="tendance-detail">
@@ -279,17 +347,286 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
         </li>
       );
     });
+    if (suivi?.rang && !suivi.sujet)
+      lignes.push(
+        <li key="fantome" className="tendance tendance-fantome">
+          <div className="tendance-ligne">
+            <span className="tendance-barre">{suivi.mot}</span>
+            <span className="tendance-fois">{t.palm_av_fantome(suivi.rang)}</span>
+          </div>
+        </li>,
+      );
+    return lignes;
+  };
+  const suite = (res: Resultat): ReactNode =>
+    res.groupes.length > TOP && (
+      <button type="button" className="tendances-plus" onClick={() => setTous((v) => !v)}>
+        {tous ? t.palm_replier : t.palm_autres(res.groupes.length - TOP)}
+      </button>
+    );
+
+  // ---- la recherche avancée
+  const joursForme = forme.de && forme.a ? joursEntre(forme.de, forme.a) : 0;
+  const erreurDates = !forme.de || !forme.a ? null : joursForme < 1 ? t.palm_av_dates_inversees : joursForme > JOURS_MAX ? t.palm_av_trop_long(JOURS_MAX) : null;
+  const nbCoches = forme.cochés ? forme.cochés.size : medias.length;
+  const peutCalculer = joursForme >= 1 && !erreurDates && nbCoches > 0 && !calcul;
+  const cocher = (c: string) =>
+    setForme((f) => {
+      const s = new Set(f.cochés ?? medias);
+      if (s.has(c)) s.delete(c);
+      else s.add(c);
+      return { ...f, cochés: s.size === medias.length ? null : s };
+    });
+  const regler = (id: keyof ReglagesPalmares, v: number) => setForme((f) => ({ ...f, reglages: { ...f.reglages, [id]: v } }));
+  const formaterReglage = (id: keyof ReglagesPalmares, v: number) =>
+    `${CURSEURS.find((c) => c.id === id)?.fois ? "×" : ""}${v.toLocaleString(locale, { maximumFractionDigits: 2 })}`;
+  const lancer = (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!peutCalculer) return;
+    const numero = ++appelAvance.current;
+    const ref = forme.ref;
+    setCalcul(true);
+    setMessageAvance(null);
+    requetePalmaresAvance({
+      de: forme.de,
+      a: forme.a,
+      ref,
+      corpus: forme.cochés ? [...forme.cochés] : [],
+      reglages: forme.reglages,
+      mot: forme.mot.trim().toLowerCase(),
+    })
+      .then((res) => {
+        if (numero !== appelAvance.current) return;
+        setAvance((p) => ({ r: res, ref, tirage: (p?.tirage ?? 0) + 1 }));
+        setOuvert(-1);
+        setTous(false);
+      })
+      .catch((e) => {
+        if (numero !== appelAvance.current) return;
+        setAvance(null);
+        setMessageAvance(e instanceof ErreurApi && e.message ? e.message : t.msg_erreur);
+      })
+      .finally(() => {
+        if (numero === appelAvance.current) setCalcul(false);
+      });
+  };
+  // la phrase sur le mot suivi
+  const placeDuMot = (m: MotSuivi, res: Resultat): string => {
+    if (!m.n) return t.palm_av_mot_absent(m.mot);
+    if (!m.candidat) return t.palm_av_mot_rare(m.mot, formaterN(m.n), m.medias, res.min_titres ?? REGLAGES_DEFAUT.min_titres);
+    if (m.rang === null) return t.palm_av_mot_sans_exces(m.mot, formaterX(m.ratio ?? 0), m.titres_en_exces ?? 0);
+    if (m.sujet === null) return t.palm_av_mot_hors(m.mot, m.rang, forme.reglages.top);
+    return m.sujet <= TOP ? t.palm_av_mot_sujet(m.mot, m.rang, m.sujet) : t.palm_av_mot_suite(m.mot, m.rang, m.sujet);
   };
 
+  const pilules = (
+    <nav className="pilules sous-onglets" aria-label={t.palm_pas_aria}>
+      {PAS.map((p) => (
+        <button
+          key={p}
+          type="button"
+          className={!avancee && pas === p ? "actif" : undefined}
+          aria-pressed={!avancee && pas === p}
+          onClick={() => {
+            setPas(p);
+            setAvancee(false);
+          }}
+        >
+          {t[`palm_${p}`]}
+        </button>
+      ))}
+      <button type="button" className={avancee ? "actif" : undefined} aria-pressed={avancee} onClick={() => setAvancee(true)}>
+        {t.palm_avancee}
+      </button>
+    </nav>
+  );
+
+  if (avancee) {
+    const res = avance?.r;
+    const refA = avance ? t.palm_av_ref_a(avance.ref) : "";
+    const refBornes = res ? bornesReference(res) : null;
+    return (
+      <>
+        {pilules}
+        <form className="filtres-avancee" onSubmit={lancer}>
+          <div className="avancee-rang">
+            <section className="avancee-bloc">
+              <div className="avancee-titre">
+                <h3>{t.palm_av_periode}</h3>
+                <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.palm_av_periode_aide} />
+              </div>
+              <div className="avancee-dates">
+                <label className="champ">
+                  <span>{t.palm_av_du}</span>
+                  <input type="date" className="date" value={forme.de} max={aujourdhui()} onChange={(ev) => setForme((f) => ({ ...f, de: ev.target.value }))} />
+                </label>
+                <label className="champ">
+                  <span>{t.palm_av_au}</span>
+                  <input
+                    type="date"
+                    className="date"
+                    value={forme.a}
+                    max={aujourdhui()}
+                    aria-invalid={erreurDates ? true : undefined}
+                    onChange={(ev) => setForme((f) => ({ ...f, a: ev.target.value }))}
+                  />
+                </label>
+              </div>
+              <p className={`avancee-note${erreurDates ? " erreur" : ""}`}>{erreurDates ?? (joursForme >= 1 ? t.palm_av_jours(joursForme) : "")}</p>
+            </section>
+
+            <fieldset className="avancee-bloc">
+              <legend className="avancee-titre">
+                <span>{t.palm_av_comparer}</span>
+                <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.palm_av_comparer_aide} />
+              </legend>
+              {REFERENCES.map((ref) => (
+                <label key={ref} className="avancee-radio">
+                  <input type="radio" name="reference" checked={forme.ref === ref} onChange={() => setForme((f) => ({ ...f, ref }))} />
+                  <span>{t.palm_av_ref(ref)}</span>
+                </label>
+              ))}
+            </fieldset>
+
+            <section className="avancee-bloc avancee-medias">
+              <div className="avancee-titre">
+                <h3>{t.palm_av_medias}</h3>
+                <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.palm_av_medias_aide} />
+                <span className="avancee-compte">{t.palm_av_compte(nbCoches, medias.length)}</span>
+              </div>
+              <div className="avancee-liens">
+                <button type="button" className="lien-medias" onClick={() => setForme((f) => ({ ...f, cochés: null }))}>
+                  {t.palm_av_tous}
+                </button>
+                <button
+                  type="button"
+                  className="lien-medias"
+                  onClick={() => setForme((f) => ({ ...f, cochés: new Set(MEDIAS_PRINCIPAUX.filter((c) => medias.includes(c))) }))}
+                >
+                  {t.palm_av_principaux}
+                </button>
+                <button type="button" className="lien-medias" onClick={() => setForme((f) => ({ ...f, cochés: new Set() }))}>
+                  {t.medias_aucun}
+                </button>
+              </div>
+              <div className="pilules pilules-medias avancee-pilules">
+                {medias.map((c) => {
+                  const coche = !forme.cochés || forme.cochés.has(c);
+                  return (
+                    <button key={c} type="button" className={coche ? "actif" : undefined} aria-pressed={coche} onClick={() => cocher(c)}>
+                      {corpusNoms[c] ?? c}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          <section className="avancee-bloc avancee-fins">
+            <div className="avancee-titre">
+              <h3>{t.palm_av_fins}</h3>
+              <button type="button" className="lien-medias" onClick={() => setForme((f) => ({ ...f, reglages: REGLAGES_DEFAUT }))}>
+                {t.palm_av_retablir}
+              </button>
+            </div>
+            <div className="avancee-reglages">
+              {CURSEURS.map((c) => (
+                <div key={c.id} className="reglage">
+                  <div className="reglage-tete">
+                    <label htmlFor={`reglage-${c.id}`}>{t.palm_av_reglage(c.id)}</label>
+                    <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.palm_av_reglage_aide(c.id)} />
+                    <span className="reglage-valeur">{formaterReglage(c.id, forme.reglages[c.id])}</span>
+                  </div>
+                  <input
+                    id={`reglage-${c.id}`}
+                    type="range"
+                    min={c.min}
+                    max={c.max}
+                    step={c.pas}
+                    value={forme.reglages[c.id]}
+                    onChange={(ev) => regler(c.id, Number(ev.target.value))}
+                  />
+                  <span className="avancee-note">{t.palm_av_defaut(formaterReglage(c.id, REGLAGES_DEFAUT[c.id]))}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="avancee-pied">
+            <section className="avancee-bloc avancee-mot">
+              <div className="avancee-titre">
+                <label htmlFor="mot-suivi">{t.palm_av_suivre}</label>
+                <Aide aria={t.aide_aria} fermer={t.aide_fermer} texte={t.palm_av_suivre_aide} />
+              </div>
+              <input
+                id="mot-suivi"
+                type="search"
+                value={forme.mot}
+                placeholder={t.palm_av_suivre_vide}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(ev) => setForme((f) => ({ ...f, mot: ev.target.value }))}
+              />
+            </section>
+            <div className="avancee-action">
+              {nbCoches === 0 ? (
+                <span className="avancee-note erreur">{t.palm_av_sans_media}</span>
+              ) : (
+                <span className="avancee-duree">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  {t.palm_av_duree}
+                </span>
+              )}
+              <button type="submit" className="avancee-calculer" disabled={!peutCalculer}>
+                {calcul && <span className="anneau" aria-hidden="true" />}
+                {calcul ? t.palm_av_calcul : t.palm_av_calculer}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <figure className="tendances">
+          {res && avance && refBornes ? (
+            <>
+              <figcaption key={avance.tirage}>
+                <span className="tendances-titre">{t.palm_av_titre(formaterJour(isoDe8(res.periode[0]), false), formaterJour(isoDe8(res.periode[1])))}</span>
+                <span className="pic-info">{t.palm_sous(formaterN(res.titres.length), formaterN(res.groupes.length))}</span>
+                <span className="etat-periode avancee">{t.palm_av_etat(res.duree_s ? Math.round(res.duree_s) : null)}</span>
+              </figcaption>
+              <p className="tendances-indicatif">{t.palm_av_phrase(refA, formaterJour(refBornes.de, false), formaterJour(refBornes.a))}</p>
+              {res.mot && (
+                <p className="tendances-suivi" aria-live="polite">
+                  {placeDuMot(res.mot, res)}
+                </p>
+              )}
+              {res.groupes.length ? (
+                <ol className={`tendances-liste${calcul ? " charge" : ""}`} key={`l${avance.tirage}`}>
+                  {barres(res, null, t.palm_av_quand, refA, res.mot ?? null)}
+                </ol>
+              ) : (
+                <p className="etat-projection">{t.palm_av_vide}</p>
+              )}
+              {suite(res)}
+              <p className="note-ratio">{t.palm_methode(refA, res.min_titres ?? REGLAGES_DEFAUT.min_titres)}</p>
+            </>
+          ) : (
+            <p className="etat-projection">
+              {calcul && <span className="anneau grand" aria-hidden="true" />}
+              {messageAvance ?? (calcul ? t.palm_av_calcul : t.palm_av_depart)}
+            </p>
+          )}
+        </figure>
+      </>
+    );
+  }
+
+  const refA = t.palm_av_ref_a("12");
   return (
     <>
-      <nav className="pilules sous-onglets" aria-label={t.palm_pas_aria}>
-        {PAS.map((p) => (
-          <button key={p} type="button" className={pas === p ? "actif" : undefined} aria-pressed={pas === p} onClick={() => setPas(p)}>
-            {t[`palm_${p}`]}
-          </button>
-        ))}
-      </nav>
+      {pilules}
 
       <form className="filtres filtres-palmares" onSubmit={(ev) => ev.preventDefault()}>
         <div className="navigation-periode" role="group" aria-label={t.lbl_periode}>
@@ -366,15 +703,11 @@ export default function Palmares({ lang, voirCourbe }: { lang: Lang; voirCourbe:
               </div>
             ) : (
               <ol className={`tendances-liste${chargement ? " charge" : ""}`} key={`l${affiche.tirage}`}>
-                {barres()}
+                {barres(r, affiche.avant, t.palm_quand(pas, estEnCours), refA, null)}
               </ol>
             )}
-            {r.groupes.length > TOP && (
-              <button type="button" className="tendances-plus" onClick={() => setTous((v) => !v)}>
-                {tous ? t.palm_replier : t.palm_autres(r.groupes.length - TOP)}
-              </button>
-            )}
-            <p className="note-ratio">{t.palm_methode}</p>
+            {suite(r)}
+            <p className="note-ratio">{t.palm_methode(refA, REGLAGES_DEFAUT.min_titres)}</p>
           </>
         ) : (
           <p className="etat-projection">{message ?? (cle || enCours[pas] === undefined ? t.msg_chargement : t.palm_aucune)}</p>

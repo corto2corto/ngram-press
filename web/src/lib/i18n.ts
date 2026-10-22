@@ -1,7 +1,7 @@
 // Dictionnaires FR/EN du site (repris du front statique, complétés au fil des pages).
 // Importable côté serveur comme côté client : de simples objets TypeScript.
 
-import type { PasPalmares } from "@/lib/api";
+import type { PasPalmares, ReferencePalmares, ReglagesPalmares } from "@/lib/api";
 
 export const langs = ["fr", "en"] as const;
 export type Lang = (typeof langs)[number];
@@ -10,6 +10,9 @@ export const hasLang = (lang: string): lang is Lang =>
   (langs as readonly string[]).includes(lang);
 
 export const localeDe = (lang: Lang) => (lang === "fr" ? "fr-FR" : "en-GB");
+
+// 1st, 2nd, 3rd, 4th… (English)
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
 
 // noms d'affichage des corpus (l'API parle en identifiants : le_monde, mediapart…)
 export const corpusNoms: Record<string, string> = {
@@ -182,7 +185,7 @@ export const textes = {
 
     // Tendances : les sujets d'un jour, d'une semaine ou d'un mois (mots du jour), une barre par sujet
     ong_desc_palmares:
-      "Les sujets d'un jour, d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. La barre mesure la force de l'excès ; un clic montre les mots du sujet. Flèches ou date pour changer de période.",
+      "Les sujets d'un jour, d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. La barre mesure la force de l'excès ; un clic montre les mots du sujet. Flèches ou date pour changer de période ; la recherche avancée ouvre les dates, la référence, les médias et les seuils, et dit où se place un mot.",
     palm_pas_aria: "Pas des tendances",
     palm_jour: "Jour",
     palm_semaine: "Semaine",
@@ -224,15 +227,92 @@ export const textes = {
     // la bulle du « ×25 » : la hausse en clair, puis le compte du mot sur la période
     palm_quand: (pas: PasPalmares, enCours: boolean): string =>
       pas === "jour" ? (enCours ? "aujourd'hui" : "ce jour-là") : pas === "semaine" ? "cette semaine" : "ce mois-ci",
-    palm_fois_aide: (x: string, mot: string, n: string, quand: string) =>
-      `${x} par rapport aux douze mois précédents\n« ${mot} » : ${n} occurrences ${quand}`,
-    palm_inedit_aide: (mot: string, n: string, quand: string) =>
-      `presque absent des douze mois précédents\n« ${mot} » : ${n} occurrences ${quand}`,
+    palm_fois_aide: (x: string, mot: string, n: string, quand: string, ref: string) =>
+      `${x} par rapport ${ref}\n« ${mot} » : ${n} occurrences ${quand}`,
+    palm_inedit_aide: (mot: string, n: string, quand: string, ref: string) =>
+      `presque absent ${ref.replace(/^(aux|à la) /, (m) => (m === "aux " ? "des " : "de la "))}\n« ${mot} » : ${n} occurrences ${quand}`,
     palm_voir_courbe: (mot: string) => `Voir « ${mot} » dans les Courbes`,
     palm_autres: (n: number) => `Voir les ${n} autres sujets`,
     palm_replier: "Revenir aux vingt premiers",
-    palm_methode:
-      "Mots en excès par rapport aux douze mois précédents (log-odds, Monroe et al. 2008), dans au moins cinq médias ; sujets formés par les pics communs des mots, étiquettes tirées des bigrammes. Méthode de Benoît de Courson (Gallicagram).",
+    palm_methode: (ref: string, medias: number) =>
+      `Mots en excès par rapport ${ref} (log-odds, Monroe et al. 2008), dans au moins ${medias === 1 ? "un média" : `${medias} médias`} ; sujets formés par les pics communs des mots, étiquettes tirées des bigrammes. Méthode de Benoît de Courson (Gallicagram).`,
+    // la recherche avancée : dates libres, référence, médias, seuils et mot suivi, calculée à la demande
+    palm_avancee: "Recherche avancée",
+    palm_av_periode: "Période",
+    palm_av_periode_aide:
+      "Les jours dont on lit les articles. Des dates libres se calculent à la demande : plus la période est longue, plus le calcul dure. Trois mois au plus.",
+    palm_av_du: "Du",
+    palm_av_au: "Au",
+    palm_av_jours: (n: number) => `${n} jour${n > 1 ? "s" : ""}`,
+    palm_av_dates_inversees: "La fin précède le début.",
+    palm_av_trop_long: (max: number) => `${max} jours au plus.`,
+    palm_av_comparer: "Comparer à",
+    palm_av_comparer_aide:
+      "Un mot ressort quand la presse l'emploie bien plus pendant la période que pendant la référence. Douze mois : ce qui revient chaque année (Toussaint, rentrée) est déjà dans la référence et ne ressort pas. Trois mois : ces rendez-vous remontent. La semaine précédente : seul ce qui a changé d'une semaine à l'autre ressort, et un sujet qui dure s'efface.",
+    palm_av_ref: (ref: ReferencePalmares) =>
+      ({ "12": "Les douze mois précédents", "3": "Les trois mois précédents", semaine: "La semaine précédente" })[ref],
+    // après « par rapport »
+    palm_av_ref_a: (ref: ReferencePalmares) =>
+      ({ "12": "aux douze mois précédents", "3": "aux trois mois précédents", semaine: "à la semaine précédente" })[ref],
+    palm_av_medias: "Médias",
+    palm_av_medias_aide:
+      "Les journaux et chaînes dont on lit les articles. Chaque média est d'abord comparé à son propre passé (Le Monde au Monde, Le Figaro au Figaro), puis les résultats sont mis en commun. Avec moins de cinq médias, le réglage « Médias où le mot ressort » descend au nombre de médias choisis.",
+    palm_av_compte: (n: number, total: number) => `${n} sur ${total}`,
+    palm_av_tous: "Tous",
+    palm_av_principaux: "Principaux",
+    palm_av_fins: "Réglages fins",
+    palm_av_retablir: "Rétablir les valeurs par défaut",
+    palm_av_defaut: (v: string) => `Par défaut : ${v}`,
+    palm_av_reglage: (id: keyof ReglagesPalmares): string =>
+      ({
+        top: "Mots retenus",
+        min_titres: "Médias où le mot ressort",
+        ratio_min: "Hausse minimale",
+        min_n: "Occurrences minimales",
+        z_min: "Seuil d'excès dans un média",
+        seuil: "Regroupement en sujets",
+      })[id],
+    palm_av_reglage_aide: (id: keyof ReglagesPalmares): string =>
+      ({
+        top: "Combien de mots on garde, du plus en excès au moins en excès, avant de les regrouper en sujets. Plus haut, des sujets plus discrets apparaissent, portés par des mots de moins en moins en excès.",
+        min_titres:
+          "Un mot doit être en excès dans au moins autant de médias à la fois. C'est ce qui écarte les sujets propres à un seul titre : son feuilleton, une affaire locale, une rubrique. Plus bas, ils entrent dans la liste ; plus haut, il ne reste que ce dont toute la presse parle.",
+        ratio_min:
+          "Tous médias confondus, le mot doit être employé au moins autant de fois plus souvent que pendant la référence. Sur des millions de mots, la hausse minime d'un mot très courant peut être statistiquement sûre sans rien dire de l'actualité : ce seuil l'écarte.",
+        min_n:
+          "Le mot doit apparaître au moins autant de fois sur la période, tous médias confondus : sinon trois emplois contre aucun d'habitude passeraient pour une explosion. Le même seuil vaut pour les expressions de deux mots qui servent d'étiquettes aux sujets.",
+        z_min:
+          "Dans chaque média, on mesure de combien l'emploi d'un mot dépasse son habitude, en tenant compte du hasard : un mot rare varie beaucoup d'une semaine à l'autre sans que cela veuille rien dire. Un score de 2 peut arriver par hasard, 5 presque jamais. Au-dessus du seuil, le mot est « en excès » dans ce média (log-odds, Monroe et al. 2008).",
+        seuil:
+          "Deux mots forment un même sujet quand leurs pics tombent les mêmes jours dans les mêmes médias. Leur ressemblance (une corrélation) vaut 1 pour des pics identiques, 0 sans aucun lien ; on réunit les mots tant qu'elle dépasse le seuil. Plus haut, les sujets se découpent plus fin ; plus bas, ils se fondent en grands sujets.",
+      })[id],
+    palm_av_suivre: "Suivre un mot",
+    palm_av_suivre_aide:
+      "Donne le rang du mot parmi tous les mots en excès de la période, même s'il n'entre dans aucun sujet affiché. Dans un sujet, sa barre est marquée ; hors des sujets, il apparaît en pointillés sous la liste.",
+    palm_av_suivre_vide: "un mot, facultatif",
+    palm_av_calculer: "Calculer",
+    palm_av_calcul: "Calcul…",
+    palm_av_duree: "Peut prendre jusqu'à une minute",
+    palm_av_etat: (s: number | null) => (s === null ? "Recherche avancée" : `Recherche avancée · ${s} s`),
+    palm_av_titre: (de: string, a: string) => `Du ${de} au ${a}`,
+    palm_av_phrase: (ref: string, de: string, a: string) => `Par rapport ${ref} (du ${de} au ${a}).`,
+    palm_av_quand: "sur la période",
+    palm_av_depart: "Choisissez les dates, la référence et les médias, puis « Calculer ».",
+    palm_av_vide: "Aucun sujet avec ces réglages.",
+    palm_av_sans_media: "Choisissez au moins un média.",
+    // où se place le mot suivi
+    palm_av_mot_absent: (mot: string) => `« ${mot} » n'apparaît dans aucun article de la période.`,
+    palm_av_mot_rare: (mot: string, n: string, medias: number, min: number) =>
+      `« ${mot} » apparaît ${n} fois, dans ${medias} média${medias > 1 ? "s" : ""} : il en faut ${min} pour entrer dans la comparaison.`,
+    palm_av_mot_sans_exces: (mot: string, x: string, medias: number) =>
+      `« ${mot} » ne ressort pas : ${x} par rapport à la référence, en excès dans ${medias} média${medias > 1 ? "s" : ""}.`,
+    palm_av_mot_hors: (mot: string, rang: number, top: number) =>
+      `« ${mot} » est le ${rang}\u1D49 mot de la période, au-delà des ${top} retenus : il n'entre dans aucun sujet.`,
+    palm_av_mot_sujet: (mot: string, rang: number, sujet: number) =>
+      `« ${mot} » est le ${rang}\u1D49 mot de la période : il fait partie du sujet n° ${sujet}, marqué ci-dessous.`,
+    palm_av_mot_suite: (mot: string, rang: number, sujet: number) =>
+      `« ${mot} » est le ${rang}\u1D49 mot de la période : sujet n° ${sujet}, dans la suite repliée.`,
+    palm_av_fantome: (rang: number) => `${rang}\u1D49 mot, hors des sujets`,
 
     // projection d'un pic sur la PCA gelée (Projection.tsx)
     proj_lbl_mot: "Mot",
@@ -538,7 +618,7 @@ export const textes = {
 
     // Trending: the topics of a day, a week or a month (words of the day), one bar per topic
     ong_desc_palmares:
-      "The topics of a day, a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. The bar measures how strong the excess is; a click shows the topic's words. Arrows or a date to change period.",
+      "The topics of a day, a week or a month in the press: words that appear far more often than during the previous twelve months, in at least five outlets, grouped when they rise on the same days in the same outlets. The bar measures how strong the excess is; a click shows the topic's words. Arrows or a date to change period; the advanced search opens the dates, the reference, the outlets and the thresholds, and tells where a word stands.",
     palm_pas_aria: "Trending step",
     palm_jour: "Day",
     palm_semaine: "Week",
@@ -579,15 +659,92 @@ export const textes = {
     // the "×25" tooltip: the rise in plain words, then the word's count over the period
     palm_quand: (pas: PasPalmares, enCours: boolean): string =>
       pas === "jour" ? (enCours ? "today" : "that day") : pas === "semaine" ? "this week" : "this month",
-    palm_fois_aide: (x: string, mot: string, n: string, quand: string) =>
-      `${x} compared with the previous twelve months\n“${mot}”: ${n} occurrences ${quand}`,
-    palm_inedit_aide: (mot: string, n: string, quand: string) =>
-      `almost absent from the previous twelve months\n“${mot}”: ${n} occurrences ${quand}`,
+    palm_fois_aide: (x: string, mot: string, n: string, quand: string, ref: string) =>
+      `${x} compared with ${ref}\n“${mot}”: ${n} occurrences ${quand}`,
+    palm_inedit_aide: (mot: string, n: string, quand: string, ref: string) =>
+      `almost absent from ${ref}\n“${mot}”: ${n} occurrences ${quand}`,
     palm_voir_courbe: (mot: string) => `See “${mot}” in Curves`,
     palm_autres: (n: number) => `Show the other ${n} topics`,
     palm_replier: "Back to the top twenty",
-    palm_methode:
-      "Words in excess compared with the previous twelve months (log-odds, Monroe et al. 2008), in at least five outlets; topics formed by the words' shared peaks, labels taken from bigrams. Method by Benoît de Courson (Gallicagram).",
+    palm_methode: (ref: string, medias: number) =>
+      `Words in excess compared with ${ref} (log-odds, Monroe et al. 2008), in at least ${medias === 1 ? "one outlet" : `${medias} outlets`}; topics formed by the words' shared peaks, labels taken from bigrams. Method by Benoît de Courson (Gallicagram).`,
+    // the advanced search: free dates, reference, outlets, thresholds and a followed word, computed on demand
+    palm_avancee: "Advanced search",
+    palm_av_periode: "Period",
+    palm_av_periode_aide:
+      "The days whose articles are read. Free dates are computed on demand: the longer the period, the longer the computation. Three months at most.",
+    palm_av_du: "From",
+    palm_av_au: "To",
+    palm_av_jours: (n: number) => `${n} day${n > 1 ? "s" : ""}`,
+    palm_av_dates_inversees: "The end comes before the start.",
+    palm_av_trop_long: (max: number) => `${max} days at most.`,
+    palm_av_comparer: "Compare with",
+    palm_av_comparer_aide:
+      "A word stands out when the press uses it far more during the period than during the reference. Twelve months: what comes back every year (All Saints, back to school) is already in the reference and does not stand out. Three months: those fixtures rise again. The previous week: only what changed from one week to the next stands out, and a lasting topic fades.",
+    palm_av_ref: (ref: ReferencePalmares) =>
+      ({ "12": "The previous twelve months", "3": "The previous three months", semaine: "The previous week" })[ref],
+    // after "compared with"
+    palm_av_ref_a: (ref: ReferencePalmares) =>
+      ({ "12": "the previous twelve months", "3": "the previous three months", semaine: "the previous week" })[ref],
+    palm_av_medias: "Outlets",
+    palm_av_medias_aide:
+      "The newspapers and channels whose articles are read. Each outlet is first compared with its own past (Le Monde with Le Monde, Le Figaro with Le Figaro), then the results are pooled. With fewer than five outlets, the “Outlets where the word stands out” setting drops to the number of outlets chosen.",
+    palm_av_compte: (n: number, total: number) => `${n} of ${total}`,
+    palm_av_tous: "All",
+    palm_av_principaux: "Main ones",
+    palm_av_fins: "Fine settings",
+    palm_av_retablir: "Restore the default values",
+    palm_av_defaut: (v: string) => `Default: ${v}`,
+    palm_av_reglage: (id: keyof ReglagesPalmares): string =>
+      ({
+        top: "Words kept",
+        min_titres: "Outlets where the word stands out",
+        ratio_min: "Minimum rise",
+        min_n: "Minimum occurrences",
+        z_min: "Excess threshold in an outlet",
+        seuil: "Grouping into topics",
+      })[id],
+    palm_av_reglage_aide: (id: keyof ReglagesPalmares): string =>
+      ({
+        top: "How many words are kept, from the most to the least in excess, before grouping them into topics. Higher, quieter topics appear, carried by words less and less in excess.",
+        min_titres:
+          "A word must be in excess in at least that many outlets at once. This is what sets aside the topics of a single title: its serial, a local case, a column. Lower, they enter the list; higher, only what the whole press talks about remains.",
+        ratio_min:
+          "All outlets together, the word must be used at least that many times more often than during the reference. Over millions of words, the tiny rise of a very common word can be statistically certain while saying nothing about the news: this threshold sets it aside.",
+        min_n:
+          "The word must appear at least that many times over the period, all outlets together: otherwise three uses against none as a rule would pass for an explosion. The same threshold applies to the two-word expressions used as topic labels.",
+        z_min:
+          "In each outlet, we measure how far the use of a word exceeds its habit, allowing for chance: a rare word varies a lot from one week to the next without meaning anything. A score of 2 can happen by chance, 5 almost never. Above the threshold, the word is “in excess” in that outlet (log-odds, Monroe et al. 2008).",
+        seuil:
+          "Two words form one topic when their peaks fall on the same days in the same outlets. Their likeness (a correlation) is 1 for identical peaks, 0 with no link at all; words are joined as long as it exceeds the threshold. Higher, topics are cut finer; lower, they merge into large topics.",
+      })[id],
+    palm_av_suivre: "Follow a word",
+    palm_av_suivre_aide:
+      "Gives the word's rank among all the words in excess over the period, even if it enters none of the topics shown. In a topic, its bar is marked; outside the topics, it appears dashed below the list.",
+    palm_av_suivre_vide: "a word, optional",
+    palm_av_calculer: "Compute",
+    palm_av_calcul: "Computing…",
+    palm_av_duree: "May take up to a minute",
+    palm_av_etat: (s: number | null) => (s === null ? "Advanced search" : `Advanced search · ${s} s`),
+    palm_av_titre: (de: string, a: string) => `From ${de} to ${a}`,
+    palm_av_phrase: (ref: string, de: string, a: string) => `Compared with ${ref} (${de} to ${a}).`,
+    palm_av_quand: "over the period",
+    palm_av_depart: "Choose the dates, the reference and the outlets, then “Compute”.",
+    palm_av_vide: "No topic with these settings.",
+    palm_av_sans_media: "Choose at least one outlet.",
+    // where the followed word stands
+    palm_av_mot_absent: (mot: string) => `“${mot}” appears in no article of the period.`,
+    palm_av_mot_rare: (mot: string, n: string, medias: number, min: number) =>
+      `“${mot}” appears ${n} times, in ${medias} outlet${medias > 1 ? "s" : ""}: ${min} are needed to enter the comparison.`,
+    palm_av_mot_sans_exces: (mot: string, x: string, medias: number) =>
+      `“${mot}” does not stand out: ${x} compared with the reference, in excess in ${medias} outlet${medias > 1 ? "s" : ""}.`,
+    palm_av_mot_hors: (mot: string, rang: number, top: number) =>
+      `“${mot}” is the ${ordinal(rang)} word of the period, beyond the ${top} kept: it enters no topic.`,
+    palm_av_mot_sujet: (mot: string, rang: number, sujet: number) =>
+      `“${mot}” is the ${ordinal(rang)} word of the period: it belongs to topic no. ${sujet}, marked below.`,
+    palm_av_mot_suite: (mot: string, rang: number, sujet: number) =>
+      `“${mot}” is the ${ordinal(rang)} word of the period: topic no. ${sujet}, in the folded rest.`,
+    palm_av_fantome: (rang: number) => `${ordinal(rang)} word, outside the topics`,
 
     proj_lbl_mot: "Word",
     proj_lbl_pca: "PCA",

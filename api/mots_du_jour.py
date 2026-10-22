@@ -95,8 +95,16 @@ def _ro(chemin):
     return sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
 
 
+def _fermer(*connexions):
+    """Ferme les connexions ouvertes par _connexions : sans cela, chaque calcul en laisse une centaine
+    derrière lui et le processus bute sur la limite de fichiers ouverts au bout de quelques recalculs."""
+    for c in connexions:
+        if c is not None:
+            c.close()
+
+
 def _connexions(corpus, version):
-    """(grosse, [tampons], mensuel ou None), en lecture seule ; une connexion par base et par thread."""
+    """(grosse, [tampons], mensuel ou None), en lecture seule ; ouvertes à chaque lecture, à refermer par _fermer."""
     e = version[corpus]
     mensuel = os.path.join(BASES_DIR, "mensuel", f"{corpus}.db")
     return (_ro(os.path.join(BASES_DIR, e["grosse"])), [_ro(os.path.join(BASES_DIR, t)) for t in e["tampons"]],
@@ -217,26 +225,29 @@ def _periode(corpus, version, fr, to, semaines=None, mois=None, source="sqlite")
     """Comptes exacts de tous les mots de la période dans ce titre (ids triés, n), total de mots, date
     maximale de la grosse base, et source utilisée. Par les cumuls si demandé et possible (semaines ou
     mois entiers, couverts par la grosse base), sinon une lecture par base (index par date)."""
-    g, tampons, _ = _connexions(corpus, version)
-    gmax = g.execute("SELECT max(date) FROM total_unigram").fetchone()[0] or 0
-    c = _cumuls_de(corpus) if source != "sqlite" and (semaines or mois) else None
-    if c and to <= c.meta["date_max"]:
-        if semaines and 0 <= semaines[0] and semaines[1] < c.meta["semaines"]:
-            return *c.comptes(*semaines), gmax, "cumuls"
-        if mois and 0 <= mois[0] and mois[1] < c.nb_mois:
-            return *c.comptes_mois(*mois), gmax, "cumuls"
-    if source == "cumuls":
-        if c:
-            return *_sommer([]), 0, gmax, "cumuls"   # titre dont la grosse base ne couvre pas la période : sans données
-        raise ValueError(f"{corpus} : pas de cumuls pour cette période (semaines lundi-dimanche ou mois civils entiers)")
-    lignes = []
-    n1 = 0
-    for c in [g, *tampons]:
-        if c is g and fr > gmax:
-            continue
-        lignes += c.execute(_par_date(c), (fr, to)).fetchall()
-        n1 += c.execute("SELECT coalesce(sum(total), 0) FROM total_unigram WHERE date BETWEEN ? AND ?", (fr, to)).fetchone()[0]
-    return *_sommer(lignes), n1, gmax, "sqlite"
+    g, tampons, mensuel = _connexions(corpus, version)
+    try:
+        gmax = g.execute("SELECT max(date) FROM total_unigram").fetchone()[0] or 0
+        c = _cumuls_de(corpus) if source != "sqlite" and (semaines or mois) else None
+        if c and to <= c.meta["date_max"]:
+            if semaines and 0 <= semaines[0] and semaines[1] < c.meta["semaines"]:
+                return *c.comptes(*semaines), gmax, "cumuls"
+            if mois and 0 <= mois[0] and mois[1] < c.nb_mois:
+                return *c.comptes_mois(*mois), gmax, "cumuls"
+        if source == "cumuls":
+            if c:
+                return *_sommer([]), 0, gmax, "cumuls"   # titre dont la grosse base ne couvre pas la période : sans données
+            raise ValueError(f"{corpus} : pas de cumuls pour cette période (semaines lundi-dimanche ou mois civils entiers)")
+        lignes = []
+        n1 = 0
+        for c in [g, *tampons]:
+            if c is g and fr > gmax:
+                continue
+            lignes += c.execute(_par_date(c), (fr, to)).fetchall()
+            n1 += c.execute("SELECT coalesce(sum(total), 0) FROM total_unigram WHERE date BETWEEN ? AND ?", (fr, to)).fetchone()[0]
+        return *_sommer(lignes), n1, gmax, "sqlite"
+    finally:
+        _fermer(g, mensuel, *tampons)
 
 
 def _reference(corpus, version, cand, ref_mois, source="sqlite"):
@@ -273,46 +284,52 @@ def _reference(corpus, version, cand, ref_mois, source="sqlite"):
     if source == "cumuls":
         raise ValueError(f"{corpus} : pas de cumuls pour cette référence")
     g, tampons, mensuel = _connexions(corpus, version)
-    m0, m1 = ref_mois
-    rd0, rd1 = m0 * 100 + 1, m1 * 100 + 31
-    tg = dict(g.execute("SELECT date / 100, sum(total) FROM total_unigram WHERE date BETWEEN ? AND ? GROUP BY date / 100",
-                        (rd0, rd1)))
-    tm = dict(mensuel.execute("SELECT mois, total FROM total_mois WHERE mois BETWEEN ? AND ?", (m0, m1))) if mensuel else {}
-    ok = sorted(m for m in tg if tm.get(m) == tg[m])
-    relus = sorted(m for m in tg if tm.get(m) != tg[m])
-    lignes = []
-    if ok:
-        mensuel.execute("CREATE TEMP TABLE c (w1 INTEGER PRIMARY KEY)")
-        mensuel.executemany("INSERT INTO temp.c VALUES (?)", [(i,) for i in cand.tolist()])
-        lignes += mensuel.execute("SELECT u.w1, sum(u.n) FROM temp.c JOIN unigram_mois u ON u.w1 = c.w1 "
-                                  f"AND u.mois IN ({','.join(map(str, ok))}) GROUP BY u.w1").fetchall()
-    sql = _par_date(g)
-    for m in relus:
-        lignes += g.execute(sql, (m * 100 + 1, m * 100 + 31)).fetchall()
-    for t in tampons:
-        lignes += t.execute(_par_date(t), (rd0, rd1)).fetchall()
-    y2 = _aligner(*_sommer(lignes), cand)
-    n2 = sum(tg.values()) + sum(t.execute("SELECT coalesce(sum(total), 0) FROM total_unigram WHERE date BETWEEN ? AND ?",
-                                          (rd0, rd1)).fetchone()[0] for t in tampons)
-    return y2, n2, relus, None
+    try:
+        m0, m1 = ref_mois
+        rd0, rd1 = m0 * 100 + 1, m1 * 100 + 31
+        tg = dict(g.execute("SELECT date / 100, sum(total) FROM total_unigram WHERE date BETWEEN ? AND ? GROUP BY date / 100",
+                            (rd0, rd1)))
+        tm = dict(mensuel.execute("SELECT mois, total FROM total_mois WHERE mois BETWEEN ? AND ?", (m0, m1))) if mensuel else {}
+        ok = sorted(m for m in tg if tm.get(m) == tg[m])
+        relus = sorted(m for m in tg if tm.get(m) != tg[m])
+        lignes = []
+        if ok:
+            mensuel.execute("CREATE TEMP TABLE c (w1 INTEGER PRIMARY KEY)")
+            mensuel.executemany("INSERT INTO temp.c VALUES (?)", [(i,) for i in cand.tolist()])
+            lignes += mensuel.execute("SELECT u.w1, sum(u.n) FROM temp.c JOIN unigram_mois u ON u.w1 = c.w1 "
+                                      f"AND u.mois IN ({','.join(map(str, ok))}) GROUP BY u.w1").fetchall()
+        sql = _par_date(g)
+        for m in relus:
+            lignes += g.execute(sql, (m * 100 + 1, m * 100 + 31)).fetchall()
+        for t in tampons:
+            lignes += t.execute(_par_date(t), (rd0, rd1)).fetchall()
+        y2 = _aligner(*_sommer(lignes), cand)
+        n2 = sum(tg.values()) + sum(t.execute("SELECT coalesce(sum(total), 0) FROM total_unigram WHERE date BETWEEN ? AND ?",
+                                              (rd0, rd1)).fetchone()[0] for t in tampons)
+        return y2, n2, relus, None
+    finally:
+        _fermer(g, mensuel, *tampons)
 
 
 def _series(corpus, version, top, jours, fr, to, gmax):
     """Comptes journaliers des mots du top sur la fenêtre, totaux journaliers, et bigrammes de la période
     commençant par un mot du top."""
-    g, tampons, _ = _connexions(corpus, version)
-    ids = top.tolist()
-    d0, d1 = jours[0], jours[-1]
-    serie, totaux, bi = [], [], []
-    for c in [g, *tampons]:
-        if c is g and d0 > gmax:
-            continue
-        serie += _par_paquets(c, "SELECT w1, date, n FROM unigram WHERE w1 IN ({ids}) AND date BETWEEN ? AND ?", ids, (d0, d1))
-        totaux += c.execute("SELECT date, total FROM total_unigram WHERE date BETWEEN ? AND ?", (d0, d1)).fetchall()
-        if not (c is g and fr > gmax):
-            bi += _par_paquets(c, "SELECT w1, w2, sum(n) FROM bigram WHERE w1 IN ({ids}) AND date BETWEEN ? AND ? GROUP BY w1, w2",
-                               ids, (fr, to))
-    return serie, totaux, bi
+    g, tampons, mensuel = _connexions(corpus, version)
+    try:
+        ids = top.tolist()
+        d0, d1 = jours[0], jours[-1]
+        serie, totaux, bi = [], [], []
+        for c in [g, *tampons]:
+            if c is g and d0 > gmax:
+                continue
+            serie += _par_paquets(c, "SELECT w1, date, n FROM unigram WHERE w1 IN ({ids}) AND date BETWEEN ? AND ?", ids, (d0, d1))
+            totaux += c.execute("SELECT date, total FROM total_unigram WHERE date BETWEEN ? AND ?", (d0, d1)).fetchall()
+            if not (c is g and fr > gmax):
+                bi += _par_paquets(c, "SELECT w1, w2, sum(n) FROM bigram WHERE w1 IN ({ids}) AND date BETWEEN ? AND ? GROUP BY w1, w2",
+                                   ids, (fr, to))
+        return serie, totaux, bi
+    finally:
+        _fermer(g, mensuel, *tampons)
 
 
 def _regrouper(C, unites, seuil):
@@ -393,14 +410,18 @@ def periodes_precalculees():
 
 def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, ratio_min=1.5, top=80, seuil=0.4,
                  dice_fusion=0.5, volume_min=20000, min_occ=1, tendance="passe_haut", network=False, processus=8,
-                 source="auto", fige=True):
-    """corpora : médias de version.json (None : tous) ; fr, to : 'AAAAMMJJ' ; source : auto, sqlite ou cumuls ;
-    fige=False : ne pas servir un résultat figé de bases/mots_du_jour (recalcul). Renvoie un dict sérialisable."""
+                 source="auto", fige=True, mot=None):
+    """corpora : médias de version.json (None : tous) ; fr, to : 'AAAAMMJJ' ; ref : mois de référence avant le mois
+    de début (entier), ou "semaine" (les sept jours avant fr) ; source : auto, sqlite ou cumuls ; fige=False : ne pas
+    servir un résultat figé de bases/mots_du_jour (recalcul) ; mot : un mot dont on veut la place sur la période
+    (clé "mot" du résultat, recalcul obligatoire). Renvoie un dict sérialisable."""
     if source not in ("auto", "sqlite", "cumuls"):
         raise ValueError("source doit être auto, sqlite ou cumuls")
+    if ref != "semaine" and not (isinstance(ref, int) and ref >= 1):
+        raise ValueError("ref doit être un nombre de mois ou semaine")
     cle = (tuple(corpora or ()), fr, to, ref, min_titres, z_min, min_n, ratio_min, top, seuil, dice_fusion, volume_min,
-           min_occ, tendance, network, source)
-    if fige:                 # les fichiers d'abord : un fichier refait la nuit prime sur la mémoire du processus
+           min_occ, tendance, network, source, mot)
+    if fige and not mot:     # les fichiers d'abord : un fichier refait la nuit prime sur la mémoire du processus
         pret = lire_precalcul(corpora, fr, to, network, source, ref=ref, min_titres=min_titres, z_min=z_min, min_n=min_n,
                               ratio_min=ratio_min, top=top, seuil=seuil, dice_fusion=dice_fusion, volume_min=volume_min,
                               min_occ=min_occ, tendance=tendance)
@@ -418,10 +439,13 @@ def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, rat
     if d_to < d_fr:
         raise ValueError("to doit être postérieur à from")
     ifr, ito = int(fr), int(to)
-    ref_mois = (_mois_plus(ifr // 100, -ref), _mois_plus(ifr // 100, -1))
+    # la référence : les `ref` mois civils avant le mois de début, ou la semaine (sept jours) avant le début
+    ref_mois = None if ref == "semaine" else (_mois_plus(ifr // 100, -ref), _mois_plus(ifr // 100, -1))
+    ref_jours = (d_fr - dt.timedelta(7), d_fr - dt.timedelta(1)) if ref == "semaine" else None
     with ThreadPoolExecutor(processus) as pool:
         resultat = _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_titres, z_min, min_n,
-                           ratio_min, top, seuil, dice_fusion, volume_min, min_occ, tendance, network, source)
+                           ratio_min, top, seuil, dice_fusion, volume_min, min_occ, tendance, network, source,
+                           ref_jours, mot)
     resultat["duree_s"] = round(time.time() - t0, 1)
     resultat["calcule"] = time.strftime("%Y-%m-%d %H:%M:%S")
     if d_to < dt.date.today() - dt.timedelta(1):       # période close : le résultat ne bougera plus
@@ -432,7 +456,8 @@ def mots_du_jour(corpora, fr, to, ref=12, min_titres=5, z_min=5.0, min_n=10, rat
 
 
 def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_titres, z_min, min_n,
-            ratio_min, top, seuil, dice_fusion, volume_min, min_occ, tendance, network, source):
+            ratio_min, top, seuil, dice_fusion, volume_min, min_occ, tendance, network, source,
+            ref_jours=None, mot=None):
     etapes = {}
     t = time.time()
 
@@ -455,8 +480,15 @@ def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_
     etapes["periode_s"] = round(time.time() - t, 1)
     t = time.time()
 
-    # 2b. référence : comptes des candidats sur les ref mois
-    res = list(pool.map(lambda c: _reference(c, version, cand, ref_mois, source), avec))
+    # 2b. référence : comptes des candidats sur les ref mois, ou sur les jours de ref_jours (même lecture
+    # que la période : cumuls si c'est une semaine entière, sinon SQLite)
+    if ref_jours:
+        rfr, rto = _int(ref_jours[0]), _int(ref_jours[1])
+        sem, moi = _semaines_entieres(*ref_jours), _mois_entiers(*ref_jours)
+        res = [(_aligner(r[0], r[1], cand), r[2], [], None)
+               for r in pool.map(lambda c: _periode(c, version, rfr, rto, sem, moi, source), avec)]
+    else:
+        res = list(pool.map(lambda c: _reference(c, version, cand, ref_mois, source), avec))
     Y1 = np.array([_aligner(*comptes[c], cand) for c in avec])
     Y2 = np.array([r[0] for r in res])
     n1 = np.array([total1[c] for c in avec], dtype=float)[:, None]
@@ -490,22 +522,27 @@ def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_
     for i in range(0, len(garde), 4 * top):         # résolution des mots par paquets, jusqu'à en avoir `top`
         bloc = garde[i:i + 4 * top]
         noms.update(voc.execute(f"SELECT id, word FROM token WHERE id IN ({','.join(str(cand[j]) for j in bloc)})"))
-        sel += [j for j in bloc if len(noms.get(int(cand[j]), "")) > 1 and re.search(r"[^\W\d_]", noms[int(cand[j])])
-                and noms[int(cand[j])] not in MOTS_CALENDRIER]
+        sel += [j for j in bloc if _retenu(noms.get(int(cand[j]), ""))]
         if len(sel) >= top:
             break
     sel = np.array(sel[:top], dtype=int)
     top_ids = cand[sel]
     K = len(sel)
+    infos = _infos_mot(mot, voc, cand, garde, stouffer, exces, ratio, y2, comptes, titres, noms) if mot else None
+    id_mot = infos.pop("_id", None) if infos else None
     etapes["scores_s"] = round(time.time() - t, 1)
     t = time.time()
     resultat = {
-        "periode": [fr, to], "reference": [str(ref_mois[0]), str(ref_mois[1])],
+        "periode": [fr, to],
+        "reference": [str(_int(ref_jours[0])), str(_int(ref_jours[1]))] if ref_jours else [str(ref_mois[0]), str(ref_mois[1])],
+        "reference_jours": (ref_jours[1] - ref_jours[0]).days + 1 if ref_jours else _jours_mois(*ref_mois),
         "titres": titres, "titres_sans_donnees": [c for c in corpora if c not in titres],
         "min_titres": int(min_t), "candidats": int(len(cand)),
         "mois_relus_dans_la_grosse_base": {c: [str(m) for m in v] for c, v in relus.items()},
         "reference_repli": repli,        # titres dont la référence = 52 semaines jusqu'à cette date (après t)
         "etapes": etapes, "source": {c: sources[c] for c in titres}}
+    if infos:
+        resultat["mot"] = infos
     if not K:
         voc.close()
         return {**resultat, "titres_grille": [], "groupes": [], **({"noeuds": [], "liens": []} if network else {})}
@@ -592,11 +629,53 @@ def _calcul(pool, version, corpora, fr, to, d_fr, d_to, ifr, ito, ref_mois, min_
                      for i in gr], "_indices": gr})
     sortie.sort(key=lambda s: -s["score"])
     groupe_de = {i: g for g, s in enumerate(sortie) for i in s.pop("_indices")}
+    if id_mot in pos_t:                 # le mot suivi est dans le top : son sujet (numéro à partir de 1)
+        infos["sujet"] = groupe_de[pos_t[id_mot]] + 1
     etapes["regroupement_s"] = round(time.time() - t, 1)
     resultat = {**resultat, "titres_grille": [c for c, r in zip(titres, reguliers) if r], "groupes": sortie}
     if network:
         resultat.update(_reseau(C, seuil, top_ids, noms, groupe_de, stouffer[sel], y1[sel], dice))
     return resultat
+
+
+def _retenu(w):
+    """Un mot qui peut entrer dans le top : au moins deux caractères dont une lettre, pas un nom de mois ni de jour."""
+    return len(w) > 1 and re.search(r"[^\W\d_]", w) is not None and w not in MOTS_CALENDRIER
+
+
+def _jours_mois(m0, m1):
+    """Nombre de jours du premier jour du mois m0 (AAAAMM) au dernier jour du mois m1."""
+    d0 = dt.date(m0 // 100, m0 % 100, 1)
+    d1 = (dt.date(m1 // 100, m1 % 100, 28) + dt.timedelta(4)).replace(day=1) - dt.timedelta(1)
+    return (d1 - d0).days + 1
+
+
+def _infos_mot(mot, voc, cand, garde, stouffer, exces, ratio, y2, comptes, titres, noms):
+    """Où se place `mot` sur la période : n (occurrences, tous titres), medias (titres où il apparaît) ; s'il est
+    candidat (présent dans assez de titres) : n_reference, titres_en_exces, ratio, score ; s'il passe les seuils :
+    rang parmi les mots retenus (1 = le plus en excès, les mots écartés par _retenu ne comptent pas). sujet est
+    posé plus tard par _calcul quand le mot entre dans le top. _id (interne) : son identifiant."""
+    infos = {"mot": mot, "n": 0, "medias": 0, "candidat": False, "rang": None, "sujet": None}
+    ligne = voc.execute("SELECT id FROM token WHERE word = ?", (mot,)).fetchone()
+    if not ligne:
+        return infos
+    wid = np.array([ligne[0]], dtype=np.int64)
+    par_titre = [int(_aligner(*comptes[c], wid)[0]) for c in titres]
+    infos.update(n=sum(par_titre), medias=sum(1 for n in par_titre if n), _id=int(wid[0]))
+    j = int(np.searchsorted(cand, wid[0]))
+    if j >= len(cand) or cand[j] != wid[0]:
+        return infos
+    infos.update(candidat=True, n_reference=int(y2[j]), titres_en_exces=int(exces[j]), ratio=round(float(ratio[j]), 2),
+                 score=round(float(stouffer[j]), 2))
+    pos = np.flatnonzero(garde == j)
+    if not len(pos):
+        return infos
+    avant = [int(cand[k]) for k in garde[:pos[0]]]
+    manquants = [i for i in avant if i not in noms]
+    for i in range(0, len(manquants), PAQUET):
+        noms.update(voc.execute(f"SELECT id, word FROM token WHERE id IN ({','.join(map(str, manquants[i:i + PAQUET]))})"))
+    infos["rang"] = 1 + sum(1 for i in avant if _retenu(noms.get(i, "")))
+    return infos
 
 
 def _reseau(C, seuil_c, top_ids, noms, groupe_de, score, n, dice, voisins=3):
