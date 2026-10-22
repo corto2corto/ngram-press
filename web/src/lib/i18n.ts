@@ -495,6 +495,7 @@ export const textes = {
       `« ${mot} » dans ${corpus} — ${mesure}`,
     col_periode: "Période",
     voir_donnees: "Voir les données",
+    telecharger_donnees: "Télécharger les données",
 
     // contact
     contact_etiquette: "À propos de l'auteur",
@@ -924,6 +925,7 @@ export const textes = {
       `“${mot}” in ${corpus} — ${mesure}`,
     col_periode: "Period",
     voir_donnees: "View the data",
+    telecharger_donnees: "Download the data",
 
     contact_etiquette: "About the author",
     contact_nom: "Corto",

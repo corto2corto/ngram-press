@@ -1,5 +1,37 @@
 # Journal du projet
 
+## 22/10/2026 — Courbes : « Télécharger les données » (CSV)
+- Demande : sous le graphe, télécharger en CSV ce qui a été demandé (par exemple « orange » du
+  1er au 31 janvier 2026). Maquette d'abord (artifact : le lien à côté de « Voir les données »,
+  même gris, souligné, accent au survol ; tableau replié et déplié ; aperçu du fichier). Retenu
+  tel quel, sans marqueur ni bloc supplémentaire.
+- Rien côté API : les séries sont déjà en mémoire dans le navigateur (`resultat.series`, les
+  mêmes valeurs que le tableau). `lib/csv.ts` : `seriesEnCsv` (une ligne par période ; par mot,
+  `_n`, `_total`, `_pour100k` quelle que soit la métrique affichée ; mot et média en préfixe
+  quand plusieurs médias se comparent ; virgule, point décimal, BOM UTF-8 pour Excel),
+  `nomFichierCsv` (`orange_leparisien_2026-01-01_2026-01-31.csv`, d'après la requête tracée,
+  bornes gardées dans `resultat`), `telechargerTexte` (Blob + lien éphémère).
+- Le bouton vit dans le `summary` pour rester sur sa ligne ; `preventDefault` sur le clic pour
+  ne pas déplier le tableau. Vérifié dans Chrome (téléchargement intercepté : nom, en-tête,
+  62 lignes pour « gilets jaunes » 2017–2021, tableau toujours replié). i18n FR/EN.
+
+## 22/10/2026 — « + » dans une URL tapée à la main : « | » accepté comme synonyme
+- Signalement : « les + ne marchent pas ». Vérifié : les jokers vont bien, et `mot=grève%2Bgrèves`
+  additionne (20minutes 2024 : 990 = 907 + 83) ; mais `mot=grève+grèves` tapé tel quel donne le
+  bigramme « grève grèves » à zéro, sans erreur. Dans une query string un « + » nu est une espace ;
+  le site (URLSearchParams), Swagger UI et le MCP (requests) l'encodent en `%2B`, pas l'humain.
+- Gallicagram : guni `/query` ne connaît pas le « + » (`%2B` → 0, gram vide) ; la somme du site
+  est faite par le Shiny en R, une requête par variante. Quand il écrit lui-même une URL avec une
+  somme (`source_rap`), il remplace « + » par « | ».
+- Lecture de l'URL brute côté API (`request.query_string`, `%2B` ou User-Agent des bibliothèques
+  comme indices) écrite, testée sur mini-base, puis abandonnée : le relais `/agora/` de l'API
+  Gallicagram passe `params=request.args` à requests (décodage Flask puis ré-encodage : le « + »
+  tapé est déjà une espace quand il nous arrive), et la réécriture Vercel change `%20` en « + »
+  (vu dans `agora_access.log` avec des requêtes marquées). L'information est détruite en amont.
+- Retenu : `analyser_serie` accepte « | » comme synonyme de « + » (survit à toute URL, `%7C`
+  préservé par Vercel et le relais). Swagger (`mot=grève|grèves` pour l'URL, `%2B` sinon),
+  docstring MCP. Le site garde « + » ; rien ne change pour lui.
+
 ## 22/10/2026 — Tendances : la recherche avancée (dates libres, référence, médias, seuils, mot suivi)
 - Maquettes d'abord (canevas Design, semaine du 12 au 18/10 calculée deux fois par l'API : 17 s
   avec douze mois de référence, 15 s avec trois) : A « Sur mesure » en quatrième pilule et bandeau,

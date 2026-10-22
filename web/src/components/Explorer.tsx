@@ -31,6 +31,7 @@ import { MEDIAS_PRINCIPAUX } from "@/lib/medias";
 import Aide from "@/components/Aide";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
+import { nomFichierCsv, seriesEnCsv, telechargerTexte } from "@/lib/csv";
 import Palmares from "@/components/Palmares";
 import Periode, { type Fonds } from "@/components/Periode";
 import Projection from "@/components/Projection";
@@ -161,6 +162,8 @@ export default function Explorer({ lang }: { lang: Lang }) {
   const [resultat, setResultat] = useState<{
     series: Serie[];
     corpus: string;
+    de: string; // bornes ISO de la requête tracée (nom du fichier CSV)
+    a: string;
     tirage: number;
   } | null>(null);
 
@@ -234,6 +237,8 @@ export default function Explorer({ lang }: { lang: Lang }) {
         setResultat((precedent) => ({
           series,
           corpus: formulaire.corpus,
+          de: iso(formulaire.de, "jour"),
+          a: iso(formulaire.a, "jour"),
           tirage: (precedent?.tirage ?? 0) + 1,
         }));
         setMessage(null);
@@ -572,7 +577,24 @@ export default function Explorer({ lang }: { lang: Lang }) {
           />
           {resultat && (
             <details className="tableau-conteneur" onPointerDownCapture={arreterDefile}>
-              <summary>{t.voir_donnees}</summary>
+              <summary>
+                {t.voir_donnees}
+                {/* le lien vit dans le résumé pour rester sur sa ligne ; son clic
+                    ne replie ni ne déplie le tableau */}
+                <button
+                  type="button"
+                  className="telecharger-donnees"
+                  onClick={(ev) => {
+                    ev.preventDefault();
+                    telechargerTexte(
+                      nomFichierCsv(resultat.series, resultat.corpus, resultat.de, resultat.a),
+                      seriesEnCsv(resultat.series),
+                    );
+                  }}
+                >
+                  {t.telecharger_donnees}
+                </button>
+              </summary>
               <DataTable series={resultat.series} lang={lang} metrique={metrique} />
             </details>
           )}
