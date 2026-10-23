@@ -944,6 +944,13 @@ main > section,
   font-variant-numeric: tabular-nums;
 }
 
+/* le champ de date natif (Tendances, recherche avancée) porte l'icône du calendrier à
+   droite de la valeur : plus large, et la valeur à gauche */
+.champ input[type="date"].date {
+  width: calc(10ch + 3.6rem);
+  text-align: left;
+}
+
 .champ input.date[aria-invalid="true"] {
   border-color: var(--accent);
   background: var(--anneau);
@@ -3230,28 +3237,31 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
   align-items: center;
   gap: 0.4rem;
   height: 1.75rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--bord);
+  padding: 0 0.8rem;
+  border: 1px solid var(--encre);
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--encre-2);
+  background: var(--encre);
+  color: var(--fond);
   font: inherit;
   font-size: 0.85rem;
+  font-weight: 550;
   cursor: pointer;
   transition:
-    color var(--duree-courte) ease,
-    border-color var(--duree-courte) ease;
+    opacity var(--duree-courte) ease,
+    transform 140ms var(--doux);
 }
 
 .bouton-partager:hover:not(:disabled) {
-  color: var(--encre);
-  border-color: var(--axe);
+  opacity: 0.85;
+}
+
+.bouton-partager:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .bouton-partager:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--anneau);
+  box-shadow: 0 0 0 2px var(--fond), 0 0 0 4px var(--anneau);
 }
 
 .bouton-partager:disabled {
