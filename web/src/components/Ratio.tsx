@@ -1,7 +1,7 @@
 "use client";
 
-// Usage relatif de deux expressions, média par média (onglet « Tests
-// statistiques ») : on tape deux mots et une période, l'API (route /ratio de
+// Usage relatif de deux expressions, média par média (onglet « Usage
+// relatif » de l'explorateur) : on tape deux mots et une période, l'API (route /ratio de
 // api/app_agora.py) somme sur chaque base les occurrences et le total de mots
 // de la période, et renvoie le rapport fréquence de A / fréquence de B. Graphe
 // en sucettes trié, un média par ligne, dans le même SVG maison que Chart.tsx.

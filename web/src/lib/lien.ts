@@ -1,12 +1,13 @@
-// L'état de l'explorateur dans l'adresse de la page : une courbe ou une période des
-// Tendances se rouvre telle quelle depuis un lien (le « Copier le lien » du panneau de
-// partage, et l'adresse qu'un lecteur colle sur un réseau). L'adresse s'écrit sans
-// navigation (history.replaceState) à chaque résultat affiché, jamais pendant le
-// défilement automatique ; elle se lit une fois, à l'arrivée sur la page.
+// L'état de la recherche dans l'adresse de la page : une courbe (page de l'outil) ou une
+// période des Tendances (page /tendances) se rouvre telle quelle depuis un lien (le
+// « Copier le lien » du panneau de partage, et l'adresse qu'un lecteur colle sur un
+// réseau). L'adresse s'écrit sans navigation (history.replaceState) à chaque résultat
+// affiché, jamais pendant le défilement automatique ; elle se lit une fois, à l'arrivée
+// sur la page. Un lien des Tendances posé sur l'outil est renvoyé vers leur page.
 //
-//   ?mots=lycéens,mobilisation&medias=le_monde,le_figaro&de=2026-09-15&a=2026-10-20&mesure=pour100k
-//   ?vue=tendances&pas=semaine&periode=2026-10-12
-//   ?vue=tendances&avancee=1&de=…&a=…&ref=12&medias=…&top=80&mot=lycéens
+//   /fr?mots=lycéens,mobilisation&medias=le_monde,le_figaro&de=2026-09-15&a=2026-10-20&mesure=pour100k
+//   /fr/tendances?vue=tendances&pas=semaine&periode=2026-10-12
+//   /fr/tendances?vue=tendances&avancee=1&de=…&a=…&ref=12&medias=…&top=80&mot=lycéens
 
 import { REGLAGES_DEFAUT, type PasPalmares, type ReferencePalmares, type ReglagesPalmares } from "@/lib/api";
 import { deIso, iso } from "@/lib/dates";

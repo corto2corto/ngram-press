@@ -80,6 +80,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
           aria={t.onglets_aria}
           onglets={[
             { href: `/${lang}`, libelle: t.onglet_outil },
+            { href: `/${lang}/tendances`, libelle: t.onglet_tendances },
             { href: `/${lang}/presidentielle-2027`, libelle: t.onglet_2027 },
             { href: `/${lang}/contact`, libelle: t.onglet_contact },
           ]}

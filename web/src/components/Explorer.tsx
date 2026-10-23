@@ -21,6 +21,7 @@
 // catalogue). Refermer la rangée garde la comparaison, le bouton reste bordé d'encre.
 
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import { chargerCatalogue, requeteSeries, type Resolution, type Serie } from "@/lib/api";
 import { deIso, iso, jour, resolutionAuto } from "@/lib/dates";
 import { DEFILE, DUREE_ETAPE, type ConfigDefile } from "@/lib/defilement";
@@ -36,7 +37,6 @@ import { ecrireLien, lireLien, type Lien } from "@/lib/lien";
 import DataTable from "@/components/DataTable";
 import SelecteurPas from "@/components/SelecteurPas";
 import { nomFichierCsv, seriesEnCsv, telechargerTexte } from "@/lib/csv";
-import Palmares from "@/components/Palmares";
 import Periode, { type Fonds } from "@/components/Periode";
 import Projection from "@/components/Projection";
 import CataloguePca from "@/components/CataloguePca";
@@ -45,10 +45,11 @@ import SelecteurMedia from "@/components/SelecteurMedia";
 
 type Message = "depart" | "chargement" | "erreur" | "vide" | "trop" | null;
 
-// les quatre modes de l'explorateur ; les Courbes, le Palmarès et les Tests sont
-// branchés sur l'API, les Évolutions posent leur formulaire et annoncent la suite
-type Mode = "courbes" | "palmares" | "evolutions" | "tests";
-const MODES: Mode[] = ["courbes", "palmares", "evolutions", "tests"];
+// les quatre modes de l'explorateur ; les Courbes, l'Usage relatif et les Tests sont
+// branchés sur l'API, les Évolutions posent leur formulaire et annoncent la suite.
+// Les Tendances ont leur propre page du site (/tendances, Tendances.tsx).
+type Mode = "courbes" | "ratio" | "evolutions" | "tests";
+const MODES: Mode[] = ["courbes", "ratio", "evolutions", "tests"];
 
 // pas possibles du CSV, du plus large au plus fin
 const PAS_CSV: Resolution[] = ["annee", "mois", "jour"];
@@ -69,11 +70,10 @@ async function chargerSeries(q: {
   );
   return lots.flatMap((lot, i) => lot.map((s) => ({ ...s, corpus: q.medias[i] })));
 }
-// les trois vues des Tests : la projection d'un pic sur la PCA gelée, le
-// catalogue des PCA de sauts (figures seules) et l'usage relatif de deux mots
-// média par média
-type VueTests = "projection" | "catalogue" | "ratio";
-const VUES_TESTS: VueTests[] = ["projection", "catalogue", "ratio"];
+// les deux vues des Tests : la projection d'un pic sur la PCA gelée et le
+// catalogue des PCA de sauts (figures seules)
+type VueTests = "projection" | "catalogue";
+const VUES_TESTS: VueTests[] = ["projection", "catalogue"];
 
 // astuces de syntaxe du panneau d'aide des Courbes : un exemple cliquable (il
 // remplit le champ des mots et trace, journal et bornes inchangés) et la clé
@@ -101,9 +101,12 @@ const ICONES: Record<Mode, ReactElement> = {
       <path d="M2 13.5 6.5 8l3 3L16 4.5" />
     </svg>
   ),
-  palmares: (
+  // sucettes de part et d'autre de l'axe du rapport 1 (le graphe de Ratio.tsx)
+  ratio: (
     <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-      <path d="M2.5 4.5h13M2.5 9h9M2.5 13.5h5.5" />
+      <path d="M9 2.5v13M9 6.5h4.5M9 11.5H4.5" />
+      <circle cx="14.5" cy="6.5" r="1.2" fill="currentColor" />
+      <circle cx="3.5" cy="11.5" r="1.2" fill="currentColor" />
     </svg>
   ),
   evolutions: (
@@ -120,6 +123,7 @@ const ICONES: Record<Mode, ReactElement> = {
 
 export default function Explorer({ lang }: { lang: Lang }) {
   const t = textes[lang];
+  const router = useRouter();
 
   // onglet actif ; les Courbes gardent leur état (elles sont masquées, pas
   // démontées) quand un autre mode est ouvert
@@ -278,14 +282,19 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [],
   );
 
-  // l'adresse d'arrivée (lib/lien.ts) : une courbe ou une période des Tendances à rouvrir
-  // telle quelle, lue une fois avant le catalogue ; le défilement ne part pas dans ce cas.
-  // Un lien vers les Tendances passe au Palmarès, qui s'y place lui-même.
+  // l'adresse d'arrivée (lib/lien.ts) : une courbe à rouvrir telle quelle, lue une fois
+  // avant le catalogue ; le défilement ne part pas dans ce cas. Un ancien lien vers les
+  // Tendances (« ?vue=tendances… » sur l'outil) renvoie à leur page, paramètres compris.
   const lienInitial = useRef<Lien | null | undefined>(undefined);
-  const [lienTendances, setLienTendances] = useState<Lien | null>(null);
   useEffect(() => {
-    if (lienInitial.current === undefined) lienInitial.current = lireLien(window.location.search);
-  }, []);
+    if (lienInitial.current !== undefined) return;
+    const lien = lireLien(window.location.search);
+    if (lien && lien.genre !== "courbes") {
+      router.replace(`/${lang}/tendances${window.location.search}`);
+      return;
+    }
+    lienInitial.current = lien;
+  }, [lang, router]);
 
   // au premier rendu : catalogue des corpus (noms et bornes, si l'API le sert).
   // Le premier tracé viendra du défilement, lancé une fois le corpus retenu connu.
@@ -358,9 +367,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
           setMotsTraces(lien.mots);
           setMetrique(lien.mesure);
         }
-      } else {
-        setMode("palmares");
-        setLienTendances(lien);
       }
       return;
     }
@@ -463,26 +469,6 @@ export default function Explorer({ lang }: { lang: Lang }) {
     [arreterDefile],
   );
 
-  // depuis les Tendances : le mot de tête d'un sujet passe dans les Courbes, sur l'année qui
-  // finit avec sa période (la référence de la méthode, puis le pic), dans le journal courant
-  const voirCourbe = useCallback(
-    (mot: string, fin: string) => {
-      arreterDefile();
-      const f = fondsParCorpus[corpus] ?? FONDS_DEFAUT;
-      const jusque = Math.min(f.hi, deIso(fin));
-      const depuis = Math.max(f.lo, jusque - 365);
-      // bornes posées d'un coup, pas au clavier : pas de délai de frappe
-      bornesPrecedentes.current = { de: depuis, a: jusque };
-      setDe(depuis);
-      setA(jusque);
-      setMots(mot);
-      setMotsTraces(mot);
-      setDemande((n) => n + 1);
-      setMode("courbes");
-    },
-    [arreterDefile, fondsParCorpus, corpus],
-  );
-
   // changer d'onglet compte comme une interaction : le défilement s'arrête
   const choisirMode = useCallback(
     (m: Mode) => {
@@ -493,8 +479,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
   );
 
   // ce que le bouton « Partager » de la carte emporte : la courbe affichée et le lien qui la
-  // rouvre (lib/lien.ts) ; l'adresse de la page le suit, hors défilement (les Tendances
-  // écrivent la leur)
+  // rouvre (lib/lien.ts) ; l'adresse de la page le suit, hors défilement
   const contenuCourbes: Contenu | null = resultat
     ? { genre: "courbes", series: resultat.series, corpus: resultat.corpus, metrique, resolution: resultat.resolution }
     : null;
@@ -716,11 +701,11 @@ export default function Explorer({ lang }: { lang: Lang }) {
         </figure>
       </div>
 
-      {/* ---- Tendances : les sujets d'une semaine ou d'un mois, tous médias (Palmares.tsx) ;
+      {/* ---- Usage relatif : deux mots comparés média par média (Ratio.tsx) ;
           la clé remonte le panneau à la bascule */}
-      {mode === "palmares" && (
-        <div key="palmares">
-          <Palmares lang={lang} voirCourbe={voirCourbe} lienInitial={lienTendances} actif={mode === "palmares"} />
+      {mode === "ratio" && (
+        <div key="ratio">
+          <Ratio lang={lang} />
         </div>
       )}
 
@@ -774,13 +759,7 @@ export default function Explorer({ lang }: { lang: Lang }) {
               </button>
             ))}
           </nav>
-          {vueTests === "projection" ? (
-            <Projection lang={lang} />
-          ) : vueTests === "catalogue" ? (
-            <CataloguePca lang={lang} />
-          ) : (
-            <Ratio lang={lang} />
-          )}
+          {vueTests === "projection" ? <Projection lang={lang} /> : <CataloguePca lang={lang} />}
         </div>
       )}
     </div>

@@ -137,7 +137,7 @@ export default function Palmares({
 }: {
   lang: Lang;
   voirCourbe: (mot: string, fin: string) => void;
-  // une période ou une recherche avancée à rouvrir à l'arrivée (lib/lien.ts, posé par Explorer.tsx)
+  // une période ou une recherche avancée à rouvrir à l'arrivée (lib/lien.ts, posé par Tendances.tsx)
   lienInitial?: Lien | null;
   // l'onglet est celui qu'on regarde : l'adresse de la page suit alors la période affichée
   actif?: boolean;
@@ -148,7 +148,7 @@ export default function Palmares({
   const [periodes, setPeriodes] = useState<PeriodesPalmares | null>(null);
   // la période en cours de chaque pas, lue la première fois que le pas s'affiche (null : rien de calculé)
   const [enCours, setEnCours] = useState<Partial<Record<Pas, Resultat | null>>>({});
-  // l'onglet se monte avec le lien d'arrivée déjà connu (Explorer.tsx le pose en même temps
+  // le panneau se monte avec le lien d'arrivée déjà connu (Tendances.tsx le pose en même temps
   // qu'il ouvre l'onglet) : le pas, la recherche avancée et son formulaire partent du lien
   const lien = useRef(lienInitial);
   const [pas, setPas] = useState<Pas>(lienInitial?.genre === "tendances" ? lienInitial.pas : "semaine");

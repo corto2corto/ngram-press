@@ -1,5 +1,22 @@
 # Journal du projet
 
+## 23/10/2026 — Tendances en page du site, « Usage relatif » en onglet de l'outil
+- Les Tendances quittent l'explorateur pour une page à elles (`/fr/tendances`, `/en/tendances`),
+  entre « Outil » et « Présidentielle 2027 » dans les onglets du site. `Tendances.tsx` lit
+  l'adresse d'arrivée (lib/lien.ts) puis monte `Palmares.tsx` ; « Voir « mot » dans les
+  Courbes » ouvre l'outil par un lien de courbe (le mot sur l'année qui finit avec la période,
+  dans Le Parisien, journal par défaut de l'outil). Les liens partagés se copient désormais
+  sur `/tendances?vue=tendances&…` ; un ancien lien posé sur l'outil (`/fr?vue=tendances…`)
+  y est renvoyé, paramètres compris (Explorer.tsx, router.replace).
+- À la place, l'explorateur ouvre « Usage relatif » (Ratio.tsx) en deuxième onglet, sorti des
+  Tests statistiques, qui gardent deux vues (Projection d'un pic, Catalogue des PCA).
+  Onglets : Courbes · Usage relatif · Évolutions · Tests statistiques. Pictogramme en
+  sucettes de part et d'autre de l'axe du rapport 1.
+- i18n FR/EN : `onglet_tendances`, `tend_titre`, `tend_intro`, `ong_ratio` ; `ong_palmares` et
+  `vue_ratio` retirés. Vérifié en local : les deux pages, la bascule des onglets, la
+  redirection d'un ancien lien, le passage Tendances → Courbes, la version anglaise.
+  Rien ne change côté API : la mise en ligne tient au déploiement Vercel du front.
+
 ## 23/10/2026 — Jokers : les formes élidées manquaient (« austérit* » perdait « d'austérité »)
 - Captures de Corto sur « Usage relatif », Le Monde 2023–2025 contre « ukraine » : « austérité »
   965 occurrences, « austérit* » 139. Origine : la tokenisation garde l'apostrophe collée

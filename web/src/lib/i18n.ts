@@ -78,8 +78,12 @@ export const textes = {
     // onglets du site, sous l'en-tête (Onglets.tsx) : une page par onglet
     onglets_aria: "Pages du site",
     onglet_outil: "Outil",
+    onglet_tendances: "Tendances",
     onglet_2027: "Présidentielle 2027",
     onglet_contact: "Contact",
+    // page des Tendances (tendances/page.tsx) : hero au-dessus du panneau (Palmares.tsx)
+    tend_titre: "Tendances",
+    tend_intro: "Les sujets d'un jour, d'une semaine ou d'un mois dans la presse française.",
 
     // page « Présidentielle 2027 » (Presidentielle.tsx)
     p27_titre: "Présidentielle 2027",
@@ -153,7 +157,7 @@ export const textes = {
     explorateur_reduire: "Réduire l'explorateur",
     ong_aria: "Modes de l'explorateur",
     ong_courbes: "Courbes",
-    ong_palmares: "Tendances",
+    ong_ratio: "Usage relatif",
     ong_evolutions: "Évolutions",
     ong_tests: "Tests statistiques",
     // l'aide d'un formulaire (Aide.tsx) : le « ? » à côté du bouton ouvre un
@@ -184,7 +188,7 @@ export const textes = {
     btn_tester: "Tester",
     avenir_note: "Cette vue arrive bientôt : le formulaire est posé, la méthode suit.",
 
-    // Tendances : les sujets d'un jour, d'une semaine ou d'un mois (mots du jour), une barre par sujet
+    // Tendances (page /tendances) : les sujets d'un jour, d'une semaine ou d'un mois (mots du jour), une barre par sujet
     ong_desc_palmares:
       "Les sujets d'un jour, d'une semaine ou d'un mois dans la presse : les mots qui apparaissent bien plus que pendant les douze mois précédents, dans au moins cinq médias, regroupés quand ils montent les mêmes jours dans les mêmes journaux. La barre mesure la force de l'excès ; un clic montre les mots du sujet. Flèches ou date pour changer de période ; la recherche avancée ouvre les dates, la référence, les médias et les seuils, et dit où se place un mot.",
     palm_pas_aria: "Pas des tendances",
@@ -412,9 +416,8 @@ export const textes = {
     arch_occ: (n: string) => `${n} occ. au pic`,
     arch_proj: (p: string) => `proj. ${p}`,
 
-    // usage relatif de deux expressions, média par média (Ratio.tsx) : troisième
-    // vue de l'onglet Tests statistiques, graphe en sucettes trié
-    vue_ratio: "Usage relatif",
+    // usage relatif de deux expressions, média par média (Ratio.tsx) : deuxième
+    // onglet de l'explorateur (ong_ratio), graphe en sucettes trié
     ong_desc_ratio:
       "Compare l'usage de deux mots dans chaque média : le rapport de leurs fréquences sur la "
       + "période, un média par ligne, du plus grand au plus petit.",
@@ -570,8 +573,11 @@ export const textes = {
 
     onglets_aria: "Site pages",
     onglet_outil: "Tool",
+    onglet_tendances: "Trending",
     onglet_2027: "Presidential 2027",
     onglet_contact: "Contact",
+    tend_titre: "Trending",
+    tend_intro: "The topics of a day, a week or a month in the French press.",
 
     p27_titre: "Presidential 2027",
     p27_intro:
@@ -635,7 +641,7 @@ export const textes = {
     explorateur_reduire: "Collapse the explorer",
     ong_aria: "Explorer modes",
     ong_courbes: "Curves",
-    ong_palmares: "Trending",
+    ong_ratio: "Relative usage",
     ong_evolutions: "Trends",
     ong_tests: "Statistical tests",
     aide_aria: "Help on this mode",
@@ -891,7 +897,6 @@ export const textes = {
     arch_occ: (n: string) => `${n} occ. at the peak`,
     arch_proj: (p: string) => `proj. ${p}`,
 
-    vue_ratio: "Relative usage",
     ong_desc_ratio:
       "Compare the usage of two words in each outlet: the ratio of their frequencies over the "
       + "period, one outlet per row, from largest to smallest.",
