@@ -214,10 +214,13 @@ def analyser_serie(gram):
 def variantes(tokens):
     # formes à additionner : l'expression, puis chaque mot élidable remplacé par ses formes
     # élidées, un mot à la fois (« pouvoir achat » -> « pouvoir d'achat », pas les deux mots).
-    # Un mot à joker n'est pas élidé : « é*» couvre déjà ce qu'il couvre.
+    # Un mot à joker est élidé comme un autre : un GLOB est ancré au début du mot, « austérit* »
+    # ne voit pas « d'austérité » (558 des 965 occurrences dans Le Monde 2023-2025), d'où
+    # « l'austérit* », « d'austérit* », « n'austérit* » en plus ; les formes se recoupent sans
+    # double compte (UNION dans serie), chaque motif reste soumis à MAX_FORMES.
     formes = [tokens]
     for i, t in enumerate(tokens):
-        if _VOYELLE.match(t) and not any(j in t for j in JOKERS):
+        if _VOYELLE.match(t):
             formes += [tokens[:i] + [e + t] + tokens[i + 1:] for e in ELISIONS]
     return formes
 

@@ -1,5 +1,19 @@
 # Journal du projet
 
+## 23/10/2026 — Jokers : les formes élidées manquaient (« austérit* » perdait « d'austérité »)
+- Captures de Corto sur « Usage relatif », Le Monde 2023–2025 contre « ukraine » : « austérité »
+  965 occurrences, « austérit* » 139. Origine : la tokenisation garde l'apostrophe collée
+  (« d'austérité » est un mot à part), un mot en clair commençant par une voyelle additionne ses
+  formes l', d', n', mais `variantes()` excluait les motifs à joker (« é* couvre déjà ce qu'il
+  couvre »), ce qui est faux : un GLOB est ancré au début du mot. Vérifié par l'API :
+  d'austérité 558, l'austérité 304, le mot nu une centaine. Le joker perdait neuf dixièmes des
+  occurrences dès que le mot commence par une voyelle ; invisible sur « grèv* ».
+- Corrigé : un motif à joker est élidé comme un mot (« l'austérit* », « d'austérit* »,
+  « n'austérit* » en plus), les recoupements sont absorbés par le UNION de `serie()`, chaque
+  motif reste soumis à `MAX_FORMES`. Mini-base : « grèv* » 45, « grèv*+grève » 45, « é* » 0 sans
+  erreur. Benoît a la même règle (élision du mot tel que tapé seulement), d'où sans doute son
+  observation.
+
 ## 22/10/2026 — Partager un graphe : PNG aux formats des réseaux, lien qui rouvre la recherche
 - Demande : un bouton « Partager » façon Canva sous les courbes et les tendances, pour télécharger
   l'image au bon format (story, publication, carré…) avec un contenu adapté (5 à 10 tendances,
