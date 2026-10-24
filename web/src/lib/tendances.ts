@@ -5,15 +5,11 @@
 import type { MotPalmares, PasPalmares, SujetPalmares } from "@/lib/api";
 
 // barres en couleurs ; les suivantes sont repliées
-export const TOP = 20;
-// la chaleur, du premier sujet au vingtième (le rouge brique et le jaune paille d'origine, dix
-// teintes étirées sur vingt rangs). Texte blanc sur les cinq premières (contraste ≥ 3,6:1 en
-// gras 20 px), à l'encre ensuite ; les barres repliées en gris
-export const CHALEUR = [
-  "#b8350b", "#c33f0d", "#ce4910", "#d65414", "#de5f19", "#e46b1e", "#e87724", "#ec832c", "#f09034", "#f29b3f",
-  "#f4a74b", "#f5b159", "#f6bb68", "#f7c578", "#f8cf8a", "#f9d79b", "#fadea8", "#fae3b5", "#fbe8c0", "#fbecca",
-];
-export const TEXTE_BLANC = 5;
+export const TOP = 10;
+// la chaleur, du premier sujet au dixième, du rouge brique au jaune paille. Texte blanc sur les
+// trois premières (contraste ≥ 3:1 en gras 20 px), à l'encre ensuite ; les barres repliées en gris
+export const CHALEUR = ["#b8350b", "#cf4a10", "#e0611a", "#ea7b26", "#f19538", "#f5ad52", "#f7c272", "#f9d698", "#fae3b4", "#fbecca"];
+export const TEXTE_BLANC = 3;
 // la barre la plus courte, en part de la plus longue
 export const PART_MIN = 0.24;
 

@@ -7,7 +7,7 @@
 // la réponse est immédiate. La période en cours (/mots_du_jour_en_cours, recalculée toutes les
 // deux heures) vient au bout des flèches, et l'onglet s'ouvre sur la semaine en cours. Une période
 // finie hier ou avant-hier porte « Provisoire » : des articles en retard arrivent encore. Les
-// vingt premiers sujets sont de grandes barres numérotées, longues selon la force de l'excès,
+// dix premiers sujets sont de grandes barres numérotées, longues selon la force de l'excès,
 // colorées du rouge brique (le premier) au jaune paille, les suivants repliés en gris ; au bout,
 // le « ×25 » du mot de tête (bulle au survol) et « Nouveau » si la période d'avant ne l'avait
 // pas. Un clic sur la barre montre les mots du sujet en italique et mène aux Courbes.

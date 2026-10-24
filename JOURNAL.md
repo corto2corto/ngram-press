@@ -1,5 +1,14 @@
 # Journal du projet
 
+## 24/10/2026 — Tendances : dix sujets en couleur au lieu de vingt
+- Demande : la page des Tendances était trop longue. `TOP` passe de 20 à 10 (lib/tendances.ts) :
+  dix barres en couleur, les suivantes derrière « Voir les N autres sujets », en gris comme
+  avant. La chaleur reprend ses dix teintes d'origine, du rouge brique au jaune paille, texte
+  blanc sur les trois premières ; les cartes de partage (5 à 10 barres) prennent les mêmes.
+- Un mot suivi en recherche avancée au-delà du 10ᵉ sujet est dit « dans la suite repliée ».
+  i18n FR/EN : « Revenir aux dix premiers » / « Back to the top ten ». Vérifié en local sur la
+  semaine en cours (30 sujets) : dix barres, puis les vingt autres en gris au dépliage.
+
 ## 23/10/2026 — Tendances en page du site, « Usage relatif » en onglet de l'outil
 - Les Tendances quittent l'explorateur pour une page à elles (`/fr/tendances`, `/en/tendances`),
   entre « Outil » et « Présidentielle 2027 » dans les onglets du site. `Tendances.tsx` lit

@@ -238,7 +238,7 @@ export const textes = {
       `presque absent ${ref.replace(/^(aux|à la) /, (m) => (m === "aux " ? "des " : "de la "))}\n« ${mot} » : ${n} occurrences ${quand}`,
     palm_voir_courbe: (mot: string) => `Voir « ${mot} » dans les Courbes`,
     palm_autres: (n: number) => `Voir les ${n} autres sujets`,
-    palm_replier: "Revenir aux vingt premiers",
+    palm_replier: "Revenir aux dix premiers",
     palm_methode: (ref: string, medias: number) =>
       `Mots en excès par rapport ${ref} (log-odds, Monroe et al. 2008), dans au moins ${medias === 1 ? "un média" : `${medias} médias`} ; sujets formés par les pics communs des mots, étiquettes tirées des bigrammes. Méthode de Benoît de Courson (Gallicagram).`,
     // la recherche avancée : dates libres, référence, médias, seuils et mot suivi, calculée à la demande
@@ -717,7 +717,7 @@ export const textes = {
       `almost absent from ${ref}\n“${mot}”: ${n} occurrences ${quand}`,
     palm_voir_courbe: (mot: string) => `See “${mot}” in Curves`,
     palm_autres: (n: number) => `Show the other ${n} topics`,
-    palm_replier: "Back to the top twenty",
+    palm_replier: "Back to the top ten",
     palm_methode: (ref: string, medias: number) =>
       `Words in excess compared with ${ref} (log-odds, Monroe et al. 2008), in at least ${medias === 1 ? "one outlet" : `${medias} outlets`}; topics formed by the words' shared peaks, labels taken from bigrams. Method by Benoît de Courson (Gallicagram).`,
     // the advanced search: free dates, reference, outlets, thresholds and a followed word, computed on demand

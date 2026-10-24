@@ -2624,7 +2624,7 @@ details[open] .defilement tbody tr:nth-child(n + 8) {
 
 /* les sujets en grandes barres numérotées : longueur = force de l'excès (--part, de 0,24 à 1,
    la place du « ×25 » et de « Nouveau » réservée), teinte = rang, du rouge brique au jaune
-   paille sur les vingt premières, gris ensuite (--fond, --texte posés par Palmares.tsx) ; elles
+   paille sur les dix premières, gris ensuite (--fond, --texte posés par Palmares.tsx) ; elles
    poussent en vague au chargement */
 .tendances {
   margin: 0;
